@@ -4,4 +4,5 @@ Prompt Bubbles is a static website that presents a curated collection of ChatGPT
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is proprietary software. All rights reserved by Marco Polo Research Lab.  
+See the [LICENSE](./LICENSE) file for details.
