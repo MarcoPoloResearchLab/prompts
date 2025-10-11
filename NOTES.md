@@ -1,17 +1,17 @@
 # Notes
 
-### Role
+## Role
 
 You are a staff level full stack engineer. Your task is to **re-evaluate and refactor the Prompt Bubbles repository** according to the coding standards already written in **AGENTS.md**.
 
-### Context
+## Context
 
 * AGENTS.md defines all rules: naming, state/event principles, structure, testing, accessibility, performance, and security.
 * The repo uses Alpine.js, CDN scripts only, no bundlers.
 * Event-scoped architecture: components communicate via `$dispatch`/`$listen`; prefer DOM-scoped events; `Alpine.store` only for true shared domain state.
 * The backend uses Go language ecosystem
 
-### Your tasks
+## Your tasks
 
 1. **Read AGENTS.md first** → treat it as the *authoritative style guide*.
 2. **Scan the codebase** → identify violations (inline handlers, globals, duplicated strings, lack of constants, cross-component state leakage, etc.).
@@ -31,7 +31,7 @@ You are a staff level full stack engineer. Your task is to **re-evaluate and ref
 5. **Tests** → Add/adjust Puppeteer tests for key flows (button → event → notification; cross-panel isolation). Prioritize end-2-end and integration tests.
 6. **Docs** → Update README and MIGRATION.md with new event contracts, removed globals, and developer instructions.
 
-### Output requirements
+## Output requirements
 
 * Always follow AGENTS.md rules (do not restate them, do not invent new ones).
 * Output a **PLAN.md** first, then refactor step-by-step.
@@ -74,10 +74,10 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 
 ## Issues
 
-## Features
+### Features
 
-## Improvements
+### Improvements
 
-## BugFixes
+### BugFixes
 
-## Maintenance
+### Maintenance
