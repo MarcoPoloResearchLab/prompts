@@ -1,0 +1,14 @@
+{
+  "name": "prompt-bubbles",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "test": "node tests/run-tests.mjs"
+  },
+  "devDependencies": {
+    "puppeteer": "^22.8.1"
+  }
+}

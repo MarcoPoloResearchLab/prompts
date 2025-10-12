@@ -89,4 +89,4 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 
 ### Maintenance
 
-- [ ] [PB-01] Write tests covering current functionality and the layout blueprint. Add test coverage and get to the high degree of test coverage
+- [X] [PB-01] Write tests covering current functionality and the layout blueprint. Add test coverage and get to the high degree of test coverage
