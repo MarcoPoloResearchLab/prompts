@@ -9,6 +9,7 @@ const COPY_BUTTON_SELECTOR = "[data-test='copy-button']";
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
+const BRAND_ACCENT_COLOR = "#1976d2";
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -188,6 +189,29 @@ export const run = async ({ browser, baseUrl }) => {
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForSelector(CARD_SELECTOR);
+
+  const faviconMetadata = await page.evaluate(() => {
+    const iconLink = document.querySelector("link[rel='icon']");
+    const maskLink = document.querySelector("link[rel='mask-icon']");
+    return {
+      iconHref: iconLink?.getAttribute("href") ?? "",
+      iconType: iconLink?.getAttribute("type") ?? "",
+      maskHref: maskLink?.getAttribute("href") ?? "",
+      maskColor: maskLink?.getAttribute("color") ?? ""
+    };
+  });
+  assertEqual(
+    faviconMetadata.iconHref.includes("assets/img/favicon.svg"),
+    true,
+    "Favicon link should point to the SVG asset"
+  );
+  assertEqual(faviconMetadata.iconType, "image/svg+xml", "Favicon type should declare SVG");
+  assertEqual(
+    faviconMetadata.maskHref.includes("assets/img/favicon.svg"),
+    true,
+    "Mask icon should reuse the SVG asset"
+  );
+  assertEqual(faviconMetadata.maskColor, BRAND_ACCENT_COLOR, "Mask icon color should align with brand palette");
 
   const initialCardIds = await getVisibleCardIds(page);
   assertEqual(initialCardIds.length > 0, true, "Initial load should render cards");
