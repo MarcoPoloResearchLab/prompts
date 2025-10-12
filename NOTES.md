@@ -92,6 +92,6 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 ### Maintenance
 
 - [X] [PB-01] Write tests covering current functionality and the layout blueprint. Add test coverage and get to the high degree of test coverage
-- [ ] [PB-03] Clicking on copy or share doesnt produce a message withing the card to indicate that the card was copied or shared
+- [X] [PB-03] Clicking on copy or share doesnt produce a message withing the card to indicate that the card was copied or shared
 - [ ] [PB-04] Theme doesnt fully switch the colors -- the background, the headers, the search the bagdes stay the same 
 - [ ] [PB-05] There are multiple X signs in the search prompt when the prompt is entered at the end of the prompt -- as a button and as an inline x. only leave the inline x

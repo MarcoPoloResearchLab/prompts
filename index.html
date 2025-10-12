@@ -131,27 +131,40 @@
                       x-init="renderPromptText($el, prompt.text)"
                     ></div>
 
-                    <div class="mt-auto d-flex justify-content-between align-items-center gap-2">
-                      <button
-                        type="button"
-                        class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
-                        data-test="copy-button"
-                        x-bind:aria-label="`${strings.copyAriaLabelPrefix} ${prompt.title}`"
-                        x-on:click="copyCard($event)"
-                      >
-                        <span class="material-icons-outlined" aria-hidden="true" x-text="icon('copy')"></span>
-                        <span x-text="strings.copyButtonLabel"></span>
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
-                        data-test="share-button"
-                        x-bind:aria-label="`${strings.shareAriaLabelPrefix} ${prompt.title}`"
-                        x-on:click="shareCard($event, prompt)"
-                      >
-                        <span class="material-icons-outlined" aria-hidden="true" x-text="icon('share')"></span>
-                        <span x-text="strings.shareButtonLabel"></span>
-                      </button>
+                    <div class="mt-auto d-flex flex-column gap-2">
+                      <template x-if="cardFeedbackById[prompt.id]">
+                        <p
+                          class="small fw-semibold mb-0"
+                          data-test="card-feedback"
+                          role="status"
+                          aria-live="polite"
+                          x-bind:class="cardFeedbackClass(prompt.id)"
+                          x-text="cardFeedbackById[prompt.id].message"
+                          x-transition.opacity
+                        ></p>
+                      </template>
+                      <div class="d-flex justify-content-between align-items-center gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
+                          data-test="copy-button"
+                          x-bind:aria-label="`${strings.copyAriaLabelPrefix} ${prompt.title}`"
+                          x-on:click="copyCard($event)"
+                        >
+                          <span class="material-icons-outlined" aria-hidden="true" x-text="icon('copy')"></span>
+                          <span x-text="strings.copyButtonLabel"></span>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+                          data-test="share-button"
+                          x-bind:aria-label="`${strings.shareAriaLabelPrefix} ${prompt.title}`"
+                          x-on:click="shareCard($event, prompt)"
+                        >
+                          <span class="material-icons-outlined" aria-hidden="true" x-text="icon('share')"></span>
+                          <span x-text="strings.shareButtonLabel"></span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </article>

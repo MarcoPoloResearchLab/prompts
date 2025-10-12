@@ -42,7 +42,8 @@ export const STRINGS = Object.freeze({
 
 export const TIMINGS = Object.freeze({
   searchDebounceMs: 180,
-  toastDurationMs: 1800
+  toastDurationMs: 1800,
+  cardFeedbackDurationMs: 2400
 });
 
 export const ICONS = Object.freeze({

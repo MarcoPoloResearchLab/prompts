@@ -10,6 +10,9 @@ const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
 const BRAND_ACCENT_COLOR = "#1976d2";
+const CARD_FEEDBACK_SELECTOR = "[data-test='card-feedback']";
+const COPY_FEEDBACK_MESSAGE = "Prompt copied \u2713";
+const SHARE_FEEDBACK_MESSAGE = "Link copied \u2713";
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -59,6 +62,26 @@ const waitForLinkedCard = (page, cardId) =>
     {},
     CARD_SELECTOR,
     cardId
+  );
+
+const waitForCardFeedback = (page, cardId, expectedMessage) =>
+  page.waitForFunction(
+    (cardSelector, feedbackSelector, id, message) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(id)}`);
+      if (!card) {
+        return false;
+      }
+      const feedback = card.querySelector(feedbackSelector);
+      if (!feedback) {
+        return false;
+      }
+      return feedback.textContent?.trim() === message;
+    },
+    {},
+    CARD_SELECTOR,
+    CARD_FEEDBACK_SELECTOR,
+    cardId,
+    expectedMessage
   );
 
 const stubClipboard = async (page) => {
@@ -214,6 +237,7 @@ export const run = async ({ browser, baseUrl }) => {
   assertEqual(faviconMetadata.maskColor, BRAND_ACCENT_COLOR, "Mask icon color should align with brand palette");
 
   const initialCardIds = await getVisibleCardIds(page);
+  const adjacentCardId = initialCardIds.find((identifier) => identifier !== "p01") ?? "";
   assertEqual(initialCardIds.length > 0, true, "Initial load should render cards");
 
   const searchScenarios = [
@@ -301,18 +325,35 @@ export const run = async ({ browser, baseUrl }) => {
   });
   await clickCardButton(page, "p01", "copy");
   await waitForToastMessage(page, "Prompt copied");
+  await waitForCardFeedback(page, "p01", COPY_FEEDBACK_MESSAGE);
   const copiedText = await getClipboardText(page);
   assertEqual(
     copiedText.includes("Summarize the following bug/incident"),
     true,
     "Copy action should write card text"
   );
+  if (adjacentCardId) {
+    const adjacentCardHasFeedback = await page.evaluate(
+      (cardSelector, feedbackSelector, identifier) => {
+        const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+        if (!card) {
+          return false;
+        }
+        return Boolean(card.querySelector(feedbackSelector));
+      },
+      CARD_SELECTOR,
+      CARD_FEEDBACK_SELECTOR,
+      adjacentCardId
+    );
+    assertEqual(adjacentCardHasFeedback, false, "Copy feedback should not leak into other cards");
+  }
 
   await page.evaluate(() => {
     window.__copiedText = "";
   });
   await clickCardButton(page, "p01", "share");
   await waitForToastMessage(page, "Link copied");
+  await waitForCardFeedback(page, "p01", SHARE_FEEDBACK_MESSAGE);
   const shareText = await getClipboardText(page);
   assertEqual(shareText.endsWith("#p01"), true, "Share button should copy card URL");
 

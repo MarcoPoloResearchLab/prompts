@@ -1,6 +1,6 @@
 // @ts-check
 
-import { EVENTS, ICONS, STORAGE_KEYS, STRINGS, TAGS } from "../constants.js";
+import { EVENTS, ICONS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
 import { createPlaceholderFragment, resolvePlaceholderText } from "../core/placeholders.js";
 import { createLogger } from "../utils/logging.js";
 import { escapeIdentifier } from "../utils/dom.js";
@@ -13,6 +13,11 @@ import { writeText, writeUrl } from "../utils/clipboard.js";
 const DEFAULT_FILTERS = Object.freeze({
   searchText: "",
   tag: TAGS.all
+});
+
+const CARD_FEEDBACK_VARIANTS = Object.freeze({
+  copy: "text-success",
+  share: "text-info"
 });
 
 /**
@@ -30,6 +35,8 @@ export function AppShell(dependencies) {
     filteredPrompts: /** @type {Prompt[]} */ ([]),
     tags: /** @type {string[]} */ ([]),
     filters: /** @type {PromptFilters} */ ({ ...DEFAULT_FILTERS }),
+    cardFeedbackById: Object.create(null),
+    cardFeedbackTimers: Object.create(null),
     init() {
       this.restoreFilters();
       this.$watch("filters.searchText", () => {
@@ -118,6 +125,27 @@ export function AppShell(dependencies) {
     renderPromptText(textContainer, content) {
       textContainer.replaceChildren(createPlaceholderFragment(content));
     },
+    setCardFeedback(cardId, message, variantKey) {
+      if (typeof cardId !== "string" || cardId.length === 0) {
+        logger.error("Card feedback requested without identifier");
+        return;
+      }
+      const nextClassName = CARD_FEEDBACK_VARIANTS[variantKey] ?? CARD_FEEDBACK_VARIANTS.copy;
+      this.cardFeedbackById = {
+        ...this.cardFeedbackById,
+        [cardId]: { message, className: nextClassName }
+      };
+      const activeTimer = this.cardFeedbackTimers[cardId];
+      if (typeof activeTimer === "number") {
+        window.clearTimeout(activeTimer);
+      }
+      this.cardFeedbackTimers[cardId] = window.setTimeout(() => {
+        const remainingFeedback = { ...this.cardFeedbackById };
+        delete remainingFeedback[cardId];
+        this.cardFeedbackById = remainingFeedback;
+        delete this.cardFeedbackTimers[cardId];
+      }, TIMINGS.cardFeedbackDurationMs);
+    },
     /**
      * @param {Event} event
      */
@@ -127,6 +155,11 @@ export function AppShell(dependencies) {
         logger.error("Copy requested without card context");
         return;
       }
+      const cardIdentifier = cardElement.id;
+      if (!cardIdentifier) {
+        logger.error("Copy requested without card identifier");
+        return;
+      }
       const textElement = cardElement.querySelector("[data-role='prompt-text']");
       if (!(textElement instanceof HTMLElement)) {
         logger.error("Copy requested without prompt text element");
@@ -134,6 +167,7 @@ export function AppShell(dependencies) {
       }
       const resolvedText = resolvePlaceholderText(textElement).trim();
       await writeText(resolvedText);
+      this.setCardFeedback(cardIdentifier, STRINGS.copyToast, "copy");
       this.$dispatch(EVENTS.toastShow, { message: STRINGS.copyToast });
     },
     /**
@@ -145,6 +179,7 @@ export function AppShell(dependencies) {
       const cardUrl = `${baseUrl}#${prompt.id}`;
       await writeUrl(cardUrl);
       window.history.replaceState({}, "", `#${prompt.id}`);
+      this.setCardFeedback(prompt.id, STRINGS.shareToast, "share");
       this.$dispatch(EVENTS.toastShow, { message: STRINGS.shareToast });
       requestAnimationFrame(() => this.highlightLinkedCard());
     },
@@ -194,6 +229,10 @@ export function AppShell(dependencies) {
      */
     chipLabel(tag) {
       return tag;
+    },
+    cardFeedbackClass(cardId) {
+      const feedback = this.cardFeedbackById[cardId];
+      return feedback?.className ?? CARD_FEEDBACK_VARIANTS.copy;
     },
     /**
      * @returns {string}
