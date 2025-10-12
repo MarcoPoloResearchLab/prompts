@@ -98,7 +98,6 @@ const captureThemeSnapshot = (page) =>
     const topNav = document.querySelector("nav.navbar.fixed-top");
     const searchAddon = document.querySelector("[data-role='search-addon']");
     const searchInput = document.querySelector("[data-test='search-input']");
-    const searchClear = document.querySelector("[data-role='search-clear']");
     const tagBadge = document.querySelector("[data-role='card-tag']");
     return {
       bodyBackgroundImage: bodyStyles.getPropertyValue("background-image"),
@@ -106,8 +105,6 @@ const captureThemeSnapshot = (page) =>
       addonBackgroundColor: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("background-color") : "",
       addonColor: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("color") : "",
       inputBackgroundColor: searchInput ? getComputedStyle(searchInput).getPropertyValue("background-color") : "",
-      clearBackgroundColor: searchClear ? getComputedStyle(searchClear).getPropertyValue("background-color") : "",
-      clearColor: searchClear ? getComputedStyle(searchClear).getPropertyValue("color") : "",
       tagBackgroundColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("background-color") : "",
       tagColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("color") : ""
     };
@@ -268,6 +265,8 @@ export const run = async ({ browser, baseUrl }) => {
   const initialCardIds = await getVisibleCardIds(page);
   const adjacentCardId = initialCardIds.find((identifier) => identifier !== "p01") ?? "";
   assertEqual(initialCardIds.length > 0, true, "Initial load should render cards");
+  const extraClearButtonCount = await page.evaluate(() => document.querySelectorAll("#clearSearch").length);
+  assertEqual(extraClearButtonCount, 0, "Search input should not render a duplicate clear button");
 
   const searchScenarios = [
     {
@@ -407,16 +406,6 @@ export const run = async ({ browser, baseUrl }) => {
     toggledThemeSnapshot.inputBackgroundColor === initialThemeSnapshot.inputBackgroundColor,
     false,
     "Theme switch should update search input background"
-  );
-  assertEqual(
-    toggledThemeSnapshot.clearBackgroundColor === initialThemeSnapshot.clearBackgroundColor,
-    false,
-    "Theme switch should update search clear button background"
-  );
-  assertEqual(
-    toggledThemeSnapshot.clearColor === initialThemeSnapshot.clearColor,
-    false,
-    "Theme switch should update search clear button text color"
   );
   assertEqual(
     toggledThemeSnapshot.tagBackgroundColor === initialThemeSnapshot.tagBackgroundColor,

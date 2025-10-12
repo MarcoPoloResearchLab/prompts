@@ -23,7 +23,6 @@ export const STRINGS = Object.freeze({
   subtitle: "A visually stunning, zero-backend gallery of copy-ready prompts.",
   searchPlaceholder: "Search prompts (title, text, tags)…",
   searchAriaLabel: "Search prompts",
-  clearSearchLabel: "Clear search",
   noMatches: "No prompts match your search/filter.",
   copyButtonLabel: "Copy",
   copyAriaLabelPrefix: "Copy prompt:",

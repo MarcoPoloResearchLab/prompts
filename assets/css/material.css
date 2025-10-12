@@ -11,10 +11,6 @@
   --app-search-addon-color: #0d2247;
   --app-search-input-bg: rgba(255, 255, 255, 0.95);
   --app-search-input-border: rgba(25, 118, 210, 0.24);
-  --app-search-clear-bg: rgba(25, 118, 210, 0.08);
-  --app-search-clear-bg-hover: rgba(25, 118, 210, 0.18);
-  --app-search-clear-color: #0d2247;
-  --app-search-clear-border: rgba(25, 118, 210, 0.32);
   --app-tag-bg: rgba(25, 118, 210, 0.12);
   --app-tag-bg-hover: rgba(25, 118, 210, 0.2);
   --app-tag-color: #0d2247;
@@ -34,10 +30,6 @@
   --app-search-addon-color: #d9e6ff;
   --app-search-input-bg: rgba(11, 18, 33, 0.92);
   --app-search-input-border: rgba(64, 123, 255, 0.36);
-  --app-search-clear-bg: rgba(64, 123, 255, 0.2);
-  --app-search-clear-bg-hover: rgba(64, 123, 255, 0.34);
-  --app-search-clear-color: #d9e6ff;
-  --app-search-clear-border: rgba(64, 123, 255, 0.48);
   --app-tag-bg: rgba(64, 123, 255, 0.28);
   --app-tag-bg-hover: rgba(64, 123, 255, 0.4);
   --app-tag-color: #d9e6ff;
@@ -105,33 +97,8 @@ body {
   background: var(--app-search-input-bg);
   border: 1px solid var(--app-search-input-border);
   border-left: 0;
-  border-right: 0;
   color: inherit;
   transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-[data-role="search-clear"] {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding-inline: 0.7rem;
-  border: 1px solid var(--app-search-clear-border);
-  border-left: 0;
-  background: var(--app-search-clear-bg);
-  color: var(--app-search-clear-color);
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-
-[data-role="search-clear"]:hover,
-[data-role="search-clear"]:focus {
-  background: var(--app-search-clear-bg-hover);
-  color: var(--app-search-addon-color);
-}
-
-[data-role="search-clear"]:focus-visible {
-  outline: none;
-  box-shadow: var(--app-card-focus-ring);
 }
 
 [data-test="prompt-card"] {

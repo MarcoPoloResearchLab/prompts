@@ -105,13 +105,6 @@ export function AppShell(dependencies) {
       this.filteredPrompts = promptsRepository.filter(this.prompts, this.filters);
       requestAnimationFrame(() => this.highlightLinkedCard());
     },
-    clearSearch() {
-      this.filters.searchText = "";
-      const searchInput = this.$refs.searchInput;
-      if (searchInput instanceof HTMLInputElement) {
-        searchInput.focus();
-      }
-    },
     selectTag(tag) {
       this.filters.tag = tag;
     },
