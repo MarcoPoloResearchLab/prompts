@@ -1,5 +1,48 @@
 :root {
   --app-card-focus-ring: 0 0 0 0.3rem rgba(13, 110, 253, 0.4);
+  --app-body-background: radial-gradient(circle at top, rgba(118, 200, 255, 0.22), rgba(240, 248, 255, 0.92) 60%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(235, 244, 255, 0.94));
+  --app-top-nav-background: rgba(29, 82, 168, 0.94);
+  --app-top-nav-border: rgba(25, 118, 210, 0.25);
+  --app-footer-background: rgba(255, 255, 255, 0.9);
+  --app-footer-border: rgba(25, 118, 210, 0.18);
+  --app-search-addon-bg: rgba(25, 118, 210, 0.12);
+  --app-search-addon-border: rgba(25, 118, 210, 0.28);
+  --app-search-addon-color: #0d2247;
+  --app-search-input-bg: rgba(255, 255, 255, 0.95);
+  --app-search-input-border: rgba(25, 118, 210, 0.24);
+  --app-search-clear-bg: rgba(25, 118, 210, 0.08);
+  --app-search-clear-bg-hover: rgba(25, 118, 210, 0.18);
+  --app-search-clear-color: #0d2247;
+  --app-search-clear-border: rgba(25, 118, 210, 0.32);
+  --app-tag-bg: rgba(25, 118, 210, 0.12);
+  --app-tag-bg-hover: rgba(25, 118, 210, 0.2);
+  --app-tag-color: #0d2247;
+  --app-placeholder-bg: rgba(25, 118, 210, 0.08);
+  --app-placeholder-border: rgba(25, 118, 210, 0.55);
+}
+
+[data-bs-theme="dark"] {
+  --app-body-background: radial-gradient(circle at top, rgba(56, 138, 252, 0.18), transparent 65%),
+    linear-gradient(160deg, rgba(17, 24, 39, 0.95), rgba(9, 13, 24, 0.95));
+  --app-top-nav-background: rgba(10, 19, 40, 0.94);
+  --app-top-nav-border: rgba(64, 123, 255, 0.32);
+  --app-footer-background: rgba(9, 15, 30, 0.92);
+  --app-footer-border: rgba(64, 123, 255, 0.24);
+  --app-search-addon-bg: rgba(64, 123, 255, 0.28);
+  --app-search-addon-border: rgba(64, 123, 255, 0.44);
+  --app-search-addon-color: #d9e6ff;
+  --app-search-input-bg: rgba(11, 18, 33, 0.92);
+  --app-search-input-border: rgba(64, 123, 255, 0.36);
+  --app-search-clear-bg: rgba(64, 123, 255, 0.2);
+  --app-search-clear-bg-hover: rgba(64, 123, 255, 0.34);
+  --app-search-clear-color: #d9e6ff;
+  --app-search-clear-border: rgba(64, 123, 255, 0.48);
+  --app-tag-bg: rgba(64, 123, 255, 0.28);
+  --app-tag-bg-hover: rgba(64, 123, 255, 0.4);
+  --app-tag-color: #d9e6ff;
+  --app-placeholder-bg: rgba(64, 123, 255, 0.26);
+  --app-placeholder-border: rgba(64, 123, 255, 0.56);
 }
 
 [x-cloak] {
@@ -7,16 +50,88 @@
 }
 
 body {
-  background: radial-gradient(circle at top, rgba(56, 138, 252, 0.12), transparent 65%),
-    linear-gradient(160deg, rgba(35, 47, 62, 0.9), rgba(20, 26, 32, 0.9));
+  background: var(--app-body-background);
+  transition: background 0.4s ease;
 }
 
 .navbar.fixed-top + main .container {
   padding-top: 5.5rem;
 }
 
+.navbar.fixed-top {
+  background: var(--app-top-nav-background) !important;
+  border-bottom: 1px solid var(--app-top-nav-border) !important;
+  backdrop-filter: blur(16px);
+  transition: background 0.4s ease, border-color 0.4s ease;
+}
+
+.navbar.fixed-bottom {
+  background: var(--app-footer-background) !important;
+  border-top: 1px solid var(--app-footer-border) !important;
+  backdrop-filter: blur(16px);
+  transition: background 0.4s ease, border-color 0.4s ease;
+}
+
 .badge {
   cursor: pointer;
+}
+
+[data-role="card-tag"] {
+  background: var(--app-tag-bg);
+  color: var(--app-tag-color);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+[data-role="card-tag"]:hover,
+[data-role="card-tag"]:focus-visible {
+  background: var(--app-tag-bg-hover);
+  color: var(--app-tag-color);
+  outline: none;
+}
+
+[data-role="search-addon"] {
+  background: var(--app-search-addon-bg);
+  border: 1px solid var(--app-search-addon-border);
+  border-right: 0;
+  color: var(--app-search-addon-color);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+[data-role="search-addon"] .material-icons-outlined {
+  color: inherit;
+}
+
+[data-test="search-input"] {
+  background: var(--app-search-input-bg);
+  border: 1px solid var(--app-search-input-border);
+  border-left: 0;
+  border-right: 0;
+  color: inherit;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+[data-role="search-clear"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding-inline: 0.7rem;
+  border: 1px solid var(--app-search-clear-border);
+  border-left: 0;
+  background: var(--app-search-clear-bg);
+  color: var(--app-search-clear-color);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+[data-role="search-clear"]:hover,
+[data-role="search-clear"]:focus {
+  background: var(--app-search-clear-bg-hover);
+  color: var(--app-search-addon-color);
+}
+
+[data-role="search-clear"]:focus-visible {
+  outline: none;
+  box-shadow: var(--app-card-focus-ring);
 }
 
 [data-test="prompt-card"] {
@@ -46,16 +161,16 @@ body {
   align-items: center;
   padding-inline: 0.35rem;
   margin-inline: 0.1rem;
-  border: 1px dashed rgba(13, 110, 253, 0.5);
-  background: rgba(13, 110, 253, 0.08);
+  border: 1px dashed var(--app-placeholder-border);
+  background: var(--app-placeholder-bg);
   color: inherit;
 }
 
 .placeholder-input:focus {
   outline: none;
   border-style: solid;
-  border-color: rgba(13, 110, 253, 0.7);
-  background: rgba(13, 110, 253, 0.14);
+  border-color: var(--app-search-addon-border);
+  background: var(--app-search-addon-bg);
 }
 
 .toast {

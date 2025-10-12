@@ -13,6 +13,7 @@ const BRAND_ACCENT_COLOR = "#1976d2";
 const CARD_FEEDBACK_SELECTOR = "[data-test='card-feedback']";
 const COPY_FEEDBACK_MESSAGE = "Prompt copied \u2713";
 const SHARE_FEEDBACK_MESSAGE = "Link copied \u2713";
+const THEME_TOGGLE_SELECTOR = "#themeToggle";
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -83,6 +84,34 @@ const waitForCardFeedback = (page, cardId, expectedMessage) =>
     cardId,
     expectedMessage
   );
+
+const waitForThemeMode = (page, expectedMode) =>
+  page.waitForFunction(
+    (mode) => document.documentElement.getAttribute("data-bs-theme") === mode,
+    {},
+    expectedMode
+  );
+
+const captureThemeSnapshot = (page) =>
+  page.evaluate(() => {
+    const bodyStyles = getComputedStyle(document.body);
+    const topNav = document.querySelector("nav.navbar.fixed-top");
+    const searchAddon = document.querySelector("[data-role='search-addon']");
+    const searchInput = document.querySelector("[data-test='search-input']");
+    const searchClear = document.querySelector("[data-role='search-clear']");
+    const tagBadge = document.querySelector("[data-role='card-tag']");
+    return {
+      bodyBackgroundImage: bodyStyles.getPropertyValue("background-image"),
+      topNavBackgroundColor: topNav ? getComputedStyle(topNav).getPropertyValue("background-color") : "",
+      addonBackgroundColor: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("background-color") : "",
+      addonColor: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("color") : "",
+      inputBackgroundColor: searchInput ? getComputedStyle(searchInput).getPropertyValue("background-color") : "",
+      clearBackgroundColor: searchClear ? getComputedStyle(searchClear).getPropertyValue("background-color") : "",
+      clearColor: searchClear ? getComputedStyle(searchClear).getPropertyValue("color") : "",
+      tagBackgroundColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("background-color") : "",
+      tagColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("color") : ""
+    };
+  });
 
 const stubClipboard = async (page) => {
   await page.evaluateOnNewDocument(() => {
@@ -356,6 +385,62 @@ export const run = async ({ browser, baseUrl }) => {
   await waitForCardFeedback(page, "p01", SHARE_FEEDBACK_MESSAGE);
   const shareText = await getClipboardText(page);
   assertEqual(shareText.endsWith("#p01"), true, "Share button should copy card URL");
+
+  const initialThemeMode = await page.evaluate(() => document.documentElement.getAttribute("data-bs-theme") ?? "light");
+  const initialThemeSnapshot = await captureThemeSnapshot(page);
+  await page.click(THEME_TOGGLE_SELECTOR);
+  const toggledThemeMode = initialThemeMode === "dark" ? "light" : "dark";
+  await waitForThemeMode(page, toggledThemeMode);
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const toggledThemeSnapshot = await captureThemeSnapshot(page);
+  assertEqual(
+    toggledThemeSnapshot.bodyBackgroundImage === initialThemeSnapshot.bodyBackgroundImage,
+    false,
+    "Theme switch should update the body background"
+  );
+  assertEqual(
+    toggledThemeSnapshot.topNavBackgroundColor === initialThemeSnapshot.topNavBackgroundColor,
+    false,
+    "Theme switch should update the top navigation background"
+  );
+  assertEqual(
+    toggledThemeSnapshot.inputBackgroundColor === initialThemeSnapshot.inputBackgroundColor,
+    false,
+    "Theme switch should update search input background"
+  );
+  assertEqual(
+    toggledThemeSnapshot.clearBackgroundColor === initialThemeSnapshot.clearBackgroundColor,
+    false,
+    "Theme switch should update search clear button background"
+  );
+  assertEqual(
+    toggledThemeSnapshot.clearColor === initialThemeSnapshot.clearColor,
+    false,
+    "Theme switch should update search clear button text color"
+  );
+  assertEqual(
+    toggledThemeSnapshot.tagBackgroundColor === initialThemeSnapshot.tagBackgroundColor,
+    false,
+    "Theme switch should update tag badge background"
+  );
+  assertEqual(
+    toggledThemeSnapshot.tagColor === initialThemeSnapshot.tagColor,
+    false,
+    "Theme switch should update tag badge text color"
+  );
+  assertEqual(
+    toggledThemeSnapshot.addonBackgroundColor === initialThemeSnapshot.addonBackgroundColor,
+    false,
+    "Theme switch should update search addon background"
+  );
+  assertEqual(
+    toggledThemeSnapshot.addonColor === initialThemeSnapshot.addonColor,
+    false,
+    "Theme switch should update search addon icon color"
+  );
+  await page.click(THEME_TOGGLE_SELECTOR);
+  await waitForThemeMode(page, initialThemeMode);
+  await delay(WAIT_AFTER_INTERACTION_MS);
 
   await page.goto(`${baseUrl}#p05`, { waitUntil: "networkidle0" });
   await waitForLinkedCard(page, "p05");

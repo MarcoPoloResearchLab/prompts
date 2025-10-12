@@ -32,8 +32,8 @@
         <a class="navbar-brand fw-semibold" href="#top" x-text="strings.appTitle"></a>
         <form class="d-flex align-items-center flex-grow-1 gap-2" role="search">
           <div class="input-group">
-            <span class="input-group-text bg-primary-subtle border-primary-subtle">
-              <span class="material-icons-outlined text-primary-emphasis" aria-hidden="true">search</span>
+            <span class="input-group-text d-inline-flex align-items-center gap-2" data-role="search-addon">
+              <span class="material-icons-outlined" aria-hidden="true">search</span>
               <span class="visually-hidden" x-text="strings.searchIconLabel"></span>
             </span>
             <input
@@ -49,8 +49,9 @@
             />
             <button
               type="button"
-              class="btn btn-outline-light"
+              class="btn"
               id="clearSearch"
+              data-role="search-clear"
               x-bind:aria-label="strings.clearSearchLabel"
               x-on:click.prevent="clearSearch"
             >
@@ -115,7 +116,7 @@
                         <template x-for="tag in prompt.tags" :key="`${prompt.id}-${tag}`">
                           <button
                             type="button"
-                            class="badge text-bg-light border-0"
+                            class="badge border-0"
                             data-role="card-tag"
                             x-on:click="selectTag(tag)"
                             x-text="tag"
