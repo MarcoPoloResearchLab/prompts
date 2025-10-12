@@ -79,7 +79,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 
 ### Improvements
 
-- [ ] [PB-02] Restyle the site using material design, and follow the implementation gudiance.
+- [X] [PB-02] Restyle the site using material design, and follow the implementation gudiance.
     - Replace custom layout with Bootstrap and Material Design theme
     - Add fixed top and bottom navbars with search and dark mode switch
     - Render prompt cards in a responsive Bootstrap grid with fixed heights

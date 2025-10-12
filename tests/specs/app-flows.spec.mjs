@@ -7,12 +7,47 @@ const CHIP_SELECTOR = "[data-test='tag-chip']";
 const CARD_SELECTOR = "[data-test='prompt-card']";
 const COPY_BUTTON_SELECTOR = "[data-test='copy-button']";
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
-const TOAST_SELECTOR = "[data-test='copy-toast']";
+const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
+const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
   });
+
+const waitForCardIds = (page, expectedIds) =>
+  page.waitForFunction(
+    (selector, ids) => {
+      const cardElements = Array.from(document.querySelectorAll(selector));
+      const cardIds = cardElements.map((element) => element.id);
+      return (
+        cardIds.length === ids.length &&
+        cardIds.every((id, index) => id === ids[index])
+      );
+    },
+    {},
+    CARD_SELECTOR,
+    expectedIds
+  );
+
+const waitForCardCount = (page, expectedCount) =>
+  page.waitForFunction(
+    (selector, count) => document.querySelectorAll(selector).length === count,
+    {},
+    CARD_SELECTOR,
+    expectedCount
+  );
+
+const waitForActiveChip = (page, label) =>
+  page.waitForFunction(
+    (selector, targetLabel) =>
+      Array.from(document.querySelectorAll(`${selector}[data-active='true']`)).some(
+        (element) => element.textContent?.trim().toLowerCase() === targetLabel.toLowerCase()
+      ),
+    {},
+    CHIP_SELECTOR,
+    label
+  );
 
 const waitForLinkedCard = (page, cardId) =>
   page.waitForFunction(
@@ -114,18 +149,21 @@ const clickCardButton = async (page, cardId, type) => {
   await delay(WAIT_AFTER_INTERACTION_MS);
 };
 
-const getToastState = (page, cardId) =>
-  page.evaluate(
-    (id, selector) => {
-      const card = document.getElementById(id);
-      if (!card) {
-        return "missing";
+const waitForToastMessage = (page, expectedSubstring) =>
+  page.waitForFunction(
+    (rootSelector, toastSelector, text) => {
+      const root = document.querySelector(rootSelector);
+      const toast = document.querySelector(toastSelector);
+      if (!root || !toast) {
+        return false;
       }
-      const toast = card.querySelector(selector);
-      return toast?.getAttribute("data-show") ?? "false";
+      const lastToast = root.getAttribute("data-last-toast") ?? "";
+      return lastToast.includes(text) && toast.textContent?.includes(text);
     },
-    cardId,
-    TOAST_SELECTOR
+    {},
+    APP_ROOT_SELECTOR,
+    GLOBAL_TOAST_SELECTOR,
+    expectedSubstring
   );
 
 const getClipboardText = (page) => page.evaluate(() => window.__copiedText ?? "");
@@ -172,6 +210,7 @@ export const run = async ({ browser, baseUrl }) => {
   for (const scenario of searchScenarios) {
     await clearSearch(page);
     await setSearchValue(page, scenario.query);
+    await waitForCardIds(page, scenario.expectedIds);
     const cardIds = await getVisibleCardIds(page);
     assertDeepEqual(
       cardIds,
@@ -190,6 +229,7 @@ export const run = async ({ browser, baseUrl }) => {
   }
 
   await clearSearch(page);
+  await waitForCardCount(page, initialCardIds.length);
 
   const chipScenarios = [
     {
@@ -197,12 +237,16 @@ export const run = async ({ browser, baseUrl }) => {
       verify: async () => {
         const activeChipLabels = await getActiveChipLabels(page);
         assertDeepEqual(activeChipLabels, ["writing"], "Only the writing chip should be active after selecting it");
-        const allCardsTagged = await page.$$eval(CARD_SELECTOR, (cards) =>
-          cards.every((card) =>
-            Array.from(card.querySelectorAll(".tag")).some((tag) => tag.textContent?.trim() === "writing")
-          )
+        await page.waitForFunction(
+          (selector) =>
+            Array.from(document.querySelectorAll(selector)).every((card) =>
+              Array.from(card.querySelectorAll("[data-role='card-tag']")).some((tag) =>
+                tag.textContent?.trim() === "writing"
+              )
+            ),
+          {},
+          CARD_SELECTOR
         );
-        assertEqual(allCardsTagged, true, "All visible cards should include the writing tag");
       }
     },
     {
@@ -210,14 +254,14 @@ export const run = async ({ browser, baseUrl }) => {
       verify: async () => {
         const activeChipLabels = await getActiveChipLabels(page);
         assertDeepEqual(activeChipLabels, ["all"], "All chip should become the active filter");
-        const currentIds = await getVisibleCardIds(page);
-        assertEqual(currentIds.length >= initialCardIds.length, true, "All chip should restore the full grid");
+        await waitForCardCount(page, initialCardIds.length);
       }
     }
   ];
 
   for (const scenario of chipScenarios) {
     await clickChipByLabel(page, scenario.label);
+    await waitForActiveChip(page, scenario.label);
     await scenario.verify();
   }
 
@@ -232,8 +276,7 @@ export const run = async ({ browser, baseUrl }) => {
     window.__copiedText = "";
   });
   await clickCardButton(page, "p01", "copy");
-  const copyToastState = await getToastState(page, "p01");
-  assertEqual(copyToastState, "true", "Copy toast should appear after clicking copy");
+  await waitForToastMessage(page, "Prompt copied");
   const copiedText = await getClipboardText(page);
   assertEqual(
     copiedText.includes("Summarize the following bug/incident"),
@@ -245,6 +288,7 @@ export const run = async ({ browser, baseUrl }) => {
     window.__copiedText = "";
   });
   await clickCardButton(page, "p01", "share");
+  await waitForToastMessage(page, "Link copied");
   const shareText = await getClipboardText(page);
   assertEqual(shareText.endsWith("#p01"), true, "Share button should copy card URL");
 
