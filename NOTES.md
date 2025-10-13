@@ -188,7 +188,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     Executed specs: specs/app-flows.spec.mjs
     All tests passed
     ```
-- [ ] [PB-29] Tesst dont show what tests are running, what has passed, what is the code coverage. CHange the configuration so that `npm test` displays the running tests
+- [X] [PB-29] Tesst dont show what tests are running, what has passed, what is the code coverage. CHange the configuration so that `npm test` displays the running tests
     ```
     13:21:28 tyemirov@Vadyms-MacBook-Pro:~/Development/MarcoPoloResearchLab/prompts - [maintenance/PB-27-sitemap-privacy] $ npm test
 
