@@ -40,6 +40,24 @@ const EMPTY_STATE_DARK_BACKGROUND = "rgb(26, 44, 92)";
 const EMPTY_STATE_DARK_TEXT = "rgb(217, 230, 255)";
 const PLACEHOLDER_OVERFLOW_TOLERANCE_PX = 1.5;
 
+const normalizeToRgb = (value) => {
+  if (typeof value !== "string") {
+    return String(value ?? "");
+  }
+  const match = value.match(/rgba?\(([^)]+)\)/i);
+  if (!match) {
+    return value.trim();
+  }
+  const components = match[1]
+    .split(",")
+    .slice(0, 3)
+    .map((component) => {
+      const parsed = Number.parseFloat(component.trim());
+      return Number.isFinite(parsed) ? Math.round(parsed) : 0;
+    });
+  return `rgb(${components.join(", ")})`;
+};
+
 const delay = (milliseconds) =>
   new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
@@ -513,6 +531,54 @@ export const run = async ({ browser, baseUrl }) => {
     maxPlaceholderOverflow <= PLACEHOLDER_OVERFLOW_TOLERANCE_PX,
     true,
     `Placeholder inputs should remain within card boundaries (max overflow ${maxPlaceholderOverflow.toFixed(2)}px)`
+  );
+  await page.setViewport({ width: 2200, height: 900, deviceScaleFactor: 1 });
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const wideGridRows = await captureGridRowLengths(page);
+  const wideFirstRowCount = wideGridRows[0] ?? 0;
+  assertEqual(
+    wideFirstRowCount > 4,
+    true,
+    `Wide viewport should allow more than four cards per row (rendered ${wideFirstRowCount})`
+  );
+  const wideInteriorRows = wideGridRows.slice(0, -1);
+  if (wideInteriorRows.length > 0) {
+    const expectedWideRowSize = wideInteriorRows[0];
+    assertEqual(
+      wideInteriorRows.every((rowSize) => rowSize === expectedWideRowSize),
+      true,
+      "Wide viewport interior rows should maintain a consistent column count"
+    );
+  }
+  await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const searchFocusSnapshot = await page.evaluate((selector) => {
+    const searchInput = document.querySelector(selector);
+    if (!(searchInput instanceof HTMLInputElement)) {
+      throw new Error("Search input missing for focus snapshot");
+    }
+    searchInput.focus();
+    searchInput.select();
+    const computedStyles = getComputedStyle(searchInput);
+    const rootStyles = getComputedStyle(document.documentElement);
+    return {
+      focusBackground: computedStyles.getPropertyValue("background-color"),
+      expectedBackground: rootStyles.getPropertyValue("--app-search-input-bg"),
+      darkToken: rootStyles.getPropertyValue("--app-search-addon-bg")
+    };
+  }, SEARCH_INPUT_SELECTOR);
+  const focusBackground = normalizeToRgb(searchFocusSnapshot.focusBackground);
+  const expectedLightBackground = normalizeToRgb(searchFocusSnapshot.expectedBackground);
+  const darkBackgroundToken = normalizeToRgb(searchFocusSnapshot.darkToken);
+  assertEqual(
+    colorsAreClose(focusBackground, expectedLightBackground),
+    true,
+    "Search input should maintain the light theme background token when focused"
+  );
+  assertEqual(
+    colorsAreClose(focusBackground, darkBackgroundToken),
+    false,
+    "Search input should not adopt the dark theme token while the light theme is active"
   );
   const initialGridRows = await captureGridRowLengths(page);
   assertEqual(initialGridRows.length > 0, true, "Grid should render at least one row of cards");

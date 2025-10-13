@@ -64,8 +64,8 @@ body {
   transition: background 0.4s ease;
 }
 
-.navbar.fixed-top + main .container {
-  padding-top: 5.5rem;
+.navbar.fixed-top + main .app-main-container {
+  padding-top: 6rem;
 }
 
 .navbar.fixed-top {
@@ -156,6 +156,33 @@ body {
   padding-inline-start: 1.25rem;
   padding-inline-end: 2.5rem;
   transition: background 0.2s ease, border-color 0.2s ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+[data-test="search-input"]::-webkit-search-decoration,
+[data-test="search-input"]::-webkit-search-cancel-button,
+[data-test="search-input"]::-webkit-search-results-button,
+[data-test="search-input"]::-webkit-search-results-decoration {
+  appearance: none;
+  -webkit-appearance: none;
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  background: transparent;
+  border: 0;
+  height: 0 !important;
+  width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+[data-test="search-input"]:focus,
+[data-test="search-input"]:focus-visible {
+  background: var(--app-search-input-bg);
+  background-color: var(--app-search-input-bg);
+  border-color: var(--app-search-input-border);
+  color: inherit;
 }
 
 .app-clear-search {
@@ -174,7 +201,7 @@ body {
   padding: 0;
   cursor: pointer;
   border-radius: 999px;
-  z-index: 2;
+  z-index: 6;
   transition: color 0.2s ease, background 0.2s ease;
 }
 

@@ -100,9 +100,10 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 "No prompts match your search/filter."
 - [X] [PB-16] The X that should be dynamically available at the end of the search prompt in response to input is no longer appearing. Fix the regression.
 - [X] [PB-17] Ensure that the placheolder dont grow over the borders of the cards. e.g. "Person (e.g. a professional in your field)" goes outside of the card borders
-- [X] [PB-18] The number of columns shall be dynamic and change in response to thwe width of the viewport but it shall be the same for a given width of a viewport, and it was inconsistent. Now the max is locked in on 4 and it's incorrect we shall nto prescribe the max -- as many as will fit in the viepoirt given that each row has the same number of cards unless it's the last row
+- [X] [PB-18] The number of columns shall be dynamic and change in response to the width of the viewport but it shall be the same for a given width of a viewport, and it was inconsistent. Now the max is locked in on 4 and it's incorrect we shall nto prescribe the max -- as many as will fit in the viepoirt given that each row has the same number of cards unless it's the last row. So, there can be 25 cards in a row if the width allows for it.
  The search prompt changes to dark background in the light theme
-
+- [ ] [PB-19] There are two x signs when text is entered in the search prompt: one is constantly visible, and one is appearing on mous hover. There must be only one x sign, which cleans the search prompt. The x sign must be visible if there is text in the search input. There must be no x signs if there is no text. Clicking on x clears the text. Fix the regression.
+- [ ] [PB-20] When clicked, the bubble slows down to the middle of the card and then continues its ascend. There shall be no slowing down.
 
 ### Maintenance
 
