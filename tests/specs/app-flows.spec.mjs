@@ -23,6 +23,13 @@ const COLOR_COMPONENT_TOLERANCE = 1;
 const BRAND_TAGLINE_TEXT = "Built for instant prompt workflows.";
 const FOOTER_SHORTCUT_TEXT = "Press / to search • Enter to copy the focused card";
 const EXPECTED_DESKTOP_COLUMNS = 4;
+const BUBBLE_LAYER_SELECTOR = "[data-role='bubble-layer']";
+const BUBBLE_SELECTOR = "[data-role='bubble']";
+const BUBBLE_BORDER_LIGHT = "rgba(25, 118, 210, 0.35)";
+const BUBBLE_BORDER_DARK = "rgba(217, 230, 255, 0.45)";
+const BUBBLE_SIZE_RATIO = 0.25;
+const BUBBLE_SIZE_TOLERANCE = 0.06;
+const BUBBLE_LIFETIME_MS = 2000;
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -225,6 +232,58 @@ const clickCardButton = async (page, cardId, type) => {
   await delay(WAIT_AFTER_INTERACTION_MS);
 };
 
+const triggerCardBubble = async (page, cardId) => {
+  const didClick = await page.evaluate(
+    (selector, id) => {
+      const card = document.querySelector(`${selector}#${CSS.escape(id)}`);
+      if (!card) {
+        return false;
+      }
+      card.click();
+      return true;
+    },
+    CARD_SELECTOR,
+    cardId
+  );
+  if (!didClick) {
+    throw new Error(`Card "${cardId}" not found for bubble trigger`);
+  }
+  await page.waitForFunction(
+    (bubbleSelector) => document.querySelector(bubbleSelector) !== null,
+    {},
+    BUBBLE_SELECTOR
+  );
+};
+
+const snapshotBubble = (page, cardId) =>
+  page.evaluate(
+    (bubbleSelector, cardSelector, id) => {
+      const bubble = document.querySelector(bubbleSelector);
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(id)}`);
+      if (!bubble || !card) {
+        return null;
+      }
+      const bubbleStyle = getComputedStyle(bubble);
+      const cardRect = card.getBoundingClientRect();
+      return {
+        theme: bubble.getAttribute("data-theme") ?? "",
+        borderColor: bubbleStyle.borderTopColor,
+        bubbleWidth: Number.parseFloat(bubbleStyle.width),
+        cardWidth: cardRect.width
+      };
+    },
+    BUBBLE_SELECTOR,
+    CARD_SELECTOR,
+    cardId
+  );
+
+const waitForBubbleRemoval = (page) =>
+  page.waitForFunction(
+    (bubbleSelector) => document.querySelector(bubbleSelector) === null,
+    {},
+    BUBBLE_SELECTOR
+  );
+
 const waitForToastMessage = (page, expectedSubstring) =>
   page.waitForFunction(
     (rootSelector, toastSelector, text) => {
@@ -265,6 +324,7 @@ export const run = async ({ browser, baseUrl }) => {
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForSelector(CARD_SELECTOR);
+  await page.waitForSelector(BUBBLE_LAYER_SELECTOR);
 
   const faviconMetadata = await page.evaluate(() => {
     const iconLink = document.querySelector("link[rel='icon']");
@@ -527,6 +587,39 @@ export const run = async ({ browser, baseUrl }) => {
     true,
     "Share icon should match the active theme color"
   );
+  await triggerCardBubble(page, "p01");
+  const initialBubbleSnapshot = await snapshotBubble(page, "p01");
+  assertEqual(
+    initialBubbleSnapshot !== null,
+    true,
+    "Bubble should render when clicking the card in the initial theme"
+  );
+  if (!initialBubbleSnapshot) {
+    throw new Error("Initial bubble snapshot missing");
+  }
+  const expectedInitialBubbleBorder =
+    initialThemeMode === "dark" ? BUBBLE_BORDER_DARK : BUBBLE_BORDER_LIGHT;
+  assertEqual(
+    initialBubbleSnapshot.borderColor.trim(),
+    expectedInitialBubbleBorder,
+    "Bubble border should track the active theme color"
+  );
+  assertEqual(
+    initialBubbleSnapshot.theme,
+    initialThemeMode,
+    "Bubble metadata should record the active theme"
+  );
+  const initialBubbleRatio =
+    initialBubbleSnapshot.cardWidth === 0
+      ? 0
+      : initialBubbleSnapshot.bubbleWidth / initialBubbleSnapshot.cardWidth;
+  assertEqual(
+    Math.abs(initialBubbleRatio - BUBBLE_SIZE_RATIO) <= BUBBLE_SIZE_TOLERANCE,
+    true,
+    `Bubble diameter should be about ${BUBBLE_SIZE_RATIO * 100}% of the card width`
+  );
+  await delay(BUBBLE_LIFETIME_MS);
+  await waitForBubbleRemoval(page);
   await page.click(THEME_TOGGLE_SELECTOR);
   const toggledThemeMode = initialThemeMode === "dark" ? "light" : "dark";
   await waitForThemeMode(page, toggledThemeMode);
@@ -574,6 +667,39 @@ export const run = async ({ browser, baseUrl }) => {
     true,
     "Share icon should switch to the alternate theme accent color"
   );
+  await triggerCardBubble(page, "p01");
+  const toggledBubbleSnapshot = await snapshotBubble(page, "p01");
+  assertEqual(
+    toggledBubbleSnapshot !== null,
+    true,
+    "Bubble should render after toggling theme"
+  );
+  if (!toggledBubbleSnapshot) {
+    throw new Error("Toggled bubble snapshot missing");
+  }
+  const expectedToggledBubbleBorder =
+    toggledThemeMode === "dark" ? BUBBLE_BORDER_DARK : BUBBLE_BORDER_LIGHT;
+  assertEqual(
+    toggledBubbleSnapshot.borderColor.trim(),
+    expectedToggledBubbleBorder,
+    "Bubble border should update to the toggled theme color"
+  );
+  assertEqual(
+    toggledBubbleSnapshot.theme,
+    toggledThemeMode,
+    "Bubble metadata should reflect the toggled theme"
+  );
+  const toggledBubbleRatio =
+    toggledBubbleSnapshot.cardWidth === 0
+      ? 0
+      : toggledBubbleSnapshot.bubbleWidth / toggledBubbleSnapshot.cardWidth;
+  assertEqual(
+    Math.abs(toggledBubbleRatio - BUBBLE_SIZE_RATIO) <= BUBBLE_SIZE_TOLERANCE,
+    true,
+    `Bubble diameter should stay near ${BUBBLE_SIZE_RATIO * 100}% of the card width`
+  );
+  await delay(BUBBLE_LIFETIME_MS);
+  await waitForBubbleRemoval(page);
   await page.click(THEME_TOGGLE_SELECTOR);
   await waitForThemeMode(page, initialThemeMode);
   await delay(WAIT_AFTER_INTERACTION_MS);

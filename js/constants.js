@@ -15,7 +15,8 @@ export const EVENTS = Object.freeze({
   searchUpdated: "filters-search-updated",
   tagSelected: "filters-tag-selected",
   toastShow: "toast-show",
-  themeToggle: "theme-toggle"
+  themeToggle: "theme-toggle",
+  cardBubble: "card-bubble"
 });
 
 export const STRINGS = Object.freeze({
@@ -43,7 +44,8 @@ export const STRINGS = Object.freeze({
 export const TIMINGS = Object.freeze({
   searchDebounceMs: 180,
   toastDurationMs: 1800,
-  cardFeedbackDurationMs: 2400
+  cardFeedbackDurationMs: 2400,
+  bubbleLifetimeMs: 1700
 });
 
 export const ICONS = Object.freeze({

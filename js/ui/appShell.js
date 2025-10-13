@@ -179,6 +179,28 @@ export function AppShell(dependencies) {
     /**
      * @param {Event} event
      */
+    handleCardClick(event) {
+      const target = event?.currentTarget ?? event?.target ?? null;
+      const cardElement = this.findCardElement(target);
+      if (!cardElement) {
+        logger.error("Bubble requested without card context");
+        return;
+      }
+      const bubbleDetail = this.createBubbleDetail(cardElement, event);
+      if (!bubbleDetail) {
+        logger.error("Bubble detail missing coordinates");
+        return;
+      }
+      const bubbleLayerHost = this.$root.querySelector("[data-role='bubble-layer']");
+      if (!(bubbleLayerHost instanceof HTMLElement)) {
+        logger.error("Bubble layer host missing");
+        return;
+      }
+      bubbleLayerHost.dispatchEvent(new CustomEvent(EVENTS.cardBubble, { detail: bubbleDetail }));
+    },
+    /**
+     * @param {Event} event
+     */
     handleCardKeydown(event) {
       if (event instanceof KeyboardEvent && event.key === "Enter") {
         event.preventDefault();
@@ -232,6 +254,32 @@ export function AppShell(dependencies) {
      */
     emptyMessage() {
       return STRINGS.noMatches;
+    },
+    /**
+     * @param {HTMLElement} cardElement
+     * @param {Event} event
+     * @returns {{ x: number; y: number; size: number; theme: "light" | "dark" } | null}
+     */
+    createBubbleDetail(cardElement, event) {
+      const rect = cardElement.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        return null;
+      }
+      const defaultX = rect.left + rect.width / 2;
+      const defaultY = rect.top + rect.height / 2;
+      const hasPointerEvent = typeof PointerEvent !== "undefined";
+      const isPointerEvent = hasPointerEvent && event instanceof PointerEvent;
+      const isMouseEvent = event instanceof MouseEvent;
+      const clientX = isPointerEvent || isMouseEvent ? event.clientX : defaultX;
+      const clientY = isPointerEvent || isMouseEvent ? event.clientY : defaultY;
+      const bubbleSize = rect.width * 0.25;
+      const themeAttribute = document.documentElement.getAttribute("data-bs-theme");
+      return {
+        x: clientX,
+        y: clientY,
+        size: bubbleSize,
+        theme: themeAttribute === "dark" ? "dark" : "light"
+      };
     }
   };
 }

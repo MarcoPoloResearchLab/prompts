@@ -55,6 +55,25 @@
       </div>
     </nav>
 
+    <div
+      class="bubble-layer"
+      data-role="bubble-layer"
+      x-data="BubbleLayer()"
+      x-ref="bubbleLayer"
+      x-on:card-bubble="spawn($event.detail)"
+      aria-hidden="true"
+    >
+      <template x-for="bubble in bubbles" :key="bubble.id">
+        <span
+          class="bubble-layer__bubble"
+          data-role="bubble"
+          x-bind:data-theme="bubble.theme"
+          x-bind:style="styleFor(bubble)"
+          x-transition.opacity
+        ></span>
+      </template>
+    </div>
+
     <main class="flex-fill">
       <div class="container py-5" style="padding-top: 6rem !important;">
         <header class="mb-4 text-center">
@@ -100,6 +119,7 @@
                   data-test="prompt-card"
                   role="listitem"
                   tabindex="0"
+                  x-on:click="handleCardClick($event)"
                   x-on:keydown="handleCardKeydown($event)"
                 >
                   <div class="card-body d-flex flex-column gap-3">

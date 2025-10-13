@@ -9,6 +9,7 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Persisted context:** the active tag and search query survive reloads through local storage.
 - **Shareable cards:** each card copies a deep link and the layout highlights the linked card when visiting `#card-id`.
 - **Notifications:** copy and share actions raise an event-scoped toast; no inline handlers or global mutations.
+- **Atmospheric feedback:** clicking any card emits a theme-aware bubble animation that fades after the interaction.
 
 ## Front-End Architecture
 
@@ -18,6 +19,7 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Events:**  
   - `toast-show` — emitted after copy/share to display the global toast.  
   - `theme-toggle` — emitted when the footer switch changes modes.  
+  - `card-bubble` — dispatched from cards toward the bubble layer to render the floating animation at the click position.  
   Both events bubble within the root container so components remain DOM-scoped.
 
 ## Local Development
