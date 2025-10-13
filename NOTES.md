@@ -85,10 +85,10 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - Render prompt cards in a responsive Bootstrap grid with fixed heights
 - [X] [PB-06]  Develop an appropriate favicon usng SVG. Fix the error:
     `Static server: ENOENT: no such file or directory, open '/Users/tyemirov/Development/MarcoPoloResearchLab/prompts/favicon.ico'`
-- [X] [PB-07] Increase the horizontal size of the space for the magnifying glass in the search prompt. It is too tight now, so that the horizontal borders of the button touch the icon
-- [ ] [PB-08] Horizontally align the theme toggle and the label, so that "Dark/Light mode" is visually aligned with the toggle
+- [ ] [PB-07] Increase the horizontal size of the space for the magnifying glass in the search prompt. It is too tight now, so that the horizontal borders of the button touch the icon
+- [X] [PB-08] Horizontally align the theme toggle and the label, so that "Dark/Light mode" is visually aligned with the toggle
 - [ ] [PB-09] The Share icon is almost invisible in the light mode
-- [ ] [PB-10] make clicking on any card emit a light bubble (respect the chosen theme). That may require an external JS library.
+- [ ] [PB-10] make clicking on any card emit a light bubble (respect the chosen theme). That may require an external JS library. The bubble shall resemble a soap bubble very much and float on top and disappear. The bubble is kinda transparent, maybe translusent, and is the size of a quater of the card's width
 
 ### BugFixes
 

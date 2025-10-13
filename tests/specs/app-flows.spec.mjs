@@ -15,6 +15,7 @@ const COPY_FEEDBACK_MESSAGE = "Prompt copied \u2713";
 const SHARE_FEEDBACK_MESSAGE = "Link copied \u2713";
 const THEME_TOGGLE_SELECTOR = "#themeToggle";
 const MIN_SEARCH_ADDON_PADDING_PX = 16;
+const MAX_THEME_ALIGNMENT_DELTA_PX = 2;
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -283,6 +284,26 @@ export const run = async ({ browser, baseUrl }) => {
     addonPaddingRight >= MIN_SEARCH_ADDON_PADDING_PX,
     true,
     `Search icon capsule should have at least ${MIN_SEARCH_ADDON_PADDING_PX}px right padding`
+  );
+  const themeAlignmentDelta = await page.evaluate((maximumDelta) => {
+    const toggleInput = document.querySelector("#themeToggle");
+    const toggleLabel = document.querySelector("label[for='themeToggle']");
+    if (!(toggleInput instanceof HTMLElement) || !(toggleLabel instanceof HTMLElement)) {
+      throw new Error("Theme toggle controls missing");
+    }
+    const inputRect = toggleInput.getBoundingClientRect();
+    const labelRect = toggleLabel.getBoundingClientRect();
+    const inputCenterY = inputRect.top + inputRect.height / 2;
+    const labelCenterY = labelRect.top + labelRect.height / 2;
+    return {
+      delta: Math.abs(inputCenterY - labelCenterY),
+      maximumDelta
+    };
+  }, MAX_THEME_ALIGNMENT_DELTA_PX);
+  assertEqual(
+    themeAlignmentDelta.delta <= themeAlignmentDelta.maximumDelta,
+    true,
+    `Theme toggle and label should align within ${MAX_THEME_ALIGNMENT_DELTA_PX}px vertically`
   );
 
   const searchScenarios = [
