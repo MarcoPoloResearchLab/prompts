@@ -8,6 +8,7 @@ const CARD_SELECTOR = "[data-test='prompt-card']";
 const COPY_BUTTON_SELECTOR = "[data-test='copy-button']";
 const COPY_BUTTON_LABEL_SELECTOR = "[data-test='copy-button'] span:last-of-type";
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
+const SHARE_BUTTON_LABEL_SELECTOR = "[data-test='share-button'] span:last-of-type";
 const FILTER_BAR_SELECTOR = "#chipBar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
@@ -153,6 +154,10 @@ const captureThemeSnapshot = (page) =>
     const searchInput = document.querySelector("[data-test='search-input']");
     const tagBadge = document.querySelector("[data-role='card-tag']");
     const shareIcon = document.querySelector("[data-role='share-icon']");
+    const shareButton = document.querySelector("[data-test='share-button']");
+    const copyButton = document.querySelector("[data-test='copy-button']");
+    const shareLabel = shareButton?.querySelector("span:last-of-type") ?? null;
+    const copyLabel = copyButton?.querySelector("span:last-of-type") ?? null;
     return {
       bodyBackgroundImage: bodyStyles.getPropertyValue("background-image"),
       topNavBackgroundColor: topNav ? getComputedStyle(topNav).getPropertyValue("background-color") : "",
@@ -164,19 +169,29 @@ const captureThemeSnapshot = (page) =>
       inputPaddingLeft: searchInput ? getComputedStyle(searchInput).getPropertyValue("padding-left") : "",
       tagBackgroundColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("background-color") : "",
       tagColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("color") : "",
-      shareIconColor: shareIcon ? getComputedStyle(shareIcon).getPropertyValue("color") : ""
+      shareIconColor: shareIcon ? getComputedStyle(shareIcon).getPropertyValue("color") : "",
+      shareButtonColor: shareLabel ? getComputedStyle(shareLabel).getPropertyValue("color") : "",
+      copyButtonColor: copyLabel ? getComputedStyle(copyLabel).getPropertyValue("color") : "",
+      shareButtonBorderColor: shareButton ? getComputedStyle(shareButton).getPropertyValue("border-color") : "",
+      copyButtonBorderColor: copyButton ? getComputedStyle(copyButton).getPropertyValue("border-color") : ""
     };
   });
 const parsePixels = (value) => Number.parseFloat(String(value).replace("px", "")) || 0;
-const parseRgbComponents = (value) => (String(value).match(/\d+/g) ?? []).map(Number);
+const parseRgbComponents = (value) =>
+  String(value)
+    .replace(/rgba?\(/i, "")
+    .replace(/\)/g, "")
+    .split(",")
+    .map((component) => Number.parseFloat(component.trim()))
+    .filter((component) => Number.isFinite(component));
 const colorsAreClose = (actual, expected) => {
   const actualComponents = parseRgbComponents(actual);
   const expectedComponents = parseRgbComponents(expected);
-  if (actualComponents.length !== 3 || expectedComponents.length !== 3) {
+  if (actualComponents.length < 3 || expectedComponents.length < 3) {
     return false;
   }
-  return actualComponents.every((component, index) =>
-    Math.abs(component - expectedComponents[index]) <= COLOR_COMPONENT_TOLERANCE
+  return [0, 1, 2].every((index) =>
+    Math.abs(actualComponents[index] - expectedComponents[index]) <= COLOR_COMPONENT_TOLERANCE
   );
 };
 const formatNumber = (value) => (Number.isFinite(value) ? value.toFixed(2) : "NaN");
@@ -1113,6 +1128,19 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     1,
     "Copy button text color should render fully opaque in light theme"
   );
+  const shareButtonColorSnapshot = await captureElementColor(page, SHARE_BUTTON_LABEL_SELECTOR);
+  const normalizedShareColor = normalizeToRgb(shareButtonColorSnapshot.raw);
+  assertEqual(
+    colorsAreClose(normalizedShareColor, normalizedCopyColor),
+    true,
+    "Share button text should mirror the copy button accent color in light theme"
+  );
+  const shareButtonAlpha = Number.isFinite(shareButtonColorSnapshot.alpha) ? shareButtonColorSnapshot.alpha : 1;
+  assertEqual(
+    shareButtonAlpha,
+    1,
+    "Share button text color should remain fully opaque in light theme"
+  );
   if (resetThemeAfterCopyCheck) {
     await page.click(THEME_TOGGLE_SELECTOR);
     await waitForThemeMode(page, themeBeforeCopyCheck);
@@ -1221,6 +1249,19 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     colorsAreClose(initialThemeSnapshot.shareIconColor.trim(), expectedInitialShareIconColor),
     true,
     "Share icon should match the active theme color"
+  );
+  assertEqual(
+    colorsAreClose(initialThemeSnapshot.shareButtonColor.trim(), initialThemeSnapshot.copyButtonColor.trim()),
+    true,
+    "Share button text should match the copy button accent color in the active theme"
+  );
+  assertEqual(
+    colorsAreClose(
+      initialThemeSnapshot.shareButtonBorderColor.trim(),
+      initialThemeSnapshot.copyButtonBorderColor.trim()
+    ),
+    true,
+    "Share button border should reuse the copy button outline color"
   );
   await waitForBubbleRemoval(page);
   await page.evaluate(() => {
@@ -1372,6 +1413,19 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     true,
     "Share icon should switch to the alternate theme accent color"
   );
+  assertEqual(
+    colorsAreClose(toggledThemeSnapshot.shareButtonColor.trim(), toggledThemeSnapshot.copyButtonColor.trim()),
+    true,
+    "Share button text should continue matching the copy button accent color after theme changes"
+  );
+  assertEqual(
+    colorsAreClose(
+      toggledThemeSnapshot.shareButtonBorderColor.trim(),
+      toggledThemeSnapshot.copyButtonBorderColor.trim()
+    ),
+    true,
+    "Share button border should stay aligned with the copy button outline after theme changes"
+  );
   await triggerLikeBubble(page, "p01");
   const toggledBubbleSnapshot = await snapshotBubble(page, "p01");
   assertEqual(
@@ -1499,6 +1553,19 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     finalThemeSnapshot.inputBackgroundColor.trim(),
     expectedInputBackground.trim(),
     "Search input background should align with the active theme token"
+  );
+  assertEqual(
+    colorsAreClose(finalThemeSnapshot.shareButtonColor.trim(), finalThemeSnapshot.copyButtonColor.trim()),
+    true,
+    "Share button text should align with the copy button accent color after restoring the original theme"
+  );
+  assertEqual(
+    colorsAreClose(
+      finalThemeSnapshot.shareButtonBorderColor.trim(),
+      finalThemeSnapshot.copyButtonBorderColor.trim()
+    ),
+    true,
+    "Share button border should remain in sync with the copy button outline after restoring the original theme"
   );
 
   await page.goto(`${baseUrl}#p05`, { waitUntil: "networkidle0" });

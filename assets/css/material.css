@@ -172,7 +172,8 @@ body {
   text-align: center;
 }
 
-button.btn.btn-outline-primary[data-test="copy-button"] {
+button.btn.btn-outline-primary[data-test="copy-button"],
+button.btn.btn-outline-primary[data-test="share-button"] {
   --bs-btn-color: var(--app-copy-button-color);
   --bs-btn-hover-color: var(--app-copy-button-color);
   --bs-btn-active-color: var(--app-copy-button-color);
@@ -186,25 +187,30 @@ button.btn.btn-outline-primary[data-test="copy-button"] {
   --bs-btn-active-bg: var(--app-copy-button-hover-bg);
   --bs-btn-focus-shadow-rgb: 25, 118, 210;
   color: var(--app-copy-button-color) !important;
-  border-color: var(--app-copy-button-border);
+  border-color: var(--app-copy-button-border) !important;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 button.btn.btn-outline-primary[data-test="copy-button"]:hover,
 button.btn.btn-outline-primary[data-test="copy-button"]:focus-visible,
-button.btn.btn-outline-primary[data-test="copy-button"]:active {
+button.btn.btn-outline-primary[data-test="copy-button"]:active,
+button.btn.btn-outline-primary[data-test="share-button"]:hover,
+button.btn.btn-outline-primary[data-test="share-button"]:focus-visible,
+button.btn.btn-outline-primary[data-test="share-button"]:active {
   box-shadow: var(--app-copy-button-focus-ring);
   outline: none;
 }
 
-[data-bs-theme="dark"] button.btn.btn-outline-primary[data-test="copy-button"] {
+[data-bs-theme="dark"] button.btn.btn-outline-primary[data-test="copy-button"],
+[data-bs-theme="dark"] button.btn.btn-outline-primary[data-test="share-button"] {
   --bs-btn-color-rgb: 217, 230, 255;
   --bs-btn-hover-color-rgb: 217, 230, 255;
   --bs-btn-active-color-rgb: 217, 230, 255;
   --bs-btn-focus-shadow-rgb: 111, 174, 255;
 }
 
-button.btn.btn-outline-primary[data-test="copy-button"] span {
+button.btn.btn-outline-primary[data-test="copy-button"] span,
+button.btn.btn-outline-primary[data-test="share-button"] span {
   color: var(--app-copy-button-color) !important;
   transition: color 0.2s ease;
 }

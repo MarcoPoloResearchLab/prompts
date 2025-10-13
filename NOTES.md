@@ -127,7 +127,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     ```
 - [ ] [PB-28] The second sticky row with the filters/banges must be inconspcious -- it is currently in some oval elemnts, that should go away. The row with filters must fit in a single row, so there will be no two rows of badges.
 - [X] [PB-29] Change the bubbles to only float when a bubble icon is pressed
-- [ ] [PB-30] Review the theme as allpied to all elemnts on the page. The share button still poorly styled for both dark and light themes: it gets light highlighting in the darm mode and is poorly visible in light mode. Use the same styling as the copy button
+- [X] [PB-30] Review the theme as allpied to all elemnts on the page. The share button still poorly styled for both dark and light themes: it gets light highlighting in the darm mode and is poorly visible in light mode. Use the same styling as the copy button
 
 ### BugFixes
 
