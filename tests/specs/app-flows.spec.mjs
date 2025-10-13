@@ -7,6 +7,8 @@ const CHIP_SELECTOR = "[data-test='tag-chip']";
 const CARD_SELECTOR = "[data-test='prompt-card']";
 const COPY_BUTTON_SELECTOR = "[data-test='copy-button']";
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
+const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
+const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
 const CLEAR_BUTTON_SELECTOR = "[data-test='clear-search']";
@@ -22,6 +24,9 @@ const MAX_THEME_ALIGNMENT_DELTA_PX = 2;
 const SHARE_ICON_LIGHT_COLOR = "rgb(13, 34, 71)";
 const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
 const COLOR_COMPONENT_TOLERANCE = 1;
+const LIKE_ICON_TEXT = "bubble_chart";
+const LIKE_LABEL_PREFIX = "Toggle like for";
+const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
 const BRAND_TAGLINE_TEXT = "Built for instant prompt workflows.";
 const FOOTER_SHORTCUT_TEXT = "Press / to search • Enter to copy the focused card";
 const BUBBLE_LAYER_SELECTOR = "[data-role='bubble-layer']";
@@ -260,6 +265,103 @@ const clickCardButton = async (page, cardId, type) => {
   }
   await delay(WAIT_AFTER_INTERACTION_MS);
 };
+
+const clickLikeButton = async (page, cardId) => {
+  const didClick = await page.evaluate(
+    (cardSelector, buttonSelector, identifier) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+      if (!card) {
+        return false;
+      }
+      const button = card.querySelector(buttonSelector);
+      if (!(button instanceof HTMLButtonElement)) {
+        return false;
+      }
+      button.click();
+      return true;
+    },
+    CARD_SELECTOR,
+    LIKE_BUTTON_SELECTOR,
+    cardId
+  );
+  if (!didClick) {
+    throw new Error(`Like button missing on card ${cardId}`);
+  }
+  await delay(WAIT_AFTER_INTERACTION_MS);
+};
+
+const waitForLikeCount = (page, cardId, expectedCount) =>
+  page.waitForFunction(
+    (cardSelector, buttonSelector, countSelector, identifier, targetCount) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+      if (!card) {
+        return false;
+      }
+      const button = card.querySelector(buttonSelector);
+      if (!button) {
+        return false;
+      }
+      const countElement = button.querySelector(countSelector);
+      if (!countElement) {
+        return false;
+      }
+      const countText = countElement.textContent?.trim() ?? "";
+      const parsedCount = Number.parseInt(countText, 10);
+      if (!Number.isFinite(parsedCount)) {
+        return false;
+      }
+      return parsedCount === targetCount;
+    },
+    {},
+    CARD_SELECTOR,
+    LIKE_BUTTON_SELECTOR,
+    LIKE_COUNT_SELECTOR,
+    cardId,
+    expectedCount
+  );
+
+const getCardLikeSnapshot = (page, cardId) =>
+  page.evaluate(
+    (cardSelector, buttonSelector, countSelector, identifier) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+      if (!card) {
+        throw new Error(`Card ${identifier} not found for like snapshot`);
+      }
+      const button = card.querySelector(buttonSelector);
+      if (!button) {
+        throw new Error("Like button missing for snapshot");
+      }
+      const countElement = button.querySelector(countSelector);
+      const iconElement = button.querySelector(".material-icons-outlined");
+      const countText = countElement?.textContent?.trim() ?? "";
+      const parsedCount = Number.parseInt(countText, 10);
+      return {
+        count: parsedCount,
+        pressed: button.getAttribute("aria-pressed") ?? "",
+        label: button.getAttribute("aria-label") ?? "",
+        iconText: iconElement?.textContent?.trim() ?? ""
+      };
+    },
+    CARD_SELECTOR,
+    LIKE_BUTTON_SELECTOR,
+    LIKE_COUNT_SELECTOR,
+    cardId
+  );
+
+const getCardButtonOrder = (page, cardId) =>
+  page.evaluate(
+    (cardSelector, identifier) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+      if (!card) {
+        return [];
+      }
+      return Array.from(card.querySelectorAll("[data-test$='button']")).map((element) =>
+        element.getAttribute("data-test") ?? ""
+      );
+    },
+    CARD_SELECTOR,
+    cardId
+  );
 
 const triggerCardBubble = async (page, cardId) => {
   const pointerPosition = await page.evaluate(
@@ -936,6 +1038,62 @@ export const run = async ({ browser, baseUrl }) => {
   await waitForCardFeedback(page, "p01", SHARE_FEEDBACK_MESSAGE);
   const shareText = await getClipboardText(page);
   assertEqual(shareText.endsWith("#p01"), true, "Share button should copy card URL");
+
+  const targetCardTitle = await page.evaluate(() => {
+    const card = document.querySelector("[data-test='prompt-card']#p01");
+    const titleElement = card?.querySelector(".card-title");
+    return titleElement?.textContent?.trim() ?? "";
+  });
+  const initialLikeSnapshot = await getCardLikeSnapshot(page, "p01");
+  const cardButtonOrder = await getCardButtonOrder(page, "p01");
+  assertDeepEqual(
+    cardButtonOrder,
+    ["copy-button", "like-button", "share-button"],
+    "Card controls should position the like toggle between copy and share buttons"
+  );
+  assertEqual(initialLikeSnapshot.count, 0, "Like counter should start at zero");
+  assertEqual(initialLikeSnapshot.pressed, "false", "Like button should start unpressed");
+  assertEqual(initialLikeSnapshot.iconText, LIKE_ICON_TEXT, "Like button should render the bubble icon glyph");
+  assertEqual(
+    initialLikeSnapshot.label.startsWith(`${LIKE_LABEL_PREFIX} ${targetCardTitle}`),
+    true,
+    "Like button label should describe the card title"
+  );
+  assertEqual(
+    initialLikeSnapshot.label.includes(`${LIKE_COUNT_LABEL_PREFIX} 0`),
+    true,
+    "Like button label should report the inactive count"
+  );
+  await clickLikeButton(page, "p01");
+  await waitForLikeCount(page, "p01", 1);
+  const likedSnapshot = await getCardLikeSnapshot(page, "p01");
+  assertEqual(likedSnapshot.count, 1, "First like toggle should increment the counter to one");
+  assertEqual(likedSnapshot.pressed, "true", "Like button should become pressed after liking a card");
+  assertEqual(
+    likedSnapshot.label.includes(`${LIKE_COUNT_LABEL_PREFIX} 1`),
+    true,
+    "Like button label should update to reflect the liked count"
+  );
+  await reloadApp(page, baseUrl);
+  await waitForCardCount(page, initialCardIds.length);
+  const persistedLikeSnapshot = await getCardLikeSnapshot(page, "p01");
+  assertEqual(persistedLikeSnapshot.count, 1, "Like count should persist after reloading the page");
+  assertEqual(persistedLikeSnapshot.pressed, "true", "Like button pressed state should persist after reload");
+  await clickLikeButton(page, "p01");
+  await waitForLikeCount(page, "p01", 0);
+  const clearedLikeSnapshot = await getCardLikeSnapshot(page, "p01");
+  assertEqual(clearedLikeSnapshot.count, 0, "Second toggle should remove the stored like");
+  assertEqual(clearedLikeSnapshot.pressed, "false", "Like button should return to unpressed when cleared");
+  assertEqual(
+    clearedLikeSnapshot.label.includes(`${LIKE_COUNT_LABEL_PREFIX} 0`),
+    true,
+    "Like button label should reflect the cleared count"
+  );
+  await reloadApp(page, baseUrl);
+  await waitForCardCount(page, initialCardIds.length);
+  const resetLikeSnapshot = await getCardLikeSnapshot(page, "p01");
+  assertEqual(resetLikeSnapshot.count, 0, "Cleared like state should persist after a reload");
+  assertEqual(resetLikeSnapshot.pressed, "false", "Cleared like state should remain unpressed after reload");
 
   const initialThemeMode = await page.evaluate(() => document.documentElement.getAttribute("data-bs-theme") ?? "light");
   const initialThemeSnapshot = await captureThemeSnapshot(page);

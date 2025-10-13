@@ -8,7 +8,8 @@ export const TAGS = Object.freeze({
 
 export const STORAGE_KEYS = Object.freeze({
   filters: "prompt-bubbles-filters",
-  theme: "prompt-bubbles-theme"
+  theme: "prompt-bubbles-theme",
+  likes: "prompt-bubbles-likes"
 });
 
 export const EVENTS = Object.freeze({
@@ -33,6 +34,11 @@ export const STRINGS = Object.freeze({
   clearSearchLabel: "Clear search",
   copyToast: "Prompt copied ✓",
   shareToast: "Link copied ✓",
+  likeButtonLabel: "Like",
+  likeButtonAriaPrefix: "Toggle like for",
+  likeButtonCountPrefix: "Current likes:",
+  likeButtonActiveHint: "Click to remove your like.",
+  likeButtonInactiveHint: "Click to add your like.",
   toastDismiss: "Dismiss notification",
   tagFilterLabel: "Tag filters",
   footerHint: "Press / to search • Enter to copy the focused card",
@@ -51,5 +57,6 @@ export const TIMINGS = Object.freeze({
 
 export const ICONS = Object.freeze({
   copy: "content_copy",
-  share: "share"
+  share: "share",
+  like: "bubble_chart"
 });

@@ -9,6 +9,7 @@ import { writeText, writeUrl } from "../utils/clipboard.js";
 
 /** @typedef {import("../types.d.js").Prompt} Prompt */
 /** @typedef {import("../types.d.js").PromptFilters} PromptFilters */
+/** @typedef {import("../types.d.js").PromptLikeCounts} PromptLikeCounts */
 
 const DEFAULT_FILTERS = Object.freeze({
   searchText: "",
@@ -19,6 +20,57 @@ const CARD_FEEDBACK_VARIANTS = Object.freeze({
   copy: "text-success",
   share: "text-info"
 });
+
+/**
+ * @returns {PromptLikeCounts}
+ */
+function createLikeCountMap() {
+  return /** @type {PromptLikeCounts} */ (Object.create(null));
+}
+
+/**
+ * @param {unknown} value
+ * @returns {PromptLikeCounts}
+ */
+function sanitizeLikeCounts(value) {
+  const sanitized = createLikeCountMap();
+  if (!value || typeof value !== "object") {
+    return sanitized;
+  }
+  const entries = Object.entries(value);
+  for (const [rawKey, rawCount] of entries) {
+    if (typeof rawKey !== "string" || rawKey.trim().length === 0) {
+      continue;
+    }
+    const numericCount =
+      typeof rawCount === "number" && Number.isFinite(rawCount)
+        ? rawCount
+        : Number.parseInt(String(rawCount), 10);
+    if (Number.isFinite(numericCount) && numericCount >= 1) {
+      sanitized[rawKey] = 1;
+    }
+  }
+  return sanitized;
+}
+
+/**
+ * @param {PromptLikeCounts} likeCounts
+ * @param {Set<string>} allowedIds
+ * @returns {PromptLikeCounts}
+ */
+function pruneLikeCounts(likeCounts, allowedIds) {
+  const pruned = createLikeCountMap();
+  const entries = Object.entries(likeCounts);
+  for (const [identifier, count] of entries) {
+    if (!allowedIds.has(identifier)) {
+      continue;
+    }
+    if (Number.isFinite(count) && count >= 1) {
+      pruned[identifier] = 1;
+    }
+  }
+  return pruned;
+}
 
 /**
  * @param {{ promptsRepository: ReturnType<typeof import("../core/prompts.js").createPromptsRepository>, logger?: ReturnType<typeof createLogger> }} dependencies
@@ -36,10 +88,12 @@ export function AppShell(dependencies) {
     tags: /** @type {string[]} */ ([]),
     filters: /** @type {PromptFilters} */ ({ ...DEFAULT_FILTERS }),
     searchHasText: false,
+    likeCountsById: createLikeCountMap(),
     cardFeedbackById: Object.create(null),
     cardFeedbackTimers: Object.create(null),
     init() {
       this.restoreFilters();
+      this.restoreLikes();
       this.$watch("filters.searchText", (value) => {
         this.searchHasText = typeof value === "string" && value.trim().length > 0;
         this.persistFilters();
@@ -74,6 +128,7 @@ export function AppShell(dependencies) {
       try {
         this.prompts = await promptsRepository.loadAll();
         this.tags = promptsRepository.collectTags(this.prompts);
+        this.pruneStoredLikes();
         this.applyFilters();
       } catch (error) {
         this.hasError = true;
@@ -91,6 +146,18 @@ export function AppShell(dependencies) {
     },
     persistFilters() {
       saveJson(STORAGE_KEYS.filters, this.filters);
+    },
+    restoreLikes() {
+      const storedLikes = loadJson(STORAGE_KEYS.likes, createLikeCountMap());
+      this.likeCountsById = sanitizeLikeCounts(storedLikes);
+    },
+    persistLikes() {
+      saveJson(STORAGE_KEYS.likes, this.likeCountsById);
+    },
+    pruneStoredLikes() {
+      const allowedIds = new Set(this.prompts.map((prompt) => prompt.id));
+      this.likeCountsById = pruneLikeCounts(this.likeCountsById, allowedIds);
+      this.persistLikes();
     },
     forwardToast(detail) {
       if (!detail || typeof detail.message !== "string") {
@@ -121,6 +188,72 @@ export function AppShell(dependencies) {
     },
     isActiveTag(tag) {
       return this.filters.tag === tag;
+    },
+    /**
+     * @param {string} cardId
+     * @returns {number}
+     */
+    likeCountValue(cardId) {
+      const storedValue = this.likeCountsById[cardId];
+      if (typeof storedValue !== "number" || !Number.isFinite(storedValue)) {
+        return 0;
+      }
+      return storedValue >= 1 ? 1 : 0;
+    },
+    /**
+     * @param {string} cardId
+     * @returns {string}
+     */
+    likeCountDisplay(cardId) {
+      return String(this.likeCountValue(cardId));
+    },
+    /**
+     * @param {string} cardId
+     * @returns {boolean}
+     */
+    isCardLiked(cardId) {
+      return this.likeCountValue(cardId) >= 1;
+    },
+    likeButtonClass(cardId) {
+      return this.isCardLiked(cardId) ? "btn-primary" : "btn-outline-primary";
+    },
+    /**
+     * @param {Prompt} prompt
+     * @returns {string}
+     */
+    likeButtonAriaLabel(prompt) {
+      const likeCount = this.likeCountValue(prompt.id);
+      const stateHint = this.isCardLiked(prompt.id) ? STRINGS.likeButtonActiveHint : STRINGS.likeButtonInactiveHint;
+      return `${STRINGS.likeButtonAriaPrefix} ${prompt.title}. ${STRINGS.likeButtonCountPrefix} ${likeCount}. ${stateHint}`;
+    },
+    /**
+     * @param {string} cardId
+     * @returns {void}
+     */
+    toggleLike(cardId) {
+      if (typeof cardId !== "string") {
+        logger.error("Like toggle requested without identifier");
+        return;
+      }
+      const trimmedCardId = cardId.trim();
+      if (trimmedCardId.length === 0) {
+        logger.error("Like toggle requested without identifier");
+        return;
+      }
+      const promptExists = this.prompts.some((prompt) => prompt.id === trimmedCardId);
+      if (!promptExists) {
+        logger.error("Like toggle requested for unknown card", trimmedCardId);
+        return;
+      }
+      const isCurrentlyLiked = this.isCardLiked(trimmedCardId);
+      const nextCounts = { ...this.likeCountsById };
+      if (isCurrentlyLiked) {
+        delete nextCounts[trimmedCardId];
+      } else {
+        nextCounts[trimmedCardId] = 1;
+      }
+      this.likeCountsById = sanitizeLikeCounts(nextCounts);
+      this.persistLikes();
     },
     /**
      * @param {HTMLElement} textContainer

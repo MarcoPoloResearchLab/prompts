@@ -129,6 +129,17 @@ body {
   outline: none;
 }
 
+[data-test="like-button"] {
+  min-width: 3.5rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+[data-test="like-button"] [data-role="like-count"] {
+  font-variant-numeric: tabular-nums;
+  min-width: 1.5ch;
+  text-align: center;
+}
+
 [data-role="search-addon"] {
   background: var(--app-search-addon-bg);
   border: 1px solid var(--app-search-addon-border);

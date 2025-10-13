@@ -192,6 +192,19 @@
                         </button>
                         <button
                           type="button"
+                          class="btn btn-sm d-inline-flex align-items-center gap-1"
+                          data-test="like-button"
+                          x-bind:class="likeButtonClass(prompt.id)"
+                          x-bind:aria-pressed="isCardLiked(prompt.id) ? 'true' : 'false'"
+                          x-bind:aria-label="likeButtonAriaLabel(prompt)"
+                          x-bind:data-liked="isCardLiked(prompt.id) ? 'true' : 'false'"
+                          x-on:click="toggleLike(prompt.id)"
+                        >
+                          <span class="material-icons-outlined" aria-hidden="true" x-text="icon('like')"></span>
+                          <span data-role="like-count" x-text="likeCountDisplay(prompt.id)"></span>
+                        </button>
+                        <button
+                          type="button"
                           class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
                           data-test="share-button"
                           x-bind:aria-label="`${strings.shareAriaLabelPrefix} ${prompt.title}`"

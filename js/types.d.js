@@ -15,6 +15,10 @@
  */
 
 /**
+ * @typedef {Record<string, number>} PromptLikeCounts
+ */
+
+/**
  * @typedef {Object} ToastDetail
  * @property {string} message
  */

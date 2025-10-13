@@ -8,6 +8,7 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Inline editing:** placeholders render as inline inputs so prompts can be tailored before copying.
 - **Persisted context:** the active tag and search query survive reloads through local storage.
 - **Shareable cards:** each card copies a deep link and the layout highlights the linked card when visiting `#card-id`.
+- **Per-card likes:** every prompt includes a bubble like toggle with a counter that persists locally and exposes proper pressed state for assistive tech.
 - **Notifications:** copy and share actions raise an event-scoped toast; no inline handlers or global mutations.
 - **Atmospheric feedback:** clicking any card emits a theme-aware bubble animation that fades after the interaction.
 
@@ -29,7 +30,7 @@ npm install
 npm test
 ```
 
-`npm test` starts a static server, launches Puppeteer, and exercises the end-to-end flows (search, filtering, copy/share, hash highlighting, and persisted filters).
+`npm test` starts a static server, launches Puppeteer, and exercises the end-to-end flows (search, filtering, copy/share, like toggles, hash highlighting, and persisted filters).
 
 ## Project Layout
 
