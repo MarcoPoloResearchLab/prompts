@@ -9,6 +9,8 @@ import { run as runAppFlows } from "./specs/app-flows.spec.mjs";
 const DEFAULT_PORT = 4173;
 const HOST = "127.0.0.1";
 const ROOT_DIRECTORY = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+const APP_FLOWS_SPEC_NAME = "specs/app-flows.spec.mjs";
+const executedSpecs = [];
 
 const MIME_MAP = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -87,7 +89,26 @@ const main = async () => {
   });
   try {
     const baseUrl = `http://${HOST}:${port}/index.html`;
-    await runAppFlows({ browser, baseUrl });
+    const announceProgress = async (page, label) => {
+      if (!executedSpecs.includes(label)) {
+        executedSpecs.push(label);
+      }
+      await page.evaluateOnNewDocument((name) => {
+        const existing = Array.isArray(window.__PROMPT_BUBBLES_RUNNER_PROGRESS)
+          ? window.__PROMPT_BUBBLES_RUNNER_PROGRESS
+          : [];
+        if (!existing.includes(name)) {
+          window.__PROMPT_BUBBLES_RUNNER_PROGRESS = [...existing, name];
+        }
+      }, label);
+    };
+    console.log(`Running ${APP_FLOWS_SPEC_NAME}`);
+    await runAppFlows({
+      browser,
+      baseUrl,
+      announceProgress: (page) => announceProgress(page, APP_FLOWS_SPEC_NAME)
+    });
+    console.log(`✓ ${APP_FLOWS_SPEC_NAME}`);
   } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));
@@ -96,6 +117,9 @@ const main = async () => {
   const staticServerWarnings = consoleWarnings.filter((message) => message.startsWith("Static server:"));
   if (staticServerWarnings.length > 0) {
     throw new Error(`Static server emitted warnings:\n${staticServerWarnings.join("\n")}`);
+  }
+  if (executedSpecs.length > 0) {
+    console.log(`Executed specs: ${executedSpecs.join(", ")}`);
   }
   console.log("All tests passed");
 };

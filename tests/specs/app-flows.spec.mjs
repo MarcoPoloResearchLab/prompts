@@ -11,6 +11,7 @@ const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
 const FILTER_BAR_SELECTOR = "#chipBar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
+const APP_FLOWS_SPEC_IDENTIFIER = "specs/app-flows.spec.mjs";
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
 const CLEAR_BUTTON_SELECTOR = "[data-test='clear-search']";
@@ -628,8 +629,11 @@ const captureGridRowLengths = (page) =>
     }
     return rows.map((row) => row.count);
   }, CARD_SELECTOR);
-export const run = async ({ browser, baseUrl }) => {
+export const run = async ({ browser, baseUrl, announceProgress }) => {
   const page = await browser.newPage();
+  if (typeof announceProgress === "function") {
+    await announceProgress(page);
+  }
   await page.evaluateOnNewDocument(() => {
     window.__PROMPT_BUBBLES_TESTING__ = true;
   });
@@ -641,6 +645,13 @@ export const run = async ({ browser, baseUrl }) => {
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForSelector(CARD_SELECTOR);
   await page.waitForSelector(BUBBLE_LAYER_SELECTOR);
+
+  const runnerProgress = await page.evaluate(() => window.__PROMPT_BUBBLES_RUNNER_PROGRESS ?? []);
+  assertEqual(
+    Array.isArray(runnerProgress) && runnerProgress.includes(APP_FLOWS_SPEC_IDENTIFIER),
+    true,
+    "Test runner should announce the active spec name before exercising the UI"
+  );
 
   const faviconMetadata = await page.evaluate(() => {
     const iconLink = document.querySelector("link[rel='icon']");

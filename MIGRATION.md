@@ -28,5 +28,6 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 - Like state persists through `localStorage` using the `prompt-bubbles-likes` key; `AppShell` owns helpers for toggling, persistence, and accessibility labels.
 - Copy button styles rely on the new `--app-copy-button-*` tokens injected in `assets/css/material.css`; update those variables when adjusting action colors.
 - Sticky filter styling is driven by `--app-filter-bar-*` tokens and the `.app-filter-bar` container; keep offsets in sync with the fixed top navbar height.
+- The Puppeteer runner (`tests/run-tests.mjs`) announces each spec and seeds `window.__PROMPT_BUBBLES_RUNNER_PROGRESS`; call the provided `announceProgress` helper when wiring additional specs.
 - Integration coverage runs through `npm test`, which launches Puppeteer against the static server; helpers rely on `data-test` attributes for stability.
 - User-facing strings reside in `js/constants.js`; reuse constants instead of inline literals when extending the UI.

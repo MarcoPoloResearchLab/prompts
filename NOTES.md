@@ -139,7 +139,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 - [X] [PB-20] When clicked, the bubble slows down to the middle of the card and then continues its ascend. There shall be no slowing down.
 - [X] [PB-23] The word Copy in light theme is pale and hardly visible on a button
 - [X] [PB-24] The badges / filters button shall be sticky -- always visible.
-- [ ] [PB-25] the `npm test` command does not display which tests are running making it difficult to asses coverage of progress or failures. Make npm test output the tests to stdio
+- [X] [PB-25] the `npm test` command does not display which tests are running making it difficult to asses coverage of progress or failures. Make npm test output the tests to stdio
 
 ### Maintenance
 
