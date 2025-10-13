@@ -6,7 +6,21 @@ const SEARCH_INPUT_SELECTOR = "[data-test='search-input']";
 const CHIP_SELECTOR = "[data-test='tag-chip']";
 const CARD_SELECTOR = "[data-test='prompt-card']";
 const COPY_BUTTON_SELECTOR = "[data-test='copy-button']";
+const COPY_BUTTON_LABEL_SELECTOR = "[data-test='copy-button'] span:last-of-type";
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
+const SHARE_BUTTON_LABEL_SELECTOR = "[data-test='share-button'] span:last-of-type";
+const FILTER_BAR_SELECTOR = "#chipBar";
+const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
+const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
+const PRIVACY_LINK_SELECTOR = "[data-role='privacy-link']";
+const FOOTER_PREFIX_SELECTOR = "[data-role='footer-prefix']";
+const FOOTER_PROJECTS_TOGGLE_SELECTOR = "[data-role='footer-projects-toggle']";
+const FOOTER_PROJECTS_MENU_SELECTOR = "[data-role='footer-projects-menu']";
+const FOOTER_PROJECT_ITEM_SELECTOR = "[data-role='footer-projects-item']";
+const PRIVACY_LINK_TEXT = "Privacy • Terms";
+const PRIVACY_HEADING_TEXT = "Privacy Policy — Prompt Bubbles";
+const PRIVACY_ROBOTS_META = "noindex,nofollow";
+const APP_FLOWS_SPEC_IDENTIFIER = "specs/app-flows.spec.mjs";
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
 const CLEAR_BUTTON_SELECTOR = "[data-test='clear-search']";
@@ -22,8 +36,29 @@ const MAX_THEME_ALIGNMENT_DELTA_PX = 2;
 const SHARE_ICON_LIGHT_COLOR = "rgb(13, 34, 71)";
 const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
 const COLOR_COMPONENT_TOLERANCE = 1;
+const STICKY_DELTA_TOLERANCE_PX = 2;
+const FILTER_CHIP_MAX_RADIUS_PX = 12;
+const FILTER_CONTAINER_SCROLL_VALUES = Object.freeze(["auto", "scroll", "overlay"]);
+const LIKE_ICON_TEXT = "bubble_chart";
+const LIKE_LABEL_PREFIX = "Toggle like for";
+const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
 const BRAND_TAGLINE_TEXT = "Built for instant prompt workflows.";
 const FOOTER_SHORTCUT_TEXT = "Press / to search • Enter to copy the focused card";
+const FOOTER_PREFIX_TEXT = "Built by";
+const FOOTER_MENU_LABEL = "Marco Polo Research Lab";
+const FOOTER_MENU_TOGGLE_ARIA_LABEL = "Browse Marco Polo Research Lab projects";
+const FOOTER_PROJECT_LINKS = Object.freeze([
+  { label: "Marco Polo Research Lab", url: "https://mprlab.com" },
+  { label: "Gravity Notes", url: "https://gravity.mprlab.com" },
+  { label: "LoopAware", url: "https://loopaware.mprlab.com" },
+  { label: "Allergy Wheel", url: "https://allergy.mprlab.com" },
+  { label: "Social Threader", url: "https://threader.mprlab.com" },
+  { label: "RSVP", url: "https://rsvp.mprlab.com" },
+  { label: "Countdown Calendar", url: "https://countdown.mprlab.com" },
+  { label: "LLM Crossword", url: "https://llm-crossword.mprlab.com" },
+  { label: "Prompt Bubbles", url: "https://prompts.mprlab.com" },
+  { label: "Wallpapers", url: "https://wallpapers.mprlab.com" }
+]);
 const BUBBLE_LAYER_SELECTOR = "[data-role='bubble-layer']";
 const BUBBLE_SELECTOR = "[data-role='bubble']";
 const BUBBLE_BORDER_LIGHT = "rgba(25, 118, 210, 0.35)";
@@ -40,6 +75,68 @@ const EMPTY_STATE_LIGHT_TEXT = "rgb(13, 34, 71)";
 const EMPTY_STATE_DARK_BACKGROUND = "rgb(26, 44, 92)";
 const EMPTY_STATE_DARK_TEXT = "rgb(217, 230, 255)";
 const PLACEHOLDER_OVERFLOW_TOLERANCE_PX = 1.5;
+const calculateUsedBytes = (sourceLength, ranges) => {
+  if (!Array.isArray(ranges) || ranges.length === 0) {
+    return 0;
+  }
+  const normalizedRanges = ranges
+    .map((range) => {
+      const rawStart = Number.parseFloat(String(range?.start ?? range?.offset ?? 0));
+      const rawEnd = Number.parseFloat(String(range?.end ?? range?.offsetEnd ?? 0));
+      if (!Number.isFinite(rawStart) || !Number.isFinite(rawEnd)) {
+        return null;
+      }
+      const start = Math.max(0, Math.min(sourceLength, Math.floor(rawStart)));
+      const end = Math.max(0, Math.min(sourceLength, Math.ceil(rawEnd)));
+      return end > start ? { start, end } : null;
+    })
+    .filter(Boolean)
+    .sort((left, right) => {
+      if (!left || !right) {
+        return 0;
+      }
+      return left.start - right.start;
+    });
+  if (normalizedRanges.length === 0) {
+    return 0;
+  }
+  let used = 0;
+  let currentStart = normalizedRanges[0]?.start ?? 0;
+  let currentEnd = normalizedRanges[0]?.end ?? 0;
+  for (let index = 1; index < normalizedRanges.length; index += 1) {
+    const range = normalizedRanges[index];
+    if (!range) {
+      continue;
+    }
+    if (range.start <= currentEnd) {
+      currentEnd = Math.max(currentEnd, range.end);
+      continue;
+    }
+    used += currentEnd - currentStart;
+    currentStart = range.start;
+    currentEnd = range.end;
+  }
+  used += currentEnd - currentStart;
+  return used;
+};
+
+const summarizeCoverageEntries = (entries) => {
+  let totalBytes = 0;
+  let usedBytes = 0;
+  for (const entry of entries ?? []) {
+    const source = typeof entry?.text === "string" ? entry.text : "";
+    const ranges = Array.isArray(entry?.ranges) ? entry.ranges : [];
+    const entryTotal = source.length;
+    totalBytes += entryTotal;
+    usedBytes += calculateUsedBytes(entryTotal, ranges);
+  }
+  const percent = totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0;
+  return {
+    totalBytes,
+    usedBytes,
+    percent
+  };
+};
 
 const normalizeToRgb = (value) => {
   if (typeof value !== "string") {
@@ -144,6 +241,10 @@ const captureThemeSnapshot = (page) =>
     const searchInput = document.querySelector("[data-test='search-input']");
     const tagBadge = document.querySelector("[data-role='card-tag']");
     const shareIcon = document.querySelector("[data-role='share-icon']");
+    const shareButton = document.querySelector("[data-test='share-button']");
+    const copyButton = document.querySelector("[data-test='copy-button']");
+    const shareLabel = shareButton?.querySelector("span:last-of-type") ?? null;
+    const copyLabel = copyButton?.querySelector("span:last-of-type") ?? null;
     return {
       bodyBackgroundImage: bodyStyles.getPropertyValue("background-image"),
       topNavBackgroundColor: topNav ? getComputedStyle(topNav).getPropertyValue("background-color") : "",
@@ -155,19 +256,29 @@ const captureThemeSnapshot = (page) =>
       inputPaddingLeft: searchInput ? getComputedStyle(searchInput).getPropertyValue("padding-left") : "",
       tagBackgroundColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("background-color") : "",
       tagColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("color") : "",
-      shareIconColor: shareIcon ? getComputedStyle(shareIcon).getPropertyValue("color") : ""
+      shareIconColor: shareIcon ? getComputedStyle(shareIcon).getPropertyValue("color") : "",
+      shareButtonColor: shareLabel ? getComputedStyle(shareLabel).getPropertyValue("color") : "",
+      copyButtonColor: copyLabel ? getComputedStyle(copyLabel).getPropertyValue("color") : "",
+      shareButtonBorderColor: shareButton ? getComputedStyle(shareButton).getPropertyValue("border-color") : "",
+      copyButtonBorderColor: copyButton ? getComputedStyle(copyButton).getPropertyValue("border-color") : ""
     };
   });
 const parsePixels = (value) => Number.parseFloat(String(value).replace("px", "")) || 0;
-const parseRgbComponents = (value) => (String(value).match(/\d+/g) ?? []).map(Number);
+const parseRgbComponents = (value) =>
+  String(value)
+    .replace(/rgba?\(/i, "")
+    .replace(/\)/g, "")
+    .split(",")
+    .map((component) => Number.parseFloat(component.trim()))
+    .filter((component) => Number.isFinite(component));
 const colorsAreClose = (actual, expected) => {
   const actualComponents = parseRgbComponents(actual);
   const expectedComponents = parseRgbComponents(expected);
-  if (actualComponents.length !== 3 || expectedComponents.length !== 3) {
+  if (actualComponents.length < 3 || expectedComponents.length < 3) {
     return false;
   }
-  return actualComponents.every((component, index) =>
-    Math.abs(component - expectedComponents[index]) <= COLOR_COMPONENT_TOLERANCE
+  return [0, 1, 2].every((index) =>
+    Math.abs(actualComponents[index] - expectedComponents[index]) <= COLOR_COMPONENT_TOLERANCE
   );
 };
 const formatNumber = (value) => (Number.isFinite(value) ? value.toFixed(2) : "NaN");
@@ -261,7 +372,127 @@ const clickCardButton = async (page, cardId, type) => {
   await delay(WAIT_AFTER_INTERACTION_MS);
 };
 
-const triggerCardBubble = async (page, cardId) => {
+const clickLikeButton = async (page, cardId) => {
+  const didClick = await page.evaluate(
+    (cardSelector, buttonSelector, identifier) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+      if (!card) {
+        return false;
+      }
+      const button = card.querySelector(buttonSelector);
+      if (!(button instanceof HTMLButtonElement)) {
+        return false;
+      }
+      button.click();
+      return true;
+    },
+    CARD_SELECTOR,
+    LIKE_BUTTON_SELECTOR,
+    cardId
+  );
+  if (!didClick) {
+    throw new Error(`Like button missing on card ${cardId}`);
+  }
+  await delay(WAIT_AFTER_INTERACTION_MS);
+};
+
+const waitForLikeCount = (page, cardId, expectedCount) =>
+  page.waitForFunction(
+    (cardSelector, buttonSelector, countSelector, identifier, targetCount) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+      if (!card) {
+        return false;
+      }
+      const button = card.querySelector(buttonSelector);
+      if (!button) {
+        return false;
+      }
+      const countElement = button.querySelector(countSelector);
+      if (!countElement) {
+        return false;
+      }
+      const countText = countElement.textContent?.trim() ?? "";
+      const parsedCount = Number.parseInt(countText, 10);
+      if (!Number.isFinite(parsedCount)) {
+        return false;
+      }
+      return parsedCount === targetCount;
+    },
+    {},
+    CARD_SELECTOR,
+    LIKE_BUTTON_SELECTOR,
+    LIKE_COUNT_SELECTOR,
+    cardId,
+    expectedCount
+  );
+
+const getCardLikeSnapshot = (page, cardId) =>
+  page.evaluate(
+    (cardSelector, buttonSelector, countSelector, identifier) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+      if (!card) {
+        throw new Error(`Card ${identifier} not found for like snapshot`);
+      }
+      const button = card.querySelector(buttonSelector);
+      if (!button) {
+        throw new Error("Like button missing for snapshot");
+      }
+      const countElement = button.querySelector(countSelector);
+      const iconElement = button.querySelector(".material-icons-outlined");
+      const countText = countElement?.textContent?.trim() ?? "";
+      const parsedCount = Number.parseInt(countText, 10);
+      return {
+        count: parsedCount,
+        pressed: button.getAttribute("aria-pressed") ?? "",
+        label: button.getAttribute("aria-label") ?? "",
+        iconText: iconElement?.textContent?.trim() ?? ""
+      };
+    },
+    CARD_SELECTOR,
+    LIKE_BUTTON_SELECTOR,
+    LIKE_COUNT_SELECTOR,
+    cardId
+  );
+
+const getCardButtonOrder = (page, cardId) =>
+  page.evaluate(
+    (cardSelector, identifier) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+      if (!card) {
+        return [];
+      }
+      return Array.from(card.querySelectorAll("[data-test$='button']")).map((element) =>
+        element.getAttribute("data-test") ?? ""
+      );
+    },
+    CARD_SELECTOR,
+    cardId
+  );
+
+const captureElementColor = (page, selector) =>
+  page.evaluate((targetSelector) => {
+    const element = document.querySelector(targetSelector);
+    if (!(element instanceof HTMLElement)) {
+      throw new Error(`Element missing for selector ${targetSelector}`);
+    }
+    const styles = getComputedStyle(element);
+    const colorValue = styles.getPropertyValue("color");
+    const match = colorValue.match(/rgba?\(([^)]+)\)/i);
+    if (!match) {
+      return {
+        raw: colorValue.trim(),
+        alpha: 1
+      };
+    }
+    const components = match[1].split(",").map((component) => component.trim());
+    const alphaComponent = components[3] ?? "1";
+    return {
+      raw: colorValue.trim(),
+      alpha: Number.parseFloat(alphaComponent)
+    };
+  }, selector);
+
+const clickCardSurface = async (page, cardId) => {
   const pointerPosition = await page.evaluate(
     (selector, id) => {
       const card = document.querySelector(`${selector}#${CSS.escape(id)}`);
@@ -271,14 +502,42 @@ const triggerCardBubble = async (page, cardId) => {
       const rect = card.getBoundingClientRect();
       return {
         x: rect.left + rect.width / 2,
-        y: rect.bottom - 6
+        y: rect.top + rect.height / 2
       };
     },
     CARD_SELECTOR,
     cardId
   );
   if (!pointerPosition) {
-    throw new Error(`Card "${cardId}" not found for bubble trigger`);
+    throw new Error(`Card "${cardId}" not found for click interaction`);
+  }
+  await page.mouse.click(pointerPosition.x, pointerPosition.y);
+  await delay(WAIT_AFTER_INTERACTION_MS);
+};
+
+const triggerLikeBubble = async (page, cardId) => {
+  const pointerPosition = await page.evaluate(
+    (cardSelector, buttonSelector, identifier) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+      if (!card) {
+        return null;
+      }
+      const button = card.querySelector(buttonSelector);
+      if (!(button instanceof HTMLElement)) {
+        return null;
+      }
+      const rect = button.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      };
+    },
+    CARD_SELECTOR,
+    LIKE_BUTTON_SELECTOR,
+    cardId
+  );
+  if (!pointerPosition) {
+    throw new Error(`Like button missing on card "${cardId}" for bubble trigger`);
   }
   await page.mouse.click(pointerPosition.x, pointerPosition.y);
   await page.waitForFunction(
@@ -500,8 +759,122 @@ const captureGridRowLengths = (page) =>
     }
     return rows.map((row) => row.count);
   }, CARD_SELECTOR);
-export const run = async ({ browser, baseUrl }) => {
+const captureFilterLayoutSnapshot = (page) =>
+  page.evaluate((containerSelector, chipSelector) => {
+    const container = document.querySelector(containerSelector);
+    const chips = Array.from(document.querySelectorAll(chipSelector));
+    const topPositions = new Set();
+    let maxBorderRadius = 0;
+    let usesButtonClass = false;
+    for (const chip of chips) {
+      const rect = chip.getBoundingClientRect();
+      topPositions.add(rect.top.toFixed(2));
+      if (chip.classList.contains("btn") || chip.classList.contains("btn-outline-primary")) {
+        usesButtonClass = true;
+      }
+      const chipStyles = getComputedStyle(chip);
+      const radius = Number.parseFloat(chipStyles.getPropertyValue("border-radius"));
+      if (Number.isFinite(radius) && radius > maxBorderRadius) {
+        maxBorderRadius = radius;
+      }
+    }
+    const containerStyles = container ? getComputedStyle(container) : null;
+    return {
+      rowCount: topPositions.size,
+      flexWrap: containerStyles?.getPropertyValue("flex-wrap")?.trim().toLowerCase() ?? "",
+      overflowX: containerStyles?.getPropertyValue("overflow-x")?.trim().toLowerCase() ?? "",
+      maxBorderRadius,
+      usesButtonClass
+    };
+  }, FILTER_BAR_SELECTOR, CHIP_SELECTOR);
+const captureFooterMenuSnapshot = (page) =>
+  page.evaluate(
+    (prefixSelector, toggleSelector, menuSelector, itemSelector) => {
+      const prefixElement = document.querySelector(prefixSelector);
+      const toggleElement = document.querySelector(toggleSelector);
+      const menuElement = document.querySelector(menuSelector);
+      const itemElements = Array.from(document.querySelectorAll(itemSelector));
+      const isMenuVisible =
+        menuElement instanceof HTMLElement
+          ? (() => {
+              const styles = window.getComputedStyle(menuElement);
+              if (styles.getPropertyValue("display") === "none" || styles.getPropertyValue("visibility") === "hidden") {
+                return false;
+              }
+              const rect = menuElement.getBoundingClientRect();
+              return rect.height > 0 && rect.width > 0;
+            })()
+          : false;
+      return {
+        prefixText: prefixElement?.textContent?.trim() ?? "",
+        toggleLabel: toggleElement?.textContent?.trim() ?? "",
+        toggleId: toggleElement?.id ?? "",
+        toggleAriaExpanded: toggleElement?.getAttribute("aria-expanded") ?? "",
+        toggleAriaControls: toggleElement?.getAttribute("aria-controls") ?? "",
+        toggleAriaHaspopup: toggleElement?.getAttribute("aria-haspopup") ?? "",
+        toggleAriaLabel: toggleElement?.getAttribute("aria-label") ?? "",
+        menuId: menuElement?.id ?? "",
+        menuRole: menuElement?.getAttribute("role") ?? "",
+        menuLabelledBy: menuElement?.getAttribute("aria-labelledby") ?? "",
+        menuHasShowClass: menuElement?.classList.contains("show") ?? false,
+        menuVisible: isMenuVisible,
+        itemSummaries: itemElements.map((element) => ({
+          label: element.textContent?.trim() ?? "",
+          href: element.getAttribute("href") ?? "",
+          target: element.getAttribute("target") ?? "",
+          rel: element.getAttribute("rel") ?? ""
+        }))
+      };
+    },
+    FOOTER_PREFIX_SELECTOR,
+    FOOTER_PROJECTS_TOGGLE_SELECTOR,
+    FOOTER_PROJECTS_MENU_SELECTOR,
+    FOOTER_PROJECT_ITEM_SELECTOR
+  );
+
+const createScenarioRunner = (reportScenario) => {
+  const hasReporter = reportScenario && typeof reportScenario.start === "function";
+  const run = async (description, action) => {
+    if (hasReporter) {
+      reportScenario.start(description);
+    }
+    try {
+      const result = await action();
+      if (hasReporter && typeof reportScenario.pass === "function") {
+        reportScenario.pass(description);
+      }
+      return result;
+    } catch (error) {
+      if (reportScenario && typeof reportScenario.fail === "function") {
+        reportScenario.fail(description, error);
+      }
+      throw error;
+    }
+  };
+  const runTable = async (groupLabel, scenarios, task) => {
+    if (!Array.isArray(scenarios)) {
+      return;
+    }
+    for (const scenario of scenarios) {
+      const label =
+        typeof scenario?.description === "string" && scenario.description.length > 0
+          ? `${groupLabel} :: ${scenario.description}`
+          : groupLabel;
+      await run(label, () => task(scenario));
+    }
+  };
+  return { run, runTable };
+};
+
+export const run = async ({ browser, baseUrl, announceProgress, reportScenario, logs: _logs }) => {
   const page = await browser.newPage();
+  await Promise.all([
+    page.coverage.startJSCoverage({ resetOnNavigation: false }),
+    page.coverage.startCSSCoverage({ resetOnNavigation: false })
+  ]);
+  if (typeof announceProgress === "function") {
+    await announceProgress(page);
+  }
   await page.evaluateOnNewDocument(() => {
     window.__PROMPT_BUBBLES_TESTING__ = true;
   });
@@ -514,6 +887,17 @@ export const run = async ({ browser, baseUrl }) => {
   await page.waitForSelector(CARD_SELECTOR);
   await page.waitForSelector(BUBBLE_LAYER_SELECTOR);
 
+  const runnerProgress = await page.evaluate(() => window.__PROMPT_BUBBLES_RUNNER_PROGRESS ?? []);
+  assertEqual(
+    Array.isArray(runnerProgress) && runnerProgress.includes(APP_FLOWS_SPEC_IDENTIFIER),
+    true,
+    "Test runner should announce the active spec name before exercising the UI"
+  );
+  const scenarioRunner = createScenarioRunner(reportScenario);
+
+  if (reportScenario && typeof reportScenario.start === "function") {
+    reportScenario.start("Initial layout validations");
+  }
   const faviconMetadata = await page.evaluate(() => {
     const iconLink = document.querySelector("link[rel='icon']");
     const maskLink = document.querySelector("link[rel='mask-icon']");
@@ -681,11 +1065,15 @@ export const run = async ({ browser, baseUrl }) => {
     const taglineElement = document.querySelector("[data-role='brand-tagline']");
     const footerShortcutElement = document.querySelector("[data-role='footer-shortcuts']");
     const mainShortcutElement = document.querySelector("main [data-role='footer-shortcuts']");
+    const privacyLinkElement = document.querySelector("[data-role='privacy-link']");
     return {
       brandTaglineText: taglineElement?.textContent?.trim() ?? "",
       footerShortcutText: footerShortcutElement?.textContent?.trim() ?? "",
       footerShortcutIsInFooter: Boolean(footerShortcutElement?.closest("nav.navbar.fixed-bottom")),
-      shortcutInMain: Boolean(mainShortcutElement)
+      shortcutInMain: Boolean(mainShortcutElement),
+      privacyLinkText: privacyLinkElement?.textContent?.trim() ?? "",
+      privacyLinkIsSmall: Boolean(privacyLinkElement?.classList.contains("small")),
+      privacyLinkHref: privacyLinkElement?.getAttribute("href") ?? ""
     };
   });
   assertEqual(
@@ -708,6 +1096,177 @@ export const run = async ({ browser, baseUrl }) => {
     false,
     "Keyboard shortcut hint should not render inside the main content"
   );
+  assertEqual(
+    layoutChecks.privacyLinkText,
+    PRIVACY_LINK_TEXT,
+    "Footer should surface a Privacy • Terms link"
+  );
+  assertEqual(
+    layoutChecks.privacyLinkIsSmall,
+    true,
+    "Privacy link should use the small text treatment"
+  );
+  assertEqual(
+    layoutChecks.privacyLinkHref.endsWith("/privacy/") || layoutChecks.privacyLinkHref.endsWith("/privacy"),
+    true,
+    "Privacy link should route to the privacy policy path"
+  );
+  const filterLayoutSnapshot = await captureFilterLayoutSnapshot(page);
+  assertEqual(filterLayoutSnapshot.rowCount, 1, "Filter chips should render on a single row");
+  assertEqual(
+    filterLayoutSnapshot.flexWrap,
+    "nowrap",
+    "Filter chip container should disable wrapping to preserve a single row"
+  );
+  assertEqual(
+    FILTER_CONTAINER_SCROLL_VALUES.includes(filterLayoutSnapshot.overflowX),
+    true,
+    "Filter chip container should allow horizontal scrolling when content overflows"
+  );
+  assertEqual(
+    filterLayoutSnapshot.usesButtonClass,
+    false,
+    "Filter chips should not depend on Bootstrap button styling"
+  );
+  assertEqual(
+    filterLayoutSnapshot.maxBorderRadius <= FILTER_CHIP_MAX_RADIUS_PX,
+    true,
+    `Filter chips should avoid pill styling (radius ≤ ${FILTER_CHIP_MAX_RADIUS_PX}px)`
+  );
+  if (reportScenario && typeof reportScenario.pass === "function") {
+    reportScenario.pass("Initial layout validations");
+  }
+  const footerMenuInitial = await captureFooterMenuSnapshot(page);
+  assertEqual(footerMenuInitial.prefixText, FOOTER_PREFIX_TEXT, "Footer should credit the lab before the dropdown");
+  assertEqual(footerMenuInitial.toggleLabel, FOOTER_MENU_LABEL, "Footer dropdown toggle should display the lab name");
+  assertEqual(
+    footerMenuInitial.toggleAriaLabel,
+    FOOTER_MENU_TOGGLE_ARIA_LABEL,
+    "Footer dropdown toggle should expose an accessible description"
+  );
+  assertEqual(
+    footerMenuInitial.toggleAriaExpanded,
+    "false",
+    "Footer dropdown toggle should start collapsed"
+  );
+  assertEqual(
+    footerMenuInitial.toggleAriaHaspopup,
+    "menu",
+    "Footer dropdown toggle should declare a menu popup"
+  );
+  assertEqual(
+    footerMenuInitial.menuRole,
+    "menu",
+    "Footer dropdown should expose the menu role"
+  );
+  assertEqual(
+    footerMenuInitial.menuLabelledBy,
+    footerMenuInitial.toggleId,
+    "Footer dropdown should be labelled by its toggle"
+  );
+  assertEqual(
+    footerMenuInitial.toggleAriaControls,
+    footerMenuInitial.menuId,
+    "Footer dropdown toggle should reference the menu element"
+  );
+  assertEqual(
+    footerMenuInitial.menuHasShowClass,
+    false,
+    "Footer dropdown menu should not apply the show class before activation"
+  );
+  assertEqual(
+    footerMenuInitial.menuVisible,
+    false,
+    "Footer dropdown menu should remain hidden until toggled open"
+  );
+  await page.click(FOOTER_PROJECTS_TOGGLE_SELECTOR);
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const footerMenuExpanded = await captureFooterMenuSnapshot(page);
+  assertEqual(
+    footerMenuExpanded.toggleAriaExpanded,
+    "true",
+    "Footer dropdown toggle should mark itself expanded after activation"
+  );
+  assertEqual(
+    footerMenuExpanded.menuHasShowClass,
+    true,
+    "Footer dropdown menu should apply the show class when expanded"
+  );
+  assertEqual(
+    footerMenuExpanded.menuVisible,
+    true,
+    "Footer dropdown menu should render visibly when expanded"
+  );
+  const footerMenuLabels = footerMenuExpanded.itemSummaries.map((item) => item.label);
+  const footerMenuHrefs = footerMenuExpanded.itemSummaries.map((item) => item.href);
+  assertDeepEqual(
+    footerMenuLabels,
+    FOOTER_PROJECT_LINKS.map((link) => link.label),
+    "Footer dropdown should list all project names in order"
+  );
+  assertDeepEqual(
+    footerMenuHrefs,
+    FOOTER_PROJECT_LINKS.map((link) => link.url),
+    "Footer dropdown should link to each project URL in order"
+  );
+  const unsafeTargets = footerMenuExpanded.itemSummaries.filter(
+    (item) => item.target !== "_blank" || !String(item.rel ?? "").includes("noopener")
+  );
+  assertEqual(
+    unsafeTargets.length,
+    0,
+    "Footer dropdown links should open in a new tab with noopener hygiene"
+  );
+  await page.keyboard.press("Escape");
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const footerMenuCollapsed = await captureFooterMenuSnapshot(page);
+  assertEqual(
+    footerMenuCollapsed.toggleAriaExpanded,
+    "false",
+    "Footer dropdown toggle should collapse after pressing Escape"
+  );
+  assertEqual(
+    footerMenuCollapsed.menuHasShowClass,
+    false,
+    "Footer dropdown menu should remove the show class after collapsing"
+  );
+  assertEqual(
+    footerMenuCollapsed.menuVisible,
+    false,
+    "Footer dropdown menu should hide after collapsing"
+  );
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle0" }),
+    page.click(PRIVACY_LINK_SELECTOR)
+  ]);
+  const privacyPageSnapshot = await page.evaluate(() => {
+    const heading = document.querySelector("h1");
+    const robotsMeta = document.querySelector('meta[name="robots"]');
+    const mailLink = document.querySelector('a[href^="mailto:"]');
+    return {
+      heading: heading?.textContent?.trim() ?? "",
+      robots: robotsMeta?.getAttribute("content") ?? "",
+      hasMailLink: Boolean(mailLink)
+    };
+  });
+  assertEqual(
+    privacyPageSnapshot.heading,
+    PRIVACY_HEADING_TEXT,
+    "Privacy policy page should render the expected heading"
+  );
+  assertEqual(
+    privacyPageSnapshot.robots,
+    PRIVACY_ROBOTS_META,
+    "Privacy policy page should prevent search indexing"
+  );
+  assertEqual(
+    privacyPageSnapshot.hasMailLink,
+    true,
+    "Privacy policy page should expose a contact email link"
+  );
+  await page.goBack({ waitUntil: "networkidle0" });
+  await waitForCardCount(page, initialCardIds.length);
+  await delay(WAIT_AFTER_INTERACTION_MS);
   const desktopRowCounts = await captureGridRowLengths(page);
   const desktopInteriorCounts = desktopRowCounts.slice(0, -1);
   if (desktopInteriorCounts.length > 0) {
@@ -739,6 +1298,29 @@ export const run = async ({ browser, baseUrl }) => {
     `Theme toggle and label should align within ${MAX_THEME_ALIGNMENT_DELTA_PX}px vertically`
   );
 
+  await page.evaluate(() => window.scrollTo(0, window.innerHeight * 2));
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const filterStickyAfterScroll = await page.evaluate((filterSelector, tolerance) => {
+    const nav = document.querySelector("nav.navbar.fixed-top");
+    const filterBar = document.querySelector(filterSelector);
+    if (!nav || !(filterBar instanceof HTMLElement)) {
+      throw new Error("Filter bar or navbar missing after scroll");
+    }
+    const navRect = nav.getBoundingClientRect();
+    const filterRect = filterBar.getBoundingClientRect();
+    return {
+      delta: filterRect.top - navRect.bottom,
+      tolerance
+    };
+  }, FILTER_BAR_SELECTOR, STICKY_DELTA_TOLERANCE_PX);
+  assertEqual(
+    Math.abs(filterStickyAfterScroll.delta) <= filterStickyAfterScroll.tolerance,
+    true,
+    "Tag filter bar should remain pinned just beneath the navbar while scrolling"
+  );
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await delay(WAIT_AFTER_INTERACTION_MS);
+
   const searchScenarios = [
     {
       description: "filters cards by query term",
@@ -754,7 +1336,7 @@ export const run = async ({ browser, baseUrl }) => {
     }
   ];
 
-  for (const scenario of searchScenarios) {
+  await scenarioRunner.runTable("Search filters", searchScenarios, async (scenario) => {
     await clearSearch(page);
     await setSearchValue(page, scenario.query);
     await waitForCardIds(page, scenario.expectedIds);
@@ -765,8 +1347,9 @@ export const run = async ({ browser, baseUrl }) => {
       `Search scenario "${scenario.description}" should match expected cards`
     );
     const emptyStateSnapshot = await captureEmptyStateSnapshot(page);
+    const emptyVisible = Boolean(emptyStateSnapshot);
     assertEqual(
-      Boolean(emptyStateSnapshot),
+      emptyVisible,
       scenario.expectEmptyMessage,
       `Search scenario "${scenario.description}" should ${scenario.expectEmptyMessage ? "" : "not "}show empty message`
     );
@@ -793,7 +1376,7 @@ export const run = async ({ browser, baseUrl }) => {
         "Empty state text color should match the active theme accent"
       );
     }
-  }
+  });
 
   await clearSearch(page);
   await waitForCardCount(page, initialCardIds.length);
@@ -900,6 +1483,47 @@ export const run = async ({ browser, baseUrl }) => {
   assertEqual(activeElementId, "searchInput", "Slash hotkey should focus the search input");
 
   await clearSearch(page);
+  const themeBeforeCopyCheck = await page.evaluate(
+    () => document.documentElement.getAttribute("data-bs-theme") ?? "light"
+  );
+  let resetThemeAfterCopyCheck = false;
+  if (themeBeforeCopyCheck !== "light") {
+    await page.click(THEME_TOGGLE_SELECTOR);
+    await waitForThemeMode(page, "light");
+    await delay(WAIT_AFTER_INTERACTION_MS);
+    resetThemeAfterCopyCheck = true;
+  }
+  const copyButtonColorSnapshot = await captureElementColor(page, COPY_BUTTON_LABEL_SELECTOR);
+  const normalizedCopyColor = normalizeToRgb(copyButtonColorSnapshot.raw);
+  assertEqual(
+    colorsAreClose(normalizedCopyColor, SHARE_ICON_LIGHT_COLOR),
+    true,
+    "Copy button text should use the dark accent color in light theme"
+  );
+  const copyButtonAlpha = Number.isFinite(copyButtonColorSnapshot.alpha) ? copyButtonColorSnapshot.alpha : 1;
+  assertEqual(
+    copyButtonAlpha,
+    1,
+    "Copy button text color should render fully opaque in light theme"
+  );
+  const shareButtonColorSnapshot = await captureElementColor(page, SHARE_BUTTON_LABEL_SELECTOR);
+  const normalizedShareColor = normalizeToRgb(shareButtonColorSnapshot.raw);
+  assertEqual(
+    colorsAreClose(normalizedShareColor, normalizedCopyColor),
+    true,
+    "Share button text should mirror the copy button accent color in light theme"
+  );
+  const shareButtonAlpha = Number.isFinite(shareButtonColorSnapshot.alpha) ? shareButtonColorSnapshot.alpha : 1;
+  assertEqual(
+    shareButtonAlpha,
+    1,
+    "Share button text color should remain fully opaque in light theme"
+  );
+  if (resetThemeAfterCopyCheck) {
+    await page.click(THEME_TOGGLE_SELECTOR);
+    await waitForThemeMode(page, themeBeforeCopyCheck);
+    await delay(WAIT_AFTER_INTERACTION_MS);
+  }
   await page.evaluate(() => {
     window.__copiedText = "";
   });
@@ -937,6 +1561,64 @@ export const run = async ({ browser, baseUrl }) => {
   const shareText = await getClipboardText(page);
   assertEqual(shareText.endsWith("#p01"), true, "Share button should copy card URL");
 
+  const targetCardTitle = await page.evaluate(() => {
+    const card = document.querySelector("[data-test='prompt-card']#p01");
+    const titleElement = card?.querySelector(".card-title");
+    return titleElement?.textContent?.trim() ?? "";
+  });
+  const initialLikeSnapshot = await getCardLikeSnapshot(page, "p01");
+  const cardButtonOrder = await getCardButtonOrder(page, "p01");
+  assertDeepEqual(
+    cardButtonOrder,
+    ["copy-button", "like-button", "share-button"],
+    "Card controls should position the like toggle between copy and share buttons"
+  );
+  assertEqual(initialLikeSnapshot.count, 0, "Like counter should start at zero");
+  assertEqual(initialLikeSnapshot.pressed, "false", "Like button should start unpressed");
+  assertEqual(initialLikeSnapshot.iconText, LIKE_ICON_TEXT, "Like button should render the bubble icon glyph");
+  assertEqual(
+    initialLikeSnapshot.label.startsWith(`${LIKE_LABEL_PREFIX} ${targetCardTitle}`),
+    true,
+    "Like button label should describe the card title"
+  );
+  assertEqual(
+    initialLikeSnapshot.label.includes(`${LIKE_COUNT_LABEL_PREFIX} 0`),
+    true,
+    "Like button label should report the inactive count"
+  );
+  await clickLikeButton(page, "p01");
+  await waitForLikeCount(page, "p01", 1);
+  const likedSnapshot = await getCardLikeSnapshot(page, "p01");
+  assertEqual(likedSnapshot.count, 1, "First like toggle should increment the counter to one");
+  assertEqual(likedSnapshot.pressed, "true", "Like button should become pressed after liking a card");
+  assertEqual(
+    likedSnapshot.label.includes(`${LIKE_COUNT_LABEL_PREFIX} 1`),
+    true,
+    "Like button label should update to reflect the liked count"
+  );
+  await waitForBubbleRemoval(page);
+  await reloadApp(page, baseUrl);
+  await waitForCardCount(page, initialCardIds.length);
+  const persistedLikeSnapshot = await getCardLikeSnapshot(page, "p01");
+  assertEqual(persistedLikeSnapshot.count, 1, "Like count should persist after reloading the page");
+  assertEqual(persistedLikeSnapshot.pressed, "true", "Like button pressed state should persist after reload");
+  await clickLikeButton(page, "p01");
+  await waitForLikeCount(page, "p01", 0);
+  const clearedLikeSnapshot = await getCardLikeSnapshot(page, "p01");
+  assertEqual(clearedLikeSnapshot.count, 0, "Second toggle should remove the stored like");
+  assertEqual(clearedLikeSnapshot.pressed, "false", "Like button should return to unpressed when cleared");
+  assertEqual(
+    clearedLikeSnapshot.label.includes(`${LIKE_COUNT_LABEL_PREFIX} 0`),
+    true,
+    "Like button label should reflect the cleared count"
+  );
+  await waitForBubbleRemoval(page);
+  await reloadApp(page, baseUrl);
+  await waitForCardCount(page, initialCardIds.length);
+  const resetLikeSnapshot = await getCardLikeSnapshot(page, "p01");
+  assertEqual(resetLikeSnapshot.count, 0, "Cleared like state should persist after a reload");
+  assertEqual(resetLikeSnapshot.pressed, "false", "Cleared like state should remain unpressed after reload");
+
   const initialThemeMode = await page.evaluate(() => document.documentElement.getAttribute("data-bs-theme") ?? "light");
   const initialThemeSnapshot = await captureThemeSnapshot(page);
   const expectedInitialShareIconColor =
@@ -946,7 +1628,40 @@ export const run = async ({ browser, baseUrl }) => {
     true,
     "Share icon should match the active theme color"
   );
-  await triggerCardBubble(page, "p01");
+  assertEqual(
+    colorsAreClose(initialThemeSnapshot.shareButtonColor.trim(), initialThemeSnapshot.copyButtonColor.trim()),
+    true,
+    "Share button text should match the copy button accent color in the active theme"
+  );
+  assertEqual(
+    colorsAreClose(
+      initialThemeSnapshot.shareButtonBorderColor.trim(),
+      initialThemeSnapshot.copyButtonBorderColor.trim()
+    ),
+    true,
+    "Share button border should reuse the copy button outline color"
+  );
+  await waitForBubbleRemoval(page);
+  await page.evaluate(() => {
+    window.__lastBubbleState = null;
+  });
+  await clickCardSurface(page, "p01");
+  const bubbleAfterCardClick = await page.evaluate(
+    (bubbleSelector) => document.querySelector(bubbleSelector) !== null,
+    BUBBLE_SELECTOR
+  );
+  assertEqual(
+    bubbleAfterCardClick,
+    false,
+    "Card click should no longer spawn bubble animation"
+  );
+  const cardClickBubbleState = await page.evaluate(() => window.__lastBubbleState ?? null);
+  assertEqual(
+    cardClickBubbleState === null,
+    true,
+    "Card click should not update bubble metadata"
+  );
+  await triggerLikeBubble(page, "p01");
   const initialBubbleSnapshot = await snapshotBubble(page, "p01");
   assertEqual(
     initialBubbleSnapshot !== null,
@@ -1076,7 +1791,20 @@ export const run = async ({ browser, baseUrl }) => {
     true,
     "Share icon should switch to the alternate theme accent color"
   );
-  await triggerCardBubble(page, "p01");
+  assertEqual(
+    colorsAreClose(toggledThemeSnapshot.shareButtonColor.trim(), toggledThemeSnapshot.copyButtonColor.trim()),
+    true,
+    "Share button text should continue matching the copy button accent color after theme changes"
+  );
+  assertEqual(
+    colorsAreClose(
+      toggledThemeSnapshot.shareButtonBorderColor.trim(),
+      toggledThemeSnapshot.copyButtonBorderColor.trim()
+    ),
+    true,
+    "Share button border should stay aligned with the copy button outline after theme changes"
+  );
+  await triggerLikeBubble(page, "p01");
   const toggledBubbleSnapshot = await snapshotBubble(page, "p01");
   assertEqual(
     toggledBubbleSnapshot !== null,
@@ -1204,6 +1932,54 @@ export const run = async ({ browser, baseUrl }) => {
     expectedInputBackground.trim(),
     "Search input background should align with the active theme token"
   );
+  assertEqual(
+    colorsAreClose(finalThemeSnapshot.shareButtonColor.trim(), finalThemeSnapshot.copyButtonColor.trim()),
+    true,
+    "Share button text should align with the copy button accent color after restoring the original theme"
+  );
+  assertEqual(
+    colorsAreClose(
+      finalThemeSnapshot.shareButtonBorderColor.trim(),
+      finalThemeSnapshot.copyButtonBorderColor.trim()
+    ),
+    true,
+    "Share button border should remain in sync with the copy button outline after restoring the original theme"
+  );
+  const sitemapSnapshot = await page.evaluate(async () => {
+    const response = await fetch("./sitemap.xml", { cache: "no-store" });
+    if (!response.ok) {
+      return null;
+    }
+    const sitemapText = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(sitemapText, "application/xml");
+    const urlElements = Array.from(doc.querySelectorAll("url > loc"));
+    const locValues = urlElements
+      .map((element) => element.textContent ?? "")
+      .filter((value) => value.trim().length > 0);
+    const pathValues = locValues
+      .map((value) => {
+        try {
+          return new URL(value, document.location.origin).pathname;
+        } catch (error) {
+          return "";
+        }
+      })
+      .filter((value) => value.length > 0);
+    return {
+      urls: locValues,
+      paths: pathValues
+    };
+  });
+  assertEqual(sitemapSnapshot !== null, true, "Sitemap should be reachable from the root of the site");
+  if (!sitemapSnapshot) {
+    throw new Error("Sitemap snapshot missing");
+  }
+  assertEqual(
+    sitemapSnapshot.paths.includes("/") && sitemapSnapshot.paths.includes("/privacy/"),
+    true,
+    "Sitemap should list both the homepage and privacy policy paths"
+  );
 
   await page.goto(`${baseUrl}#p05`, { waitUntil: "networkidle0" });
   await waitForLinkedCard(page, "p05");
@@ -1220,5 +1996,15 @@ export const run = async ({ browser, baseUrl }) => {
   const cardsAfterReload = await getVisibleCardIds(page);
   assertDeepEqual(cardsAfterReload, ["p04", "p18"], "Reload should respect persisted filters");
 
+  const [jsCoverageEntries, cssCoverageEntries] = await Promise.all([
+    page.coverage.stopJSCoverage(),
+    page.coverage.stopCSSCoverage()
+  ]);
   await page.close();
+  return {
+    coverage: {
+      js: summarizeCoverageEntries(jsCoverageEntries),
+      css: summarizeCoverageEntries(cssCoverageEntries)
+    }
+  };
 };

@@ -8,8 +8,13 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Inline editing:** placeholders render as inline inputs so prompts can be tailored before copying.
 - **Persisted context:** the active tag and search query survive reloads through local storage.
 - **Shareable cards:** each card copies a deep link and the layout highlights the linked card when visiting `#card-id`.
+- **Per-card likes:** every prompt includes a bubble like toggle with a counter that persists locally and exposes proper pressed state for assistive tech.
+- **Readable actions:** the copy and share controls now share the dark accent outline in light theme for higher contrast and clarity.
+- **Privacy routing:** the footer surfaces a small Privacy • Terms link that navigates to the static privacy policy.
+- **Lab menu:** the footer credits Marco Polo Research Lab and exposes a dropdown of sister projects for quick exploration.
+- **Sticky filters:** the tag chip bar stays affixed beneath the navbar as a subtle single-row rail with horizontal scroll, keeping tags reachable without dominating the layout.
 - **Notifications:** copy and share actions raise an event-scoped toast; no inline handlers or global mutations.
-- **Atmospheric feedback:** clicking any card emits a theme-aware bubble animation that fades after the interaction.
+- **Atmospheric feedback:** pressing the bubble like toggle emits a theme-aware bubble animation that fades after the interaction.
 
 ## Front-End Architecture
 
@@ -19,7 +24,7 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Events:**  
   - `toast-show` — emitted after copy/share to display the global toast.  
   - `theme-toggle` — emitted when the footer switch changes modes.  
-  - `card-bubble` — dispatched from cards toward the bubble layer with `{ x, y, size, riseDistance, cardTop, theme }` so the bubble originates at the click point and rises to the card's top edge.  
+- `card-bubble` — dispatched by the like toggle toward the bubble layer with `{ x, y, size, riseDistance, cardTop, theme }` so the bubble originates at the interaction point and rises to the card's top edge.  
   Both events bubble within the root container so components remain DOM-scoped.
 
 ## Local Development
@@ -29,7 +34,7 @@ npm install
 npm test
 ```
 
-`npm test` starts a static server, launches Puppeteer, and exercises the end-to-end flows (search, filtering, copy/share, hash highlighting, and persisted filters).
+`npm test` starts a static server, launches Puppeteer, and exercises the end-to-end flows (search, filtering, copy/share, like toggles, hash highlighting, and persisted filters). The runner prints each spec name (`Running specs/app-flows.spec.mjs`, `✓ specs/app-flows.spec.mjs`), reports scenario metadata through `globalThis.__PROMPT_BUBBLES_TEST_PROGRESS`, and emits a coverage summary highlighting total, JS, and CSS execution (e.g., `Coverage summary: Total 82.41% (JS 88.10%, CSS 74.90%)`).
 
 ## Project Layout
 

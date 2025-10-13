@@ -30,7 +30,7 @@ You are a staff level full stack engineer. Your task is to **re-evaluate and ref
     * Design and use shared components
 5. **Tests** → Add/adjust Puppeteer tests for key flows (button → event → notification; cross-panel isolation). Prioritize end-2-end and integration tests.
 6. **Docs** → Update README and MIGRATION.md with new event contracts, removed globals, and developer instructions.
-7. **Timeouts**  Set a timer before running any CLI command, tests, build, git etc. If an operation takes unreasonably long without producing an output, abort it and consider a different approach. Prepend all CLI invocations with `timeout <N>s` command.
+7. **Timeouts**  Set a timer before running any CLI command, tests, build, git etc. If an operation takes unreasonably long without producing an output, abort it and consider a diffeernt approach. Prepend all CLI invocations with `timeout -k <N>s -s SIGKILL <N>s` command. Theis is MANDATORY for each and every CLI command.
 
 ## Output requirements
 
@@ -77,7 +77,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 
 ### Features
 
-- [ ] [PB-22] Add an ability to like a prompt on a card: add a bubble button with a counter. A single user can like a card once. liking it twice removes the like, so it works as a toggle. The icon is the bubble. The button is in the middle of the card bottom, between Copy and Share buttons. The icon shows the number of likes starting from 1.
+- [X] [PB-22] Add an ability to like a prompt on a card: add a bubble button with a counter. A single user can like a card once. liking it twice removes the like, so it works as a toggle. The icon is the bubble. The button is in the middle of the card bottom, between Copy and Share buttons. The icon shows the number of likes starting from 1.
 
 ### Improvements
 
@@ -94,7 +94,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 - [X] [PB-11] Move the placeholder and the text for the search to the right so that there is a little bit of space between the button and the placeholder
 - [X] [PB-13] Move "Press / to search • Enter to copy the focused card" from the bottom of the page to the footer aligneg to the right in the footer AND move "Built for instant prompt workflows." under the title "Prompt Bubbles" and make "Built for instant prompt workflows" small font (like 6)
 - [X] [PB-14] Make bubble float up the top edge of the card in which the click happened.
-- [ ] [PB-21] Replace in the footer the label Prompt Bubbles with "Built by Marko Polo Research Lab". the "Marko Polo Research Lab" part is a drop-down that displays other Marko Polo projects.
+- [X] [PB-21] Replace in the footer the label Prompt Bubbles with "Built by Marko Polo Research Lab". the "Marko Polo Research Lab" part is a drop-down that displays other Marko Polo projects.
     - The functionality to mimic is
     ```go
         var (
@@ -125,6 +125,9 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
         }
     )
     ```
+- [X] [PB-28] The second sticky row with the filters/banges must be inconspcious -- it is currently in some oval elemnts, that should go away. The row with filters must fit in a single row, so there will be no two rows of badges.
+- [X] [PB-29] Change the bubbles to only float when a bubble icon is pressed
+- [X] [PB-30] Review the theme as allpied to all elemnts on the page. The share button still poorly styled for both dark and light themes: it gets light highlighting in the darm mode and is poorly visible in light mode. Use the same styling as the copy button
 
 ### BugFixes
 
@@ -137,9 +140,9 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
  The search prompt changes to dark background in the light theme
 - [X] [PB-19] There are two x signs when text is entered in the search prompt: one is constantly visible, and one is appearing on mous hover. There must be only one x sign, which cleans the search prompt. The x sign must be visible if there is text in the search input. There must be no x signs if there is no text. Clicking on x clears the text. Fix the regression.
 - [X] [PB-20] When clicked, the bubble slows down to the middle of the card and then continues its ascend. There shall be no slowing down.
-- [ ] [PB-23] The word Copy in light theme is pale and hardly visible on a button
-- [ ] [PB-24] The badges / filters button shall be sticky -- always visible.
-- [ ] [PB-25] the `npm test` command does not display which tests are running making it difficult to asses coverage of progress or failures. Make npm test output the tests to stdio
+- [X] [PB-23] The word Copy in light theme is pale and hardly visible on a button
+- [X] [PB-24] The badges / filters button shall be sticky -- always visible.
+- [X] [PB-25] the `npm test` command does not display which tests are running making it difficult to asses coverage of progress or failures. Make npm test output the tests to stdio
 
 ### Maintenance
 
@@ -147,3 +150,56 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 - [X] [PB-03] Clicking on copy or share doesnt produce a message withing the card to indicate that the card was copied or shared
 - [X] [PB-04] Theme doesnt fully switch the colors -- the background, the headers, the search the bagdes stay the same 
 - [X] [PB-05] There are multiple X signs in the search prompt when the prompt is entered at the end of the prompt -- as a button and as an inline x. only leave the inline x
+- [X] [PB-26] add a small “Privacy • Terms” link. and I mean small. it must serve a page under /privacy
+    ```html
+    <!doctype html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>Privacy Policy — RSVP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <style>
+        body{font:16px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:40px;max-width:800px}
+        h1{font-size:1.6rem;margin-bottom:.2rem}
+    </style>
+    </head>
+    <body>
+    <h1>Privacy Policy — Prompts Bubbles</h1>
+    <p><strong>Effective Date:</strong> 2025-10-11</p>
+    <p>RSVP uses Google Identity Services to authenticate users. We receive your Google profile
+        information (name, email, profile image) only to sign you in. We do not sell or share your data,
+        and we only store your notes so the service functions.</p>
+    <p>To request deletion of your data, contact
+        <a href="mailto:support@mprlab.com">support@mprlab.com</a>.</p>
+    </body>
+    </html>
+    ```
+- [X] [PB-27] add privacy to the sitemap
+- [X] [PB-28] Tesst dont show what tests are running, what has passed, what is the code coverage.
+    ```shell
+    13:20:47 tyemirov@Vadyms-MacBook-Pro:~/Development/MarcoPoloResearchLab/prompts - [maintenance/PB-27-sitemap-privacy] $ npm test
+
+    > test
+    > node tests/run-tests.mjs
+
+    Running specs/app-flows.spec.mjs
+    ✓ specs/app-flows.spec.mjs
+    Executed specs: specs/app-flows.spec.mjs
+    All tests passed
+    ```
+- [X] [PB-29] Tesst dont show what tests are running, what has passed, what is the code coverage. CHange the configuration so that `npm test` displays the running tests
+    ```
+    13:21:28 tyemirov@Vadyms-MacBook-Pro:~/Development/MarcoPoloResearchLab/prompts - [maintenance/PB-27-sitemap-privacy] $ npm test
+
+    > test
+    > node tests/run-tests.mjs
+
+    Running specs/app-flows.spec.mjs
+    ✓ specs/app-flows.spec.mjs
+    Coverage summary: Total 12.06% (343448/2848610 bytes) | JS 28.32% (309074/1091452) | CSS 1.96% (34374/1757158)
+    Running specs/runner-output.spec.mjs
+    ✓ specs/runner-output.spec.mjs
+    Executed specs: specs/app-flows.spec.mjs, specs/runner-output.spec.mjs
+    All tests passed
+    ```

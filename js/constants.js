@@ -8,7 +8,8 @@ export const TAGS = Object.freeze({
 
 export const STORAGE_KEYS = Object.freeze({
   filters: "prompt-bubbles-filters",
-  theme: "prompt-bubbles-theme"
+  theme: "prompt-bubbles-theme",
+  likes: "prompt-bubbles-likes"
 });
 
 export const EVENTS = Object.freeze({
@@ -18,6 +19,19 @@ export const EVENTS = Object.freeze({
   themeToggle: "theme-toggle",
   cardBubble: "card-bubble"
 });
+
+export const FOOTER_PROJECTS = Object.freeze([
+  Object.freeze({ label: "Marco Polo Research Lab", url: "https://mprlab.com" }),
+  Object.freeze({ label: "Gravity Notes", url: "https://gravity.mprlab.com" }),
+  Object.freeze({ label: "LoopAware", url: "https://loopaware.mprlab.com" }),
+  Object.freeze({ label: "Allergy Wheel", url: "https://allergy.mprlab.com" }),
+  Object.freeze({ label: "Social Threader", url: "https://threader.mprlab.com" }),
+  Object.freeze({ label: "RSVP", url: "https://rsvp.mprlab.com" }),
+  Object.freeze({ label: "Countdown Calendar", url: "https://countdown.mprlab.com" }),
+  Object.freeze({ label: "LLM Crossword", url: "https://llm-crossword.mprlab.com" }),
+  Object.freeze({ label: "Prompt Bubbles", url: "https://prompts.mprlab.com" }),
+  Object.freeze({ label: "Wallpapers", url: "https://wallpapers.mprlab.com" })
+]);
 
 export const STRINGS = Object.freeze({
   appTitle: "Prompt Bubbles",
@@ -33,13 +47,22 @@ export const STRINGS = Object.freeze({
   clearSearchLabel: "Clear search",
   copyToast: "Prompt copied ✓",
   shareToast: "Link copied ✓",
+  likeButtonLabel: "Like",
+  likeButtonAriaPrefix: "Toggle like for",
+  likeButtonCountPrefix: "Current likes:",
+  likeButtonActiveHint: "Click to remove your like.",
+  likeButtonInactiveHint: "Click to add your like.",
   toastDismiss: "Dismiss notification",
   tagFilterLabel: "Tag filters",
   footerHint: "Press / to search • Enter to copy the focused card",
+  footerPrefix: "Built by",
+  footerMenuLabel: "Marco Polo Research Lab",
+  footerMenuToggleAriaLabel: "Browse Marco Polo Research Lab projects",
   themeToggleLabel: "Dark mode",
-  footerBranding: "Prompt Bubbles",
   searchIconLabel: "Search icon",
-  errorLoading: "Unable to load prompt catalog. Please refresh the page."
+  errorLoading: "Unable to load prompt catalog. Please refresh the page.",
+  privacyLinkLabel: "Privacy • Terms",
+  privacyLinkAriaLabel: "View privacy policy and terms"
 });
 
 export const TIMINGS = Object.freeze({
@@ -51,5 +74,6 @@ export const TIMINGS = Object.freeze({
 
 export const ICONS = Object.freeze({
   copy: "content_copy",
-  share: "share"
+  share: "share",
+  like: "bubble_chart"
 });

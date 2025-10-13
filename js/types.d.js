@@ -15,6 +15,16 @@
  */
 
 /**
+ * @typedef {Object} FooterProjectLink
+ * @property {string} label
+ * @property {string} url
+ */
+
+/**
+ * @typedef {Record<string, number>} PromptLikeCounts
+ */
+
+/**
  * @typedef {Object} ToastDetail
  * @property {string} message
  */

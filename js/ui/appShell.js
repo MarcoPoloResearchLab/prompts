@@ -1,6 +1,6 @@
 // @ts-check
 
-import { EVENTS, ICONS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
+import { EVENTS, FOOTER_PROJECTS, ICONS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
 import { createPlaceholderFragment, resolvePlaceholderText } from "../core/placeholders.js";
 import { createLogger } from "../utils/logging.js";
 import { escapeIdentifier } from "../utils/dom.js";
@@ -9,6 +9,7 @@ import { writeText, writeUrl } from "../utils/clipboard.js";
 
 /** @typedef {import("../types.d.js").Prompt} Prompt */
 /** @typedef {import("../types.d.js").PromptFilters} PromptFilters */
+/** @typedef {import("../types.d.js").PromptLikeCounts} PromptLikeCounts */
 
 const DEFAULT_FILTERS = Object.freeze({
   searchText: "",
@@ -19,6 +20,60 @@ const CARD_FEEDBACK_VARIANTS = Object.freeze({
   copy: "text-success",
   share: "text-info"
 });
+
+const FOOTER_MENU_ID = "footerProjectsMenu";
+const FOOTER_TOGGLE_ID = "footerProjectsToggle";
+
+/**
+ * @returns {PromptLikeCounts}
+ */
+function createLikeCountMap() {
+  return /** @type {PromptLikeCounts} */ (Object.create(null));
+}
+
+/**
+ * @param {unknown} value
+ * @returns {PromptLikeCounts}
+ */
+function sanitizeLikeCounts(value) {
+  const sanitized = createLikeCountMap();
+  if (!value || typeof value !== "object") {
+    return sanitized;
+  }
+  const entries = Object.entries(value);
+  for (const [rawKey, rawCount] of entries) {
+    if (typeof rawKey !== "string" || rawKey.trim().length === 0) {
+      continue;
+    }
+    const numericCount =
+      typeof rawCount === "number" && Number.isFinite(rawCount)
+        ? rawCount
+        : Number.parseInt(String(rawCount), 10);
+    if (Number.isFinite(numericCount) && numericCount >= 1) {
+      sanitized[rawKey] = 1;
+    }
+  }
+  return sanitized;
+}
+
+/**
+ * @param {PromptLikeCounts} likeCounts
+ * @param {Set<string>} allowedIds
+ * @returns {PromptLikeCounts}
+ */
+function pruneLikeCounts(likeCounts, allowedIds) {
+  const pruned = createLikeCountMap();
+  const entries = Object.entries(likeCounts);
+  for (const [identifier, count] of entries) {
+    if (!allowedIds.has(identifier)) {
+      continue;
+    }
+    if (Number.isFinite(count) && count >= 1) {
+      pruned[identifier] = 1;
+    }
+  }
+  return pruned;
+}
 
 /**
  * @param {{ promptsRepository: ReturnType<typeof import("../core/prompts.js").createPromptsRepository>, logger?: ReturnType<typeof createLogger> }} dependencies
@@ -36,10 +91,16 @@ export function AppShell(dependencies) {
     tags: /** @type {string[]} */ ([]),
     filters: /** @type {PromptFilters} */ ({ ...DEFAULT_FILTERS }),
     searchHasText: false,
+    footerMenuOpen: false,
+    footerMenuId: FOOTER_MENU_ID,
+    footerMenuToggleId: FOOTER_TOGGLE_ID,
+    footerLinks: FOOTER_PROJECTS,
+    likeCountsById: createLikeCountMap(),
     cardFeedbackById: Object.create(null),
     cardFeedbackTimers: Object.create(null),
     init() {
       this.restoreFilters();
+      this.restoreLikes();
       this.$watch("filters.searchText", (value) => {
         this.searchHasText = typeof value === "string" && value.trim().length > 0;
         this.persistFilters();
@@ -74,6 +135,7 @@ export function AppShell(dependencies) {
       try {
         this.prompts = await promptsRepository.loadAll();
         this.tags = promptsRepository.collectTags(this.prompts);
+        this.pruneStoredLikes();
         this.applyFilters();
       } catch (error) {
         this.hasError = true;
@@ -91,6 +153,18 @@ export function AppShell(dependencies) {
     },
     persistFilters() {
       saveJson(STORAGE_KEYS.filters, this.filters);
+    },
+    restoreLikes() {
+      const storedLikes = loadJson(STORAGE_KEYS.likes, createLikeCountMap());
+      this.likeCountsById = sanitizeLikeCounts(storedLikes);
+    },
+    persistLikes() {
+      saveJson(STORAGE_KEYS.likes, this.likeCountsById);
+    },
+    pruneStoredLikes() {
+      const allowedIds = new Set(this.prompts.map((prompt) => prompt.id));
+      this.likeCountsById = pruneLikeCounts(this.likeCountsById, allowedIds);
+      this.persistLikes();
     },
     forwardToast(detail) {
       if (!detail || typeof detail.message !== "string") {
@@ -112,6 +186,29 @@ export function AppShell(dependencies) {
         this.$refs.searchInput.focus();
       }
     },
+    toggleFooterMenu(event) {
+      if (event instanceof Event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      this.footerMenuOpen = !this.footerMenuOpen;
+    },
+    closeFooterMenu() {
+      if (this.footerMenuOpen) {
+        this.footerMenuOpen = false;
+      }
+    },
+    handleFooterMenuFocusOut(event) {
+      const relatedTarget = event?.relatedTarget;
+      const container = this.$refs.footerProjectsContainer;
+      if (!(container instanceof HTMLElement)) {
+        this.closeFooterMenu();
+        return;
+      }
+      if (!(relatedTarget instanceof HTMLElement) || !container.contains(relatedTarget)) {
+        this.closeFooterMenu();
+      }
+    },
     applyFilters() {
       this.filteredPrompts = promptsRepository.filter(this.prompts, this.filters);
       requestAnimationFrame(() => this.highlightLinkedCard());
@@ -121,6 +218,108 @@ export function AppShell(dependencies) {
     },
     isActiveTag(tag) {
       return this.filters.tag === tag;
+    },
+    /**
+     * @param {string} cardId
+     * @returns {number}
+     */
+    likeCountValue(cardId) {
+      const storedValue = this.likeCountsById[cardId];
+      if (typeof storedValue !== "number" || !Number.isFinite(storedValue)) {
+        return 0;
+      }
+      return storedValue >= 1 ? 1 : 0;
+    },
+    /**
+     * @param {string} cardId
+     * @returns {string}
+     */
+    likeCountDisplay(cardId) {
+      return String(this.likeCountValue(cardId));
+    },
+    /**
+     * @param {string} cardId
+     * @returns {boolean}
+     */
+    isCardLiked(cardId) {
+      return this.likeCountValue(cardId) >= 1;
+    },
+    likeButtonClass(cardId) {
+      return this.isCardLiked(cardId) ? "btn-primary" : "btn-outline-primary";
+    },
+    /**
+     * @param {Prompt} prompt
+     * @returns {string}
+     */
+    likeButtonAriaLabel(prompt) {
+      const likeCount = this.likeCountValue(prompt.id);
+      const stateHint = this.isCardLiked(prompt.id) ? STRINGS.likeButtonActiveHint : STRINGS.likeButtonInactiveHint;
+      return `${STRINGS.likeButtonAriaPrefix} ${prompt.title}. ${STRINGS.likeButtonCountPrefix} ${likeCount}. ${stateHint}`;
+    },
+    /**
+     * @param {Event} event
+     * @param {Prompt} prompt
+     * @returns {void}
+     */
+    handleLikeButtonClick(event, prompt) {
+      if (!prompt || typeof prompt.id !== "string" || prompt.id.trim().length === 0) {
+        logger.error("Like button pressed without prompt context");
+        return;
+      }
+      this.toggleLike(prompt.id);
+      this.emitBubbleFromEvent(event);
+    },
+    /**
+     * @param {string} cardId
+     * @returns {void}
+     */
+    toggleLike(cardId) {
+      if (typeof cardId !== "string") {
+        logger.error("Like toggle requested without identifier");
+        return;
+      }
+      const trimmedCardId = cardId.trim();
+      if (trimmedCardId.length === 0) {
+        logger.error("Like toggle requested without identifier");
+        return;
+      }
+      const promptExists = this.prompts.some((prompt) => prompt.id === trimmedCardId);
+      if (!promptExists) {
+        logger.error("Like toggle requested for unknown card", trimmedCardId);
+        return;
+      }
+      const isCurrentlyLiked = this.isCardLiked(trimmedCardId);
+      const nextCounts = { ...this.likeCountsById };
+      if (isCurrentlyLiked) {
+        delete nextCounts[trimmedCardId];
+      } else {
+        nextCounts[trimmedCardId] = 1;
+      }
+      this.likeCountsById = sanitizeLikeCounts(nextCounts);
+      this.persistLikes();
+    },
+    /**
+     * @param {Event} [event]
+     * @returns {void}
+     */
+    emitBubbleFromEvent(event) {
+      const targetElement = event?.currentTarget ?? event?.target ?? null;
+      const cardElement = this.findCardElement(targetElement);
+      if (!cardElement) {
+        logger.error("Bubble requested without card context");
+        return;
+      }
+      const bubbleDetail = this.createBubbleDetail(cardElement, event);
+      if (!bubbleDetail) {
+        logger.error("Bubble detail missing coordinates");
+        return;
+      }
+      const bubbleLayerHost = this.$root.querySelector("[data-role='bubble-layer']");
+      if (!(bubbleLayerHost instanceof HTMLElement)) {
+        logger.error("Bubble layer host missing");
+        return;
+      }
+      bubbleLayerHost.dispatchEvent(new CustomEvent(EVENTS.cardBubble, { detail: bubbleDetail }));
     },
     /**
      * @param {HTMLElement} textContainer
@@ -186,28 +385,6 @@ export function AppShell(dependencies) {
       this.setCardFeedback(prompt.id, STRINGS.shareToast, "share");
       this.$dispatch(EVENTS.toastShow, { message: STRINGS.shareToast });
       requestAnimationFrame(() => this.highlightLinkedCard());
-    },
-    /**
-     * @param {Event} event
-     */
-    handleCardClick(event) {
-      const target = event?.currentTarget ?? event?.target ?? null;
-      const cardElement = this.findCardElement(target);
-      if (!cardElement) {
-        logger.error("Bubble requested without card context");
-        return;
-      }
-      const bubbleDetail = this.createBubbleDetail(cardElement, event);
-      if (!bubbleDetail) {
-        logger.error("Bubble detail missing coordinates");
-        return;
-      }
-      const bubbleLayerHost = this.$root.querySelector("[data-role='bubble-layer']");
-      if (!(bubbleLayerHost instanceof HTMLElement)) {
-        logger.error("Bubble layer host missing");
-        return;
-      }
-      bubbleLayerHost.dispatchEvent(new CustomEvent(EVENTS.cardBubble, { detail: bubbleDetail }));
     },
     /**
      * @param {Event} event
@@ -281,8 +458,18 @@ export function AppShell(dependencies) {
       const hasPointerEvent = typeof PointerEvent !== "undefined";
       const isPointerEvent = hasPointerEvent && event instanceof PointerEvent;
       const isMouseEvent = event instanceof MouseEvent;
-      const clientX = isPointerEvent || isMouseEvent ? event.clientX : defaultX;
-      const clientY = isPointerEvent || isMouseEvent ? event.clientY : defaultY;
+      const hasPointerCoordinates = isPointerEvent || isMouseEvent;
+      let clientX = hasPointerCoordinates ? event.clientX : defaultX;
+      let clientY = hasPointerCoordinates ? event.clientY : defaultY;
+      const syntheticPointer =
+        hasPointerCoordinates &&
+        (!Number.isFinite(clientX) ||
+          !Number.isFinite(clientY) ||
+          (event instanceof MouseEvent && event.detail === 0));
+      if (syntheticPointer || (clientX === 0 && clientY === 0)) {
+        clientX = defaultX;
+        clientY = defaultY;
+      }
       const bubbleSize = rect.width * 0.25;
       const bubbleRadius = bubbleSize / 2;
       const targetCenterY = rect.top + bubbleRadius;

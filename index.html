@@ -95,20 +95,28 @@
       <div class="app-main-container container-fluid py-5 px-4 px-xxl-5">
         <header class="mb-4 text-center">
           <p class="lead mb-3" x-text="strings.subtitle"></p>
-          <div class="d-flex flex-wrap justify-content-center gap-2" id="chipBar" role="group" x-bind:aria-label="strings.tagFilterLabel">
+        </header>
+        <div class="app-filter-bar">
+          <div
+            class="d-flex flex-nowrap align-items-center gap-2 overflow-x-auto"
+            id="chipBar"
+            role="group"
+            x-bind:aria-label="strings.tagFilterLabel"
+          >
             <template x-for="tag in tags" :key="tag">
               <button
                 type="button"
-                class="btn btn-sm"
+                class="filter-chip"
+                data-role="filter-chip"
                 data-test="tag-chip"
                 x-bind:data-active="isActiveTag(tag) ? 'true' : 'false'"
-                x-bind:class="isActiveTag(tag) ? 'btn-primary' : 'btn-outline-primary'"
+                x-bind:aria-pressed="isActiveTag(tag) ? 'true' : 'false'"
                 x-on:click="selectTag(tag)"
                 x-text="chipLabel(tag)"
               ></button>
             </template>
           </div>
-        </header>
+        </div>
 
         <template x-if="hasError">
           <div class="alert alert-danger" role="alert" x-text="strings.errorLoading"></div>
@@ -141,7 +149,6 @@
                   data-test="prompt-card"
                   role="listitem"
                   tabindex="0"
-                  x-on:click="handleCardClick($event)"
                   x-on:keydown="handleCardKeydown($event)"
                 >
                   <div class="card-body d-flex flex-column gap-3">
@@ -188,11 +195,24 @@
                           x-on:click="copyCard($event)"
                         >
                         <span class="material-icons-outlined" aria-hidden="true" x-text="icon('copy')"></span>
-                          <span x-text="strings.copyButtonLabel"></span>
+                          <span style="color: var(--app-copy-button-color) !important;" x-text="strings.copyButtonLabel"></span>
                         </button>
                         <button
                           type="button"
-                          class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+                          class="btn btn-sm d-inline-flex align-items-center gap-1"
+                          data-test="like-button"
+                          x-bind:class="likeButtonClass(prompt.id)"
+                          x-bind:aria-pressed="isCardLiked(prompt.id) ? 'true' : 'false'"
+                          x-bind:aria-label="likeButtonAriaLabel(prompt)"
+                          x-bind:data-liked="isCardLiked(prompt.id) ? 'true' : 'false'"
+                          x-on:click="handleLikeButtonClick($event, prompt)"
+                        >
+                          <span class="material-icons-outlined" aria-hidden="true" x-text="icon('like')"></span>
+                          <span data-role="like-count" x-text="likeCountDisplay(prompt.id)"></span>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
                           data-test="share-button"
                           x-bind:aria-label="`${strings.shareAriaLabelPrefix} ${prompt.title}`"
                           x-on:click="shareCard($event, prompt)"
@@ -233,7 +253,65 @@
 
     <nav class="navbar bg-body-tertiary border-top fixed-bottom shadow-sm">
       <div class="container-fluid align-items-center gap-3">
-        <span class="small text-muted" x-text="strings.footerBranding"></span>
+        <div
+          class="d-inline-flex align-items-center gap-2 flex-wrap"
+          data-role="footer-projects"
+          x-ref="footerProjectsContainer"
+          x-on:click.away="closeFooterMenu()"
+          x-on:focusout="handleFooterMenuFocusOut($event)"
+        >
+          <span class="small text-muted" data-role="footer-prefix" x-text="strings.footerPrefix"></span>
+          <div class="dropdown">
+            <button
+              type="button"
+              class="btn btn-link btn-sm dropdown-toggle text-decoration-none text-muted px-0"
+              data-role="footer-projects-toggle"
+              x-bind:id="footerMenuToggleId"
+              x-on:click="toggleFooterMenu($event)"
+              x-on:keydown.escape.stop.prevent="closeFooterMenu()"
+              x-bind:aria-expanded="footerMenuOpen ? 'true' : 'false'"
+              x-bind:aria-controls="footerMenuId"
+              x-bind:aria-label="strings.footerMenuToggleAriaLabel"
+              aria-haspopup="menu"
+            >
+              <span x-text="strings.footerMenuLabel"></span>
+            </button>
+            <ul
+              class="dropdown-menu dropdown-menu-end shadow-sm"
+              data-role="footer-projects-menu"
+              x-bind:id="footerMenuId"
+              x-bind:aria-labelledby="footerMenuToggleId"
+              x-bind:class="{ show: footerMenuOpen }"
+              x-cloak
+              role="menu"
+              x-on:click="closeFooterMenu()"
+              x-on:keydown.escape.stop.prevent="closeFooterMenu()"
+            >
+              <template x-for="project in footerLinks" :key="project.url">
+                <li>
+                  <a
+                    class="dropdown-item small"
+                    data-role="footer-projects-item"
+                    x-bind:href="project.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    role="menuitem"
+                    x-text="project.label"
+                  ></a>
+                </li>
+              </template>
+            </ul>
+          </div>
+        </div>
+        <a
+          class="small text-muted text-decoration-none ms-3"
+          data-role="privacy-link"
+          href="./privacy/"
+          x-bind:aria-label="strings.privacyLinkAriaLabel"
+          x-bind:title="strings.privacyLinkAriaLabel"
+        >
+          <span x-text="strings.privacyLinkLabel"></span>
+        </a>
         <span class="small text-muted ms-auto" data-role="footer-shortcuts" x-text="strings.footerHint"></span>
         <div class="form-check form-switch mb-0 d-flex align-items-center gap-2 flex-shrink-0" x-data="ThemeToggle()" x-init="init()">
           <input
