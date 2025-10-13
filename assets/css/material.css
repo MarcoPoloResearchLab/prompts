@@ -20,6 +20,10 @@
   --app-placeholder-bg: rgba(25, 118, 210, 0.08);
   --app-placeholder-border: rgba(25, 118, 210, 0.55);
   --app-share-icon-color: #0d2247;
+  --app-copy-button-color: #0d2247;
+  --app-copy-button-border: rgba(25, 118, 210, 0.32);
+  --app-copy-button-hover-bg: rgba(25, 118, 210, 0.12);
+  --app-copy-button-focus-ring: 0 0 0 0.3rem rgba(25, 118, 210, 0.28);
   --app-bubble-border: rgba(25, 118, 210, 0.35);
   --app-bubble-highlight: rgba(255, 255, 255, 0.55);
   --app-bubble-shadow: rgba(25, 118, 210, 0.24);
@@ -48,6 +52,10 @@
   --app-placeholder-bg: rgba(64, 123, 255, 0.26);
   --app-placeholder-border: rgba(64, 123, 255, 0.56);
   --app-share-icon-color: #d9e6ff;
+  --app-copy-button-color: #d9e6ff;
+  --app-copy-button-border: rgba(217, 230, 255, 0.38);
+  --app-copy-button-hover-bg: rgba(64, 123, 255, 0.32);
+  --app-copy-button-focus-ring: 0 0 0 0.3rem rgba(111, 174, 255, 0.28);
   --app-bubble-border: rgba(217, 230, 255, 0.45);
   --app-bubble-highlight: rgba(111, 174, 255, 0.4);
   --app-bubble-shadow: rgba(0, 12, 36, 0.42);
@@ -138,6 +146,47 @@ body {
   font-variant-numeric: tabular-nums;
   min-width: 1.5ch;
   text-align: center;
+}
+
+button.btn.btn-outline-primary[data-test="copy-button"] {
+  --bs-btn-color: var(--app-copy-button-color);
+  --bs-btn-hover-color: var(--app-copy-button-color);
+  --bs-btn-active-color: var(--app-copy-button-color);
+  --bs-btn-color-rgb: 13, 34, 71;
+  --bs-btn-hover-color-rgb: 13, 34, 71;
+  --bs-btn-active-color-rgb: 13, 34, 71;
+  --bs-btn-border-color: var(--app-copy-button-border);
+  --bs-btn-hover-border-color: var(--app-copy-button-border);
+  --bs-btn-active-border-color: var(--app-copy-button-border);
+  --bs-btn-hover-bg: var(--app-copy-button-hover-bg);
+  --bs-btn-active-bg: var(--app-copy-button-hover-bg);
+  --bs-btn-focus-shadow-rgb: 25, 118, 210;
+  color: var(--app-copy-button-color) !important;
+  border-color: var(--app-copy-button-border);
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+button.btn.btn-outline-primary[data-test="copy-button"]:hover,
+button.btn.btn-outline-primary[data-test="copy-button"]:focus-visible,
+button.btn.btn-outline-primary[data-test="copy-button"]:active {
+  box-shadow: var(--app-copy-button-focus-ring);
+  outline: none;
+}
+
+[data-bs-theme="dark"] button.btn.btn-outline-primary[data-test="copy-button"] {
+  --bs-btn-color-rgb: 217, 230, 255;
+  --bs-btn-hover-color-rgb: 217, 230, 255;
+  --bs-btn-active-color-rgb: 217, 230, 255;
+  --bs-btn-focus-shadow-rgb: 111, 174, 255;
+}
+
+button.btn.btn-outline-primary[data-test="copy-button"] span {
+  color: var(--app-copy-button-color) !important;
+  transition: color 0.2s ease;
+}
+
+button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined {
+  color: var(--app-copy-button-color) !important;
 }
 
 [data-role="search-addon"] {

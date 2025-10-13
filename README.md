@@ -9,6 +9,7 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Persisted context:** the active tag and search query survive reloads through local storage.
 - **Shareable cards:** each card copies a deep link and the layout highlights the linked card when visiting `#card-id`.
 - **Per-card likes:** every prompt includes a bubble like toggle with a counter that persists locally and exposes proper pressed state for assistive tech.
+- **Readable actions:** the copy control now uses the dark accent color in light theme for higher contrast and clarity.
 - **Notifications:** copy and share actions raise an event-scoped toast; no inline handlers or global mutations.
 - **Atmospheric feedback:** clicking any card emits a theme-aware bubble animation that fades after the interaction.
 

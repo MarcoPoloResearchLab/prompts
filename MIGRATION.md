@@ -11,6 +11,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 - Card clicks now emit a floating bubble animation that mirrors the active theme for richer feedback.
 - Copy/share controls emit toast notifications handled by a dedicated Alpine factory; toasts surface in the top-right corner instead of per-card banners.
 - Card action rows now include a bubble like toggle; the button tracks a local count, reflects pressed state, and sits between copy and share.
+- Copy buttons in light theme swap to the dark accent token so their labels remain legible against the outline treatment.
 - Hash deep-links highlight cards using `data-linked-card="true"` and trigger smooth scroll after render.
 
 ## Event Contracts
@@ -24,5 +25,6 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 - Modules live under `js/`: shared constants, utilities (clipboard, storage, logging, theming), pure core logic, and Alpine factories (`ui/`).
 - Data fetches now target `./data/prompts.json`; the repository validates structure before exposing prompts and tags.
 - Like state persists through `localStorage` using the `prompt-bubbles-likes` key; `AppShell` owns helpers for toggling, persistence, and accessibility labels.
+- Copy button styles rely on the new `--app-copy-button-*` tokens injected in `assets/css/material.css`; update those variables when adjusting action colors.
 - Integration coverage runs through `npm test`, which launches Puppeteer against the static server; helpers rely on `data-test` attributes for stability.
 - User-facing strings reside in `js/constants.js`; reuse constants instead of inline literals when extending the UI.

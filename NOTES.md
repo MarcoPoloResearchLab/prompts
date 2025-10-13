@@ -137,7 +137,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
  The search prompt changes to dark background in the light theme
 - [X] [PB-19] There are two x signs when text is entered in the search prompt: one is constantly visible, and one is appearing on mous hover. There must be only one x sign, which cleans the search prompt. The x sign must be visible if there is text in the search input. There must be no x signs if there is no text. Clicking on x clears the text. Fix the regression.
 - [X] [PB-20] When clicked, the bubble slows down to the middle of the card and then continues its ascend. There shall be no slowing down.
-- [ ] [PB-23] The word Copy in light theme is pale and hardly visible on a button
+- [X] [PB-23] The word Copy in light theme is pale and hardly visible on a button
 - [ ] [PB-24] The badges / filters button shall be sticky -- always visible.
 - [ ] [PB-25] the `npm test` command does not display which tests are running making it difficult to asses coverage of progress or failures. Make npm test output the tests to stdio
 

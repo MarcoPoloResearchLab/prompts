@@ -6,6 +6,7 @@ const SEARCH_INPUT_SELECTOR = "[data-test='search-input']";
 const CHIP_SELECTOR = "[data-test='tag-chip']";
 const CARD_SELECTOR = "[data-test='prompt-card']";
 const COPY_BUTTON_SELECTOR = "[data-test='copy-button']";
+const COPY_BUTTON_LABEL_SELECTOR = "[data-test='copy-button'] span:last-of-type";
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
@@ -362,6 +363,29 @@ const getCardButtonOrder = (page, cardId) =>
     CARD_SELECTOR,
     cardId
   );
+
+const captureElementColor = (page, selector) =>
+  page.evaluate((targetSelector) => {
+    const element = document.querySelector(targetSelector);
+    if (!(element instanceof HTMLElement)) {
+      throw new Error(`Element missing for selector ${targetSelector}`);
+    }
+    const styles = getComputedStyle(element);
+    const colorValue = styles.getPropertyValue("color");
+    const match = colorValue.match(/rgba?\(([^)]+)\)/i);
+    if (!match) {
+      return {
+        raw: colorValue.trim(),
+        alpha: 1
+      };
+    }
+    const components = match[1].split(",").map((component) => component.trim());
+    const alphaComponent = components[3] ?? "1";
+    return {
+      raw: colorValue.trim(),
+      alpha: Number.parseFloat(alphaComponent)
+    };
+  }, selector);
 
 const triggerCardBubble = async (page, cardId) => {
   const pointerPosition = await page.evaluate(
@@ -1002,6 +1026,33 @@ export const run = async ({ browser, baseUrl }) => {
   assertEqual(activeElementId, "searchInput", "Slash hotkey should focus the search input");
 
   await clearSearch(page);
+  const themeBeforeCopyCheck = await page.evaluate(
+    () => document.documentElement.getAttribute("data-bs-theme") ?? "light"
+  );
+  let resetThemeAfterCopyCheck = false;
+  if (themeBeforeCopyCheck !== "light") {
+    await page.click(THEME_TOGGLE_SELECTOR);
+    await waitForThemeMode(page, "light");
+    await delay(WAIT_AFTER_INTERACTION_MS);
+    resetThemeAfterCopyCheck = true;
+  }
+  const copyButtonColorSnapshot = await captureElementColor(page, COPY_BUTTON_LABEL_SELECTOR);
+  assertEqual(
+    normalizeToRgb(copyButtonColorSnapshot.raw),
+    SHARE_ICON_LIGHT_COLOR,
+    "Copy button text should use the dark accent color in light theme"
+  );
+  const copyButtonAlpha = Number.isFinite(copyButtonColorSnapshot.alpha) ? copyButtonColorSnapshot.alpha : 1;
+  assertEqual(
+    copyButtonAlpha,
+    1,
+    "Copy button text color should render fully opaque in light theme"
+  );
+  if (resetThemeAfterCopyCheck) {
+    await page.click(THEME_TOGGLE_SELECTOR);
+    await waitForThemeMode(page, themeBeforeCopyCheck);
+    await delay(WAIT_AFTER_INTERACTION_MS);
+  }
   await page.evaluate(() => {
     window.__copiedText = "";
   });
