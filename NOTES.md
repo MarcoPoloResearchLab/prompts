@@ -77,6 +77,8 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 
 ### Features
 
+- [ ] [PB-22] Add an ability to like a prompt on a card: add a bubble button with a counter. A single user can like a card once. liking it twice removes the like, so it works as a toggle. The icon is the bubble. The button is in the middle of the card bottom, between Copy and Share buttons. The icon shows the number of likes starting from 1.
+
 ### Improvements
 
 - [X] [PB-02] Restyle the site using material design, and follow the implementation gudiance.
@@ -92,6 +94,37 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 - [X] [PB-11] Move the placeholder and the text for the search to the right so that there is a little bit of space between the button and the placeholder
 - [X] [PB-13] Move "Press / to search • Enter to copy the focused card" from the bottom of the page to the footer aligneg to the right in the footer AND move "Built for instant prompt workflows." under the title "Prompt Bubbles" and make "Built for instant prompt workflows" small font (like 6)
 - [X] [PB-14] Make bubble float up the top edge of the card in which the click happened.
+- [ ] [PB-21] Replace in the footer the label Prompt Bubbles with "Built by Marko Polo Research Lab". the "Marko Polo Research Lab" part is a drop-down that displays other Marko Polo projects.
+    - The functionality to mimic is
+    ```go
+        var (
+        footerTemplate = template.Must(template.New("footer").Parse(`<footer id="{{.ElementID}}" class="{{.BaseClass}}">
+    <div id="{{.InnerElementID}}" class="{{.InnerClass}}">
+        <div class="{{.WrapperClass}}">
+        <span class="{{.PrefixClass}}">{{.PrefixText}}</span>
+        <button id="{{.ToggleButtonID}}" class="{{.ToggleButtonClass}}" type="button" data-bs-toggle="dropdown" aria-expanded="false">{{.ToggleLabel}}</button>
+        <ul class="{{.MenuClass}}" aria-labelledby="{{.ToggleButtonID}}">
+            {{range .Links}}
+            <li><a class="{{$.MenuItemClass}}" href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Label}}</a></li>
+            {{end}}
+        </ul>
+        </div>
+    </div>
+    </footer>`))
+        footerLinks = []FooterLink{
+            {Label: "Marco Polo Research Lab", URL: "https://mprlab.com"},
+            {Label: "Gravity Notes", URL: "https://gravity.mprlab.com"},
+            {Label: "LoopAware", URL: "https://loopaware.mprlab.com"},
+            {Label: "Allergy Wheel", URL: "https://allergy.mprlab.com"},
+            {Label: "Social Threader", URL: "https://threader.mprlab.com"},
+            {Label: "RSVP", URL: "https://rsvp.mprlab.com"},
+            {Label: "Countdown Calendar", URL: "https://countdown.mprlab.com"},
+            {Label: "LLM Crossword", URL: "https://llm-crossword.mprlab.com"},
+            {Label: "Prompt Bubbles", URL: "https://prompts.mprlab.com"},
+            {Label: "Wallpapers", URL: "https://wallpapers.mprlab.com"},
+        }
+    )
+    ```
 
 ### BugFixes
 
@@ -104,6 +137,9 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
  The search prompt changes to dark background in the light theme
 - [X] [PB-19] There are two x signs when text is entered in the search prompt: one is constantly visible, and one is appearing on mous hover. There must be only one x sign, which cleans the search prompt. The x sign must be visible if there is text in the search input. There must be no x signs if there is no text. Clicking on x clears the text. Fix the regression.
 - [X] [PB-20] When clicked, the bubble slows down to the middle of the card and then continues its ascend. There shall be no slowing down.
+- [ ] [PB-23] The word Copy in light theme is pale and hardly visible on a button
+- [ ] [PB-24] The badges / filters button shall be sticky -- always visible.
+- [ ] [PB-25] the `npm test` command does not display which tests are running making it difficult to asses coverage of progress or failures. Make npm test output the tests to stdio
 
 ### Maintenance
 
