@@ -40,6 +40,7 @@ const CHIP_BAR_SELECTOR = `#${CHIP_BAR_ID}`;
 const LINKED_CARD_ATTRIBUTE = "data-linked-card";
 const SCROLL_BEHAVIOR_SMOOTH = "smooth";
 const SCROLL_BLOCK_CENTER = "center";
+const ESCAPE_PATTERN = /[^\w-]/g;
 
 /** selectSingle returns the first element matching selector within root */
 const selectSingle = (selector, root=document) => root.querySelector(selector);
@@ -55,6 +56,13 @@ const debounce = (callbackFunction, delayMilliseconds=120) => {
 };
 /** sanitize removes carriage returns from inputString */
 const sanitize = (inputString) => inputString.replace(/\r/g,"");
+/** escapeIdentifier escapes selector identifiers in environments lacking CSS.escape */
+const escapeIdentifier = (identifier) => {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(identifier);
+  }
+  return identifier.replace(ESCAPE_PATTERN, character => `\\${character}`);
+};
 /** matches determines if item satisfies the query and tag criteria */
 const matches = (item, query, selectedTag) => {
   const tagMatches = selectedTag === TAG_ALL || item.tags.includes(selectedTag);
@@ -113,6 +121,7 @@ function renderChips() {
     chipElement.className = CHIP_CLASS;
     chipElement.type = "button";
     chipElement.textContent = tagName;
+    chipElement.setAttribute("data-test", "tag-chip");
     chipElement.setAttribute("data-active", tagName === state.tag ? "true" : "false");
     chipElement.onclick = () => selectTag(tagName);
     chipBarElement.appendChild(chipElement);
@@ -145,17 +154,21 @@ function renderGrid() {
     const placeholderParagraph = document.createElement("p");
     placeholderParagraph.style.color = "var(--text-1)";
     placeholderParagraph.style.gridColumn = "1/-1";
+    placeholderParagraph.setAttribute("data-test", "empty-state");
     placeholderParagraph.textContent = NO_MATCH_MESSAGE;
     gridElement.appendChild(placeholderParagraph);
   }
   highlightHashTarget();
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(highlightHashTarget);
+  }
 }
 
 /** highlightHashTarget scrolls and marks the card matching the location hash */
 function highlightHashTarget() {
   const hashValue = location.hash.slice(HASH_SYMBOL.length);
   if (!hashValue) return;
-  const linkedCard = selectSingle(`#${CSS.escape(hashValue)}`);
+  const linkedCard = selectSingle(`#${escapeIdentifier(hashValue)}`);
   if (linkedCard) {
     linkedCard.setAttribute(LINKED_CARD_ATTRIBUTE, "true");
     linkedCard.scrollIntoView({ behavior: SCROLL_BEHAVIOR_SMOOTH, block: SCROLL_BLOCK_CENTER });
@@ -168,6 +181,7 @@ function createCard(promptItem) {
   cardElement.className = "card";
   cardElement.id = promptItem.id;
   cardElement.setAttribute("role", "listitem");
+  cardElement.setAttribute("data-test", "prompt-card");
   cardElement.tabIndex = 0;
 
   const headerElement = document.createElement("div");
@@ -196,6 +210,7 @@ function createCard(promptItem) {
   const copyButtonElement = document.createElement("button");
   copyButtonElement.className = BUTTON_CLASS;
   copyButtonElement.type = "button";
+  copyButtonElement.setAttribute("data-test", "copy-button");
   copyButtonElement.setAttribute("aria-label", `${COPY_PROMPT_LABEL_PREFIX} ${promptItem.title}`);
   copyButtonElement.innerHTML = copyIcon() + `<span>${COPY_LABEL_TEXT}</span>`;
   copyButtonElement.onclick = () => copyPrompt(cardElement);
@@ -205,6 +220,7 @@ function createCard(promptItem) {
   const shareButtonElement = document.createElement("button");
   shareButtonElement.className = `${BUTTON_CLASS} ${SHARE_BUTTON_CLASS}`;
   shareButtonElement.type = "button";
+  shareButtonElement.setAttribute("data-test", "share-button");
   shareButtonElement.setAttribute("aria-label", `${ARIA_SHARE_LABEL} ${promptItem.title}`);
   shareButtonElement.innerHTML = shareIcon();
   shareButtonElement.onclick = () => copyCardUrl(cardElement);
@@ -212,6 +228,7 @@ function createCard(promptItem) {
 
   const toastElement = document.createElement("div");
   toastElement.className = "copied";
+  toastElement.setAttribute("data-test", "copy-toast");
   toastElement.textContent = COPIED_TEXT;
   cardElement.appendChild(toastElement);
 
@@ -325,6 +342,8 @@ async function init() {
       searchInputElement.select();
     }
   });
+
+  window.addEventListener("hashchange", highlightHashTarget);
 }
 
 document.addEventListener(DOM_CONTENT_LOADED_EVENT, init);
