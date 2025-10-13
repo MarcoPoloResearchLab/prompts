@@ -96,7 +96,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 ### BugFixes
 
 - [X] [PB-12] Some rows have 3 cards for no obvious reason while other rows have 4 cards. In other scenarios some rows have 4 cards and other 5 cards. All rows should have the same number of cards at a given width of a viewport
-- [ ] [PB-15] make "No prompts match your search" message the selected theme. Ensure we say "No prompts match your search" and we dont say 
+- [X] [PB-15] make "No prompts match your search" message the selected theme. Ensure we say "No prompts match your search" and we dont say 
 "No prompts match your search/filter."
 - [ ] [PB-16] The X that should be dynamically available at the end of the search prompt in response to input is no longer appearing. Fix the regression.
 - [ ] [PB-17] Ensure that the placheolder dont grow over the borders of the cards. e.g. "Person (e.g. a professional in your field)" goes outside of the card borders

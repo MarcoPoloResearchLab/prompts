@@ -108,7 +108,12 @@
           <section class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4" id="grid" x-ref="grid" role="list" aria-label="Prompt cards">
             <template x-if="filteredPrompts.length === 0">
               <div class="col-12">
-                <div class="alert alert-secondary text-center" data-test="empty-state" x-text="emptyMessage()"></div>
+                <div
+                  class="app-empty-state text-center"
+                  data-test="empty-state"
+                  role="status"
+                  x-text="emptyMessage()"
+                ></div>
               </div>
             </template>
 

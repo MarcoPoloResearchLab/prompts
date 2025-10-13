@@ -33,6 +33,10 @@ const BUBBLE_LIFETIME_MS = 1700;
 const BUBBLE_REMOVAL_GRACE_MS = 220;
 const BUBBLE_RISE_DISTANCE_TOLERANCE_PX = 4;
 const BUBBLE_FINAL_ALIGNMENT_TOLERANCE_PX = 1.5;
+const EMPTY_STATE_LIGHT_BACKGROUND = "rgb(232, 240, 255)";
+const EMPTY_STATE_LIGHT_TEXT = "rgb(13, 34, 71)";
+const EMPTY_STATE_DARK_BACKGROUND = "rgb(26, 44, 92)";
+const EMPTY_STATE_DARK_TEXT = "rgb(217, 230, 255)";
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -380,6 +384,19 @@ const getActiveChipLabels = (page) =>
     elements.map((element) => element.textContent?.trim())
   );
 
+const captureEmptyStateSnapshot = (page) =>
+  page.evaluate((selector) => {
+    const messageElement = document.querySelector(selector);
+    if (!messageElement) {
+      return null;
+    }
+    const styles = getComputedStyle(messageElement);
+    return {
+      text: messageElement.textContent?.trim() ?? "",
+      backgroundColor: styles.getPropertyValue("background-color"),
+      textColor: styles.getPropertyValue("color")
+    };
+  }, "[data-test='empty-state']");
 export const run = async ({ browser, baseUrl }) => {
   const page = await browser.newPage();
   await page.evaluateOnNewDocument(() => {
@@ -554,15 +571,35 @@ export const run = async ({ browser, baseUrl }) => {
       scenario.expectedIds,
       `Search scenario "${scenario.description}" should match expected cards`
     );
-    const emptyMessageVisible = await page.evaluate(() => {
-      const messageElement = document.querySelector("[data-test='empty-state']");
-      return Boolean(messageElement && messageElement.textContent?.includes("No prompts match"));
-    });
+    const emptyStateSnapshot = await captureEmptyStateSnapshot(page);
     assertEqual(
-      emptyMessageVisible,
+      Boolean(emptyStateSnapshot),
       scenario.expectEmptyMessage,
       `Search scenario "${scenario.description}" should ${scenario.expectEmptyMessage ? "" : "not "}show empty message`
     );
+    if (scenario.expectEmptyMessage && emptyStateSnapshot) {
+      const currentThemeMode = await page.evaluate(
+        () => document.documentElement.getAttribute("data-bs-theme") ?? "light"
+      );
+      const expectedBackgroundColor =
+        currentThemeMode === "dark" ? EMPTY_STATE_DARK_BACKGROUND : EMPTY_STATE_LIGHT_BACKGROUND;
+      const expectedTextColor = currentThemeMode === "dark" ? EMPTY_STATE_DARK_TEXT : EMPTY_STATE_LIGHT_TEXT;
+      assertEqual(
+        emptyStateSnapshot.text,
+        "No prompts match your search",
+        "Empty state should describe the search mismatch"
+      );
+      assertEqual(
+        colorsAreClose(emptyStateSnapshot.backgroundColor.trim(), expectedBackgroundColor),
+        true,
+        "Empty state background should match the active theme token"
+      );
+      assertEqual(
+        colorsAreClose(emptyStateSnapshot.textColor.trim(), expectedTextColor),
+        true,
+        "Empty state text color should match the active theme accent"
+      );
+    }
   }
 
   await clearSearch(page);
@@ -830,6 +867,37 @@ export const run = async ({ browser, baseUrl }) => {
   );
   await delay(BUBBLE_LIFETIME_MS + BUBBLE_REMOVAL_GRACE_MS);
   await waitForBubbleRemoval(page);
+  await clearSearch(page);
+  await setSearchValue(page, "zzz-not-real");
+  await waitForCardIds(page, []);
+  const darkEmptyStateSnapshot = await captureEmptyStateSnapshot(page);
+  assertEqual(darkEmptyStateSnapshot !== null, true, "Dark theme should surface the empty state message");
+  if (!darkEmptyStateSnapshot) {
+    throw new Error("Dark theme empty state snapshot missing");
+  }
+  const activeThemeMode = await page.evaluate(
+    () => document.documentElement.getAttribute("data-bs-theme") ?? "light"
+  );
+  const expectedDarkBackground =
+    activeThemeMode === "dark" ? EMPTY_STATE_DARK_BACKGROUND : EMPTY_STATE_LIGHT_BACKGROUND;
+  const expectedDarkText = activeThemeMode === "dark" ? EMPTY_STATE_DARK_TEXT : EMPTY_STATE_LIGHT_TEXT;
+  assertEqual(
+    darkEmptyStateSnapshot.text,
+    "No prompts match your search",
+    "Empty state copy should remain consistent in dark theme"
+  );
+  assertEqual(
+    colorsAreClose(darkEmptyStateSnapshot.backgroundColor.trim(), expectedDarkBackground),
+    true,
+    "Empty state background should adopt the active theme token"
+  );
+  assertEqual(
+    colorsAreClose(darkEmptyStateSnapshot.textColor.trim(), expectedDarkText),
+    true,
+    "Empty state text should use the active theme accent color"
+  );
+  await clearSearch(page);
+  await waitForCardCount(page, initialCardIds.length);
   await page.click(THEME_TOGGLE_SELECTOR);
   await waitForThemeMode(page, initialThemeMode);
   await delay(WAIT_AFTER_INTERACTION_MS);
