@@ -15,6 +15,7 @@ const COPY_FEEDBACK_MESSAGE = "Prompt copied \u2713";
 const SHARE_FEEDBACK_MESSAGE = "Link copied \u2713";
 const THEME_TOGGLE_SELECTOR = "#themeToggle";
 const MIN_SEARCH_ADDON_PADDING_PX = 24;
+const MIN_SEARCH_PLACEHOLDER_INSET_PX = 20;
 const MAX_THEME_ALIGNMENT_DELTA_PX = 2;
 const SHARE_ICON_LIGHT_COLOR = "rgb(13, 34, 71)";
 const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
@@ -113,6 +114,7 @@ const captureThemeSnapshot = (page) =>
       addonPaddingLeft: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("padding-left") : "",
       addonPaddingRight: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("padding-right") : "",
       inputBackgroundColor: searchInput ? getComputedStyle(searchInput).getPropertyValue("background-color") : "",
+      inputPaddingLeft: searchInput ? getComputedStyle(searchInput).getPropertyValue("padding-left") : "",
       tagBackgroundColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("background-color") : "",
       tagColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("color") : "",
       shareIconColor: shareIcon ? getComputedStyle(shareIcon).getPropertyValue("color") : ""
@@ -300,6 +302,12 @@ export const run = async ({ browser, baseUrl }) => {
     addonPaddingRight >= MIN_SEARCH_ADDON_PADDING_PX,
     true,
     `Search icon capsule should have at least ${MIN_SEARCH_ADDON_PADDING_PX}px right padding`
+  );
+  const inputPaddingLeft = parsePixels(baseThemeSnapshot.inputPaddingLeft);
+  assertEqual(
+    inputPaddingLeft >= MIN_SEARCH_PLACEHOLDER_INSET_PX,
+    true,
+    `Search placeholder should start at least ${MIN_SEARCH_PLACEHOLDER_INSET_PX}px from the addon capsule`
   );
   const themeAlignmentDelta = await page.evaluate((maximumDelta) => {
     const toggleInput = document.querySelector("#themeToggle");
