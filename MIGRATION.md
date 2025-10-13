@@ -14,7 +14,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 - Copy and share buttons in light theme share the dark accent token so both labels remain legible against the outline treatment.
 - The footer now includes a small Privacy • Terms link that routes to a standalone policy page under `/privacy/`.
 - The footer credits Marco Polo Research Lab with a dropdown menu that surfaces additional projects in a compact list.
-- The tag chip bar now lives in a sticky capsule beneath the navbar so filters remain accessible while scrolling.
+- The tag chip bar now sticks beneath the navbar as a slim, single-row rail with horizontal scroll support so filters stay accessible without overcrowding the hero.
 - Hash deep-links highlight cards using `data-linked-card="true"` and trigger smooth scroll after render.
 
 ## Event Contracts
@@ -30,7 +30,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 - Footer dropdown destinations reside in `FOOTER_PROJECTS` (`js/constants.js`); adjust that array to update the lab projects list.
 - Like state persists through `localStorage` using the `prompt-bubbles-likes` key; `AppShell` owns helpers for toggling, persistence, and accessibility labels.
 - Copy button styles rely on the new `--app-copy-button-*` tokens injected in `assets/css/material.css`; update those variables when adjusting action colors.
-- Sticky filter styling is driven by `--app-filter-bar-*` tokens and the `.app-filter-bar` container; keep offsets in sync with the fixed top navbar height.
+- Sticky filter styling is driven by `--app-filter-bar-*` and `--app-filter-chip-*` tokens across `.app-filter-bar` and `[data-role="filter-chip"]`; keep offsets aligned with the fixed top navbar height.
 - The Puppeteer runner (`tests/run-tests.mjs`) announces each spec, seeds `window.__PROMPT_BUBBLES_RUNNER_PROGRESS`, exposes aggregated results through `globalThis.__PROMPT_BUBBLES_TEST_PROGRESS`, and publishes coverage metrics under `globalThis.__PROMPT_BUBBLES_COVERAGE_SUMMARY`; call the provided `announceProgress` helper when wiring additional specs.
 - Integration coverage runs through `npm test`, which launches Puppeteer against the static server; helpers rely on `data-test` attributes for stability.
 - User-facing strings reside in `js/constants.js`; reuse constants instead of inline literals when extending the UI.

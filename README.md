@@ -12,7 +12,7 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Readable actions:** the copy and share controls now share the dark accent outline in light theme for higher contrast and clarity.
 - **Privacy routing:** the footer surfaces a small Privacy • Terms link that navigates to the static privacy policy.
 - **Lab menu:** the footer credits Marco Polo Research Lab and exposes a dropdown of sister projects for quick exploration.
-- **Sticky filters:** the tag chip bar stays affixed beneath the navbar so filters remain within reach while browsing.
+- **Sticky filters:** the tag chip bar stays affixed beneath the navbar as a subtle single-row rail with horizontal scroll, keeping tags reachable without dominating the layout.
 - **Notifications:** copy and share actions raise an event-scoped toast; no inline handlers or global mutations.
 - **Atmospheric feedback:** pressing the bubble like toggle emits a theme-aware bubble animation that fades after the interaction.
 

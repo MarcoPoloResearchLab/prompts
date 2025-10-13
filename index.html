@@ -97,14 +97,20 @@
           <p class="lead mb-3" x-text="strings.subtitle"></p>
         </header>
         <div class="app-filter-bar">
-          <div class="d-flex flex-wrap justify-content-center gap-2" id="chipBar" role="group" x-bind:aria-label="strings.tagFilterLabel">
+          <div
+            class="d-flex flex-nowrap align-items-center gap-2 overflow-x-auto"
+            id="chipBar"
+            role="group"
+            x-bind:aria-label="strings.tagFilterLabel"
+          >
             <template x-for="tag in tags" :key="tag">
               <button
                 type="button"
-                class="btn btn-sm"
+                class="filter-chip"
+                data-role="filter-chip"
                 data-test="tag-chip"
                 x-bind:data-active="isActiveTag(tag) ? 'true' : 'false'"
-                x-bind:class="isActiveTag(tag) ? 'btn-primary' : 'btn-outline-primary'"
+                x-bind:aria-pressed="isActiveTag(tag) ? 'true' : 'false'"
                 x-on:click="selectTag(tag)"
                 x-text="chipLabel(tag)"
               ></button>

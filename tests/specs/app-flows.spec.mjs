@@ -37,6 +37,8 @@ const SHARE_ICON_LIGHT_COLOR = "rgb(13, 34, 71)";
 const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
 const COLOR_COMPONENT_TOLERANCE = 1;
 const STICKY_DELTA_TOLERANCE_PX = 2;
+const FILTER_CHIP_MAX_RADIUS_PX = 12;
+const FILTER_CONTAINER_SCROLL_VALUES = Object.freeze(["auto", "scroll", "overlay"]);
 const LIKE_ICON_TEXT = "bubble_chart";
 const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
@@ -757,6 +759,34 @@ const captureGridRowLengths = (page) =>
     }
     return rows.map((row) => row.count);
   }, CARD_SELECTOR);
+const captureFilterLayoutSnapshot = (page) =>
+  page.evaluate((containerSelector, chipSelector) => {
+    const container = document.querySelector(containerSelector);
+    const chips = Array.from(document.querySelectorAll(chipSelector));
+    const topPositions = new Set();
+    let maxBorderRadius = 0;
+    let usesButtonClass = false;
+    for (const chip of chips) {
+      const rect = chip.getBoundingClientRect();
+      topPositions.add(rect.top.toFixed(2));
+      if (chip.classList.contains("btn") || chip.classList.contains("btn-outline-primary")) {
+        usesButtonClass = true;
+      }
+      const chipStyles = getComputedStyle(chip);
+      const radius = Number.parseFloat(chipStyles.getPropertyValue("border-radius"));
+      if (Number.isFinite(radius) && radius > maxBorderRadius) {
+        maxBorderRadius = radius;
+      }
+    }
+    const containerStyles = container ? getComputedStyle(container) : null;
+    return {
+      rowCount: topPositions.size,
+      flexWrap: containerStyles?.getPropertyValue("flex-wrap")?.trim().toLowerCase() ?? "",
+      overflowX: containerStyles?.getPropertyValue("overflow-x")?.trim().toLowerCase() ?? "",
+      maxBorderRadius,
+      usesButtonClass
+    };
+  }, FILTER_BAR_SELECTOR, CHIP_SELECTOR);
 const captureFooterMenuSnapshot = (page) =>
   page.evaluate(
     (prefixSelector, toggleSelector, menuSelector, itemSelector) => {
@@ -1041,6 +1071,28 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     layoutChecks.privacyLinkHref.endsWith("/privacy/") || layoutChecks.privacyLinkHref.endsWith("/privacy"),
     true,
     "Privacy link should route to the privacy policy path"
+  );
+  const filterLayoutSnapshot = await captureFilterLayoutSnapshot(page);
+  assertEqual(filterLayoutSnapshot.rowCount, 1, "Filter chips should render on a single row");
+  assertEqual(
+    filterLayoutSnapshot.flexWrap,
+    "nowrap",
+    "Filter chip container should disable wrapping to preserve a single row"
+  );
+  assertEqual(
+    FILTER_CONTAINER_SCROLL_VALUES.includes(filterLayoutSnapshot.overflowX),
+    true,
+    "Filter chip container should allow horizontal scrolling when content overflows"
+  );
+  assertEqual(
+    filterLayoutSnapshot.usesButtonClass,
+    false,
+    "Filter chips should not depend on Bootstrap button styling"
+  );
+  assertEqual(
+    filterLayoutSnapshot.maxBorderRadius <= FILTER_CHIP_MAX_RADIUS_PX,
+    true,
+    `Filter chips should avoid pill styling (radius ≤ ${FILTER_CHIP_MAX_RADIUS_PX}px)`
   );
   const footerMenuInitial = await captureFooterMenuSnapshot(page);
   assertEqual(footerMenuInitial.prefixText, FOOTER_PREFIX_TEXT, "Footer should credit the lab before the dropdown");
