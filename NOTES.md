@@ -94,7 +94,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 
 ### BugFixes
 
--[ ] [PB-12] Some rows have 3 cards for no obvious reason while other rows have 4 cards. In other scenarios some rows have 4 cards and other 5 cards. All rows should have the same number of cards at a given width of a viewport
+-[X] [PB-12] Some rows have 3 cards for no obvious reason while other rows have 4 cards. In other scenarios some rows have 4 cards and other 5 cards. All rows should have the same number of cards at a given width of a viewport
 
 ### Maintenance
 

@@ -22,6 +22,7 @@ const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
 const COLOR_COMPONENT_TOLERANCE = 1;
 const BRAND_TAGLINE_TEXT = "Built for instant prompt workflows.";
 const FOOTER_SHORTCUT_TEXT = "Press / to search • Enter to copy the focused card";
+const EXPECTED_DESKTOP_COLUMNS = 4;
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -257,6 +258,7 @@ const getActiveChipLabels = (page) =>
 
 export const run = async ({ browser, baseUrl }) => {
   const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
   await stubClipboard(page);
   await page.goto("about:blank");
   await page.goto(baseUrl, { waitUntil: "networkidle0" });
@@ -341,6 +343,42 @@ export const run = async ({ browser, baseUrl }) => {
     layoutChecks.shortcutInMain,
     false,
     "Keyboard shortcut hint should not render inside the main content"
+  );
+  const desktopRowCounts = await page.evaluate((cardSelector) => {
+    const cards = Array.from(document.querySelectorAll(cardSelector));
+    const tops = [];
+    const counts = [];
+    for (const card of cards) {
+      const rectTop = Math.round(card.getBoundingClientRect().top);
+      const existingIndex = tops.indexOf(rectTop);
+      if (existingIndex === -1) {
+        tops.push(rectTop);
+        counts.push(1);
+      } else {
+        counts[existingIndex] += 1;
+      }
+    }
+    return counts;
+  }, CARD_SELECTOR);
+  assertEqual(
+    desktopRowCounts[0],
+    EXPECTED_DESKTOP_COLUMNS,
+    `Desktop grid should render ${EXPECTED_DESKTOP_COLUMNS} cards per row`
+  );
+  const interiorDesktopCounts = desktopRowCounts.slice(0, -1);
+  const interiorDesktopConsistent =
+    interiorDesktopCounts.length === 0 ||
+    interiorDesktopCounts.every((count) => count === EXPECTED_DESKTOP_COLUMNS);
+  assertEqual(
+    interiorDesktopConsistent,
+    true,
+    `Each desktop row before the final partial row should contain ${EXPECTED_DESKTOP_COLUMNS} cards`
+  );
+  const lastRowCount = desktopRowCounts[desktopRowCounts.length - 1] ?? EXPECTED_DESKTOP_COLUMNS;
+  assertEqual(
+    lastRowCount <= EXPECTED_DESKTOP_COLUMNS,
+    true,
+    "The final desktop row should not exceed the expected column count"
   );
   const themeAlignmentDelta = await page.evaluate((maximumDelta) => {
     const toggleInput = document.querySelector("#themeToggle");
