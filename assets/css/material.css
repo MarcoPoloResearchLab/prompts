@@ -222,11 +222,17 @@ body {
 .placeholder-input {
   display: inline-flex;
   align-items: center;
+  max-width: min(100%, 20ch);
+  width: auto;
+  box-sizing: border-box;
   padding-inline: 0.35rem;
   margin-inline: 0.1rem;
   border: 1px dashed var(--app-placeholder-border);
   background: var(--app-placeholder-bg);
   color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .placeholder-input:focus {

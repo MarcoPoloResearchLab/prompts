@@ -39,6 +39,7 @@ const EMPTY_STATE_LIGHT_BACKGROUND = "rgb(232, 240, 255)";
 const EMPTY_STATE_LIGHT_TEXT = "rgb(13, 34, 71)";
 const EMPTY_STATE_DARK_BACKGROUND = "rgb(26, 44, 92)";
 const EMPTY_STATE_DARK_TEXT = "rgb(217, 230, 255)";
+const PLACEHOLDER_OVERFLOW_TOLERANCE_PX = 1.5;
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -411,6 +412,33 @@ const isClearButtonVisible = (page) =>
       styles.getPropertyValue("display") !== "none" && styles.getPropertyValue("visibility") !== "hidden"
     );
   }, CLEAR_BUTTON_SELECTOR);
+
+const capturePlaceholderSnapshots = (page) =>
+  page.evaluate(() => {
+    const inputs = Array.from(
+      document.querySelectorAll('[data-role="prompt-text"] [data-placeholder]')
+    );
+    return inputs
+      .map((element) => {
+        if (!(element instanceof HTMLElement)) {
+          return null;
+        }
+        const card = element.closest('[data-test="prompt-card"]');
+        if (!(card instanceof HTMLElement)) {
+          return null;
+        }
+        const placeholderRect = element.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const overflowBy = Math.max(0, placeholderRect.right - cardRect.right);
+        return {
+          placeholder: element.getAttribute("data-placeholder") ?? "",
+          inputWidth: placeholderRect.width,
+          cardWidth: cardRect.width,
+          overflowBy
+        };
+      })
+      .filter((snapshot) => snapshot !== null);
+  });
 export const run = async ({ browser, baseUrl }) => {
   const page = await browser.newPage();
   await page.evaluateOnNewDocument(() => {
@@ -456,6 +484,21 @@ export const run = async ({ browser, baseUrl }) => {
     CLEAR_BUTTON_SELECTOR
   );
   assertEqual(clearButtonCount, 1, "Search input should render exactly one clear button control");
+  const placeholderSnapshots = await capturePlaceholderSnapshots(page);
+  assertEqual(
+    placeholderSnapshots.length > 0,
+    true,
+    "Initial render should expose placeholder inputs for measurement"
+  );
+  const maxPlaceholderOverflow = placeholderSnapshots.reduce(
+    (maximum, snapshot) => Math.max(maximum, snapshot.overflowBy),
+    0
+  );
+  assertEqual(
+    maxPlaceholderOverflow <= PLACEHOLDER_OVERFLOW_TOLERANCE_PX,
+    true,
+    `Placeholder inputs should remain within card boundaries (max overflow ${maxPlaceholderOverflow.toFixed(2)}px)`
+  );
   const baseThemeSnapshot = await captureThemeSnapshot(page);
   const addonPaddingLeft = parsePixels(baseThemeSnapshot.addonPaddingLeft);
   const addonPaddingRight = parsePixels(baseThemeSnapshot.addonPaddingRight);

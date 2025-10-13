@@ -21,7 +21,14 @@ export function createPlaceholderFragment(rawText) {
     placeholderInput.className = "placeholder-input";
     placeholderInput.dataset.placeholder = placeholderName;
     placeholderInput.placeholder = placeholderName;
-    placeholderInput.size = Math.max(placeholderName.length, 8);
+    placeholderInput.title = placeholderName;
+    placeholderInput.setAttribute("aria-label", placeholderName);
+    const minimumCharacters = 10;
+    const maximumCharacters = 24;
+    const characterWidth = Math.min(Math.max(placeholderName.length + 2, minimumCharacters), maximumCharacters);
+    placeholderInput.size = characterWidth;
+    placeholderInput.style.width = `${characterWidth}ch`;
+    placeholderInput.style.maxWidth = "100%";
     fragment.appendChild(placeholderInput);
     cursorIndex = PLACEHOLDER_PATTERN.lastIndex;
     matchResult = PLACEHOLDER_PATTERN.exec(rawText);

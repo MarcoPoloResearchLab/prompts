@@ -99,7 +99,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 - [X] [PB-15] make "No prompts match your search" message the selected theme. Ensure we say "No prompts match your search" and we dont say 
 "No prompts match your search/filter."
 - [X] [PB-16] The X that should be dynamically available at the end of the search prompt in response to input is no longer appearing. Fix the regression.
-- [ ] [PB-17] Ensure that the placheolder dont grow over the borders of the cards. e.g. "Person (e.g. a professional in your field)" goes outside of the card borders
+- [X] [PB-17] Ensure that the placheolder dont grow over the borders of the cards. e.g. "Person (e.g. a professional in your field)" goes outside of the card borders
 - [ ] [PB-18] The number of columns shall be dynamic and change in response to thwe width of the viewport but it shall be the same for a given width of a viewport, and it was inconsistent. Now the max is locked in on 4 and it's incorrect we shall nto prescribe the max -- as many as will fit in the viepoirt given that each row has the same number of cards unless it's the last row
 The search prompt changes to dark background in the light theme
 
