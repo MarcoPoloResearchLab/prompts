@@ -175,4 +175,4 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     </body>
     </html>
     ```
-- [ ] [PB-27] add privacy to the sitemap
+- [X] [PB-27] add privacy to the sitemap

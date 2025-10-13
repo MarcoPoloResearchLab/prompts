@@ -1622,6 +1622,41 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     true,
     "Share button border should remain in sync with the copy button outline after restoring the original theme"
   );
+  const sitemapSnapshot = await page.evaluate(async () => {
+    const response = await fetch("./sitemap.xml", { cache: "no-store" });
+    if (!response.ok) {
+      return null;
+    }
+    const sitemapText = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(sitemapText, "application/xml");
+    const urlElements = Array.from(doc.querySelectorAll("url > loc"));
+    const locValues = urlElements
+      .map((element) => element.textContent ?? "")
+      .filter((value) => value.trim().length > 0);
+    const pathValues = locValues
+      .map((value) => {
+        try {
+          return new URL(value, document.location.origin).pathname;
+        } catch (error) {
+          return "";
+        }
+      })
+      .filter((value) => value.length > 0);
+    return {
+      urls: locValues,
+      paths: pathValues
+    };
+  });
+  assertEqual(sitemapSnapshot !== null, true, "Sitemap should be reachable from the root of the site");
+  if (!sitemapSnapshot) {
+    throw new Error("Sitemap snapshot missing");
+  }
+  assertEqual(
+    sitemapSnapshot.paths.includes("/") && sitemapSnapshot.paths.includes("/privacy/"),
+    true,
+    "Sitemap should list both the homepage and privacy policy paths"
+  );
 
   await page.goto(`${baseUrl}#p05`, { waitUntil: "networkidle0" });
   await waitForLinkedCard(page, "p05");
