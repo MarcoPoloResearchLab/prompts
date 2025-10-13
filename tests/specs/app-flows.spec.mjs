@@ -14,6 +14,7 @@ const CARD_FEEDBACK_SELECTOR = "[data-test='card-feedback']";
 const COPY_FEEDBACK_MESSAGE = "Prompt copied \u2713";
 const SHARE_FEEDBACK_MESSAGE = "Link copied \u2713";
 const THEME_TOGGLE_SELECTOR = "#themeToggle";
+const MIN_SEARCH_ADDON_PADDING_PX = 16;
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -104,11 +105,14 @@ const captureThemeSnapshot = (page) =>
       topNavBackgroundColor: topNav ? getComputedStyle(topNav).getPropertyValue("background-color") : "",
       addonBackgroundColor: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("background-color") : "",
       addonColor: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("color") : "",
+      addonPaddingLeft: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("padding-left") : "",
+      addonPaddingRight: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("padding-right") : "",
       inputBackgroundColor: searchInput ? getComputedStyle(searchInput).getPropertyValue("background-color") : "",
       tagBackgroundColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("background-color") : "",
       tagColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("color") : ""
     };
   });
+const parsePixels = (value) => Number.parseFloat(String(value).replace("px", "")) || 0;
 
 const stubClipboard = async (page) => {
   await page.evaluateOnNewDocument(() => {
@@ -267,6 +271,19 @@ export const run = async ({ browser, baseUrl }) => {
   assertEqual(initialCardIds.length > 0, true, "Initial load should render cards");
   const extraClearButtonCount = await page.evaluate(() => document.querySelectorAll("#clearSearch").length);
   assertEqual(extraClearButtonCount, 0, "Search input should not render a duplicate clear button");
+  const baseThemeSnapshot = await captureThemeSnapshot(page);
+  const addonPaddingLeft = parsePixels(baseThemeSnapshot.addonPaddingLeft);
+  const addonPaddingRight = parsePixels(baseThemeSnapshot.addonPaddingRight);
+  assertEqual(
+    addonPaddingLeft >= MIN_SEARCH_ADDON_PADDING_PX,
+    true,
+    `Search icon capsule should have at least ${MIN_SEARCH_ADDON_PADDING_PX}px left padding`
+  );
+  assertEqual(
+    addonPaddingRight >= MIN_SEARCH_ADDON_PADDING_PX,
+    true,
+    `Search icon capsule should have at least ${MIN_SEARCH_ADDON_PADDING_PX}px right padding`
+  );
 
   const searchScenarios = [
     {
