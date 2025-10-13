@@ -54,6 +54,68 @@ const EMPTY_STATE_LIGHT_TEXT = "rgb(13, 34, 71)";
 const EMPTY_STATE_DARK_BACKGROUND = "rgb(26, 44, 92)";
 const EMPTY_STATE_DARK_TEXT = "rgb(217, 230, 255)";
 const PLACEHOLDER_OVERFLOW_TOLERANCE_PX = 1.5;
+const calculateUsedBytes = (sourceLength, ranges) => {
+  if (!Array.isArray(ranges) || ranges.length === 0) {
+    return 0;
+  }
+  const normalizedRanges = ranges
+    .map((range) => {
+      const rawStart = Number.parseFloat(String(range?.start ?? range?.offset ?? 0));
+      const rawEnd = Number.parseFloat(String(range?.end ?? range?.offsetEnd ?? 0));
+      if (!Number.isFinite(rawStart) || !Number.isFinite(rawEnd)) {
+        return null;
+      }
+      const start = Math.max(0, Math.min(sourceLength, Math.floor(rawStart)));
+      const end = Math.max(0, Math.min(sourceLength, Math.ceil(rawEnd)));
+      return end > start ? { start, end } : null;
+    })
+    .filter(Boolean)
+    .sort((left, right) => {
+      if (!left || !right) {
+        return 0;
+      }
+      return left.start - right.start;
+    });
+  if (normalizedRanges.length === 0) {
+    return 0;
+  }
+  let used = 0;
+  let currentStart = normalizedRanges[0]?.start ?? 0;
+  let currentEnd = normalizedRanges[0]?.end ?? 0;
+  for (let index = 1; index < normalizedRanges.length; index += 1) {
+    const range = normalizedRanges[index];
+    if (!range) {
+      continue;
+    }
+    if (range.start <= currentEnd) {
+      currentEnd = Math.max(currentEnd, range.end);
+      continue;
+    }
+    used += currentEnd - currentStart;
+    currentStart = range.start;
+    currentEnd = range.end;
+  }
+  used += currentEnd - currentStart;
+  return used;
+};
+
+const summarizeCoverageEntries = (entries) => {
+  let totalBytes = 0;
+  let usedBytes = 0;
+  for (const entry of entries ?? []) {
+    const source = typeof entry?.text === "string" ? entry.text : "";
+    const ranges = Array.isArray(entry?.ranges) ? entry.ranges : [];
+    const entryTotal = source.length;
+    totalBytes += entryTotal;
+    usedBytes += calculateUsedBytes(entryTotal, ranges);
+  }
+  const percent = totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0;
+  return {
+    totalBytes,
+    usedBytes,
+    percent
+  };
+};
 
 const normalizeToRgb = (value) => {
   if (typeof value !== "string") {
@@ -678,6 +740,10 @@ const captureGridRowLengths = (page) =>
   }, CARD_SELECTOR);
 export const run = async ({ browser, baseUrl, announceProgress }) => {
   const page = await browser.newPage();
+  await Promise.all([
+    page.coverage.startJSCoverage({ resetOnNavigation: false }),
+    page.coverage.startCSSCoverage({ resetOnNavigation: false })
+  ]);
   if (typeof announceProgress === "function") {
     await announceProgress(page);
   }
@@ -1673,5 +1739,15 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
   const cardsAfterReload = await getVisibleCardIds(page);
   assertDeepEqual(cardsAfterReload, ["p04", "p18"], "Reload should respect persisted filters");
 
+  const [jsCoverageEntries, cssCoverageEntries] = await Promise.all([
+    page.coverage.stopJSCoverage(),
+    page.coverage.stopCSSCoverage()
+  ]);
   await page.close();
+  return {
+    coverage: {
+      js: summarizeCoverageEntries(jsCoverageEntries),
+      css: summarizeCoverageEntries(cssCoverageEntries)
+    }
+  };
 };

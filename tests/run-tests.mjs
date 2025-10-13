@@ -5,12 +5,18 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import puppeteer from "puppeteer";
 import { run as runAppFlows } from "./specs/app-flows.spec.mjs";
+import { run as runRunnerOutput } from "./specs/runner-output.spec.mjs";
 
 const DEFAULT_PORT = 4173;
 const HOST = "127.0.0.1";
 const ROOT_DIRECTORY = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const APP_FLOWS_SPEC_NAME = "specs/app-flows.spec.mjs";
+const RUNNER_OUTPUT_SPEC_NAME = "specs/runner-output.spec.mjs";
 const executedSpecs = [];
+const SPEC_REGISTRY = [
+  { name: APP_FLOWS_SPEC_NAME, run: runAppFlows, requiresBrowser: true },
+  { name: RUNNER_OUTPUT_SPEC_NAME, run: runRunnerOutput, requiresBrowser: false }
+];
 
 const MIME_MAP = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -52,6 +58,64 @@ const monitorConsoleWarnings = () => {
   };
 };
 
+const createCoverageTotals = () => ({
+  js: { usedBytes: 0, totalBytes: 0 },
+  css: { usedBytes: 0, totalBytes: 0 }
+});
+
+const accumulateCoverageTotals = (totals, coverage) => {
+  if (coverage && typeof coverage === "object") {
+    const jsCoverage = coverage.js ?? null;
+    if (jsCoverage) {
+      if (Number.isFinite(jsCoverage.usedBytes)) {
+        totals.js.usedBytes += jsCoverage.usedBytes;
+      }
+      if (Number.isFinite(jsCoverage.totalBytes)) {
+        totals.js.totalBytes += jsCoverage.totalBytes;
+      }
+    }
+    const cssCoverage = coverage.css ?? null;
+    if (cssCoverage) {
+      if (Number.isFinite(cssCoverage.usedBytes)) {
+        totals.css.usedBytes += cssCoverage.usedBytes;
+      }
+      if (Number.isFinite(cssCoverage.totalBytes)) {
+        totals.css.totalBytes += cssCoverage.totalBytes;
+      }
+    }
+  }
+};
+
+const computeCoverageSlot = ({ usedBytes, totalBytes }) => ({
+  usedBytes,
+  totalBytes,
+  percent: totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0
+});
+
+const finalizeCoverageSummary = (totals) => {
+  const jsSummary = computeCoverageSlot(totals.js);
+  const cssSummary = computeCoverageSlot(totals.css);
+  const combinedUsed = jsSummary.usedBytes + cssSummary.usedBytes;
+  const combinedTotal = jsSummary.totalBytes + cssSummary.totalBytes;
+  const totalSummary = {
+    usedBytes: combinedUsed,
+    totalBytes: combinedTotal,
+    percent: combinedTotal > 0 ? (combinedUsed / combinedTotal) * 100 : 0
+  };
+  return {
+    js: jsSummary,
+    css: cssSummary,
+    total: totalSummary
+  };
+};
+
+const formatScenarioRecords = (records) =>
+  records.map((record) => ({
+    name: record.name,
+    status: record.status,
+    durationMs: record.durationMs
+  }));
+
 const startStaticServer = (port = DEFAULT_PORT) =>
   new Promise((resolve, reject) => {
     const server = createServer(async (request, response) => {
@@ -89,26 +153,98 @@ const main = async () => {
   });
   try {
     const baseUrl = `http://${HOST}:${port}/index.html`;
-    const announceProgress = async (page, label) => {
+    const announceProgress = async (pageInstance, label) => {
       if (!executedSpecs.includes(label)) {
         executedSpecs.push(label);
       }
-      await page.evaluateOnNewDocument((name) => {
-        const existing = Array.isArray(window.__PROMPT_BUBBLES_RUNNER_PROGRESS)
-          ? window.__PROMPT_BUBBLES_RUNNER_PROGRESS
-          : [];
-        if (!existing.includes(name)) {
-          window.__PROMPT_BUBBLES_RUNNER_PROGRESS = [...existing, name];
-        }
-      }, label);
+      if (pageInstance && typeof pageInstance.evaluateOnNewDocument === "function") {
+        await pageInstance.evaluateOnNewDocument((name) => {
+          const existing = Array.isArray(window.__PROMPT_BUBBLES_RUNNER_PROGRESS)
+            ? window.__PROMPT_BUBBLES_RUNNER_PROGRESS
+            : [];
+          if (!existing.includes(name)) {
+            window.__PROMPT_BUBBLES_RUNNER_PROGRESS = [...existing, name];
+          }
+        }, label);
+      }
     };
-    console.log(`Running ${APP_FLOWS_SPEC_NAME}`);
-    await runAppFlows({
-      browser,
-      baseUrl,
-      announceProgress: (page) => announceProgress(page, APP_FLOWS_SPEC_NAME)
-    });
-    console.log(`✓ ${APP_FLOWS_SPEC_NAME}`);
+    const scenarioRecords = [];
+    const coverageTotals = createCoverageTotals();
+    const browserSpecs = SPEC_REGISTRY.filter((spec) => spec.requiresBrowser);
+    const metaSpecs = SPEC_REGISTRY.filter((spec) => !spec.requiresBrowser);
+    for (const spec of browserSpecs) {
+      const scenarioRecord = {
+        name: spec.name,
+        status: "running",
+        startedAt: Date.now(),
+        durationMs: 0
+      };
+      scenarioRecords.push(scenarioRecord);
+      console.log(`Running ${spec.name}`);
+      try {
+        const result = await spec.run({
+          browser,
+          baseUrl,
+          announceProgress: (page) => announceProgress(page, spec.name)
+        });
+        scenarioRecord.status = "passed";
+        scenarioRecord.durationMs = Date.now() - scenarioRecord.startedAt;
+        accumulateCoverageTotals(coverageTotals, result?.coverage ?? null);
+        console.log(`✓ ${spec.name}`);
+      } catch (error) {
+        scenarioRecord.status = "failed";
+        scenarioRecord.durationMs = Date.now() - scenarioRecord.startedAt;
+        globalThis.__PROMPT_BUBBLES_TEST_PROGRESS = {
+          scenarios: formatScenarioRecords(scenarioRecords)
+        };
+        throw error;
+      }
+    }
+    const coverageSummary = finalizeCoverageSummary(coverageTotals);
+    globalThis.__PROMPT_BUBBLES_COVERAGE_SUMMARY = coverageSummary;
+    globalThis.__PROMPT_BUBBLES_TEST_PROGRESS = {
+      scenarios: formatScenarioRecords(scenarioRecords)
+    };
+    if (coverageSummary.total.totalBytes > 0) {
+      const coverageLine = [
+        `Coverage summary: Total ${coverageSummary.total.percent.toFixed(2)}% (${coverageSummary.total.usedBytes}/${coverageSummary.total.totalBytes} bytes)`,
+        `JS ${coverageSummary.js.percent.toFixed(2)}% (${coverageSummary.js.usedBytes}/${coverageSummary.js.totalBytes})`,
+        `CSS ${coverageSummary.css.percent.toFixed(2)}% (${coverageSummary.css.usedBytes}/${coverageSummary.css.totalBytes})`
+      ].join(" | ");
+      console.log(coverageLine);
+    } else {
+      console.log("Coverage summary: No instrumented sources were exercised");
+    }
+    for (const spec of metaSpecs) {
+      const startTimestamp = Date.now();
+      console.log(`Running ${spec.name}`);
+      try {
+        await spec.run({
+          browser,
+          baseUrl,
+          announceProgress: (_, label) => announceProgress(undefined, label ?? spec.name)
+        });
+        scenarioRecords.push({
+          name: spec.name,
+          status: "passed",
+          durationMs: Date.now() - startTimestamp
+        });
+        globalThis.__PROMPT_BUBBLES_TEST_PROGRESS = {
+          scenarios: formatScenarioRecords(scenarioRecords)
+        };
+        console.log(`✓ ${spec.name}`);
+      } catch (error) {
+        scenarioRecords.push({
+          name: spec.name,
+          status: "failed",
+          durationMs: Date.now() - startTimestamp
+        });
+        globalThis.__PROMPT_BUBBLES_TEST_PROGRESS = {
+          scenarios: formatScenarioRecords(scenarioRecords)
+        };
+        throw error;
+      }
+    }
   } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));

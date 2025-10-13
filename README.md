@@ -33,7 +33,7 @@ npm install
 npm test
 ```
 
-`npm test` starts a static server, launches Puppeteer, and exercises the end-to-end flows (search, filtering, copy/share, like toggles, hash highlighting, and persisted filters). The runner now prints each spec name (e.g., `Running specs/app-flows.spec.mjs`) so progress is visible in the CLI.
+`npm test` starts a static server, launches Puppeteer, and exercises the end-to-end flows (search, filtering, copy/share, like toggles, hash highlighting, and persisted filters). The runner prints each spec name (`Running specs/app-flows.spec.mjs`, `✓ specs/app-flows.spec.mjs`), reports scenario metadata through `globalThis.__PROMPT_BUBBLES_TEST_PROGRESS`, and emits a coverage summary highlighting total, JS, and CSS execution (e.g., `Coverage summary: Total 82.41% (JS 88.10%, CSS 74.90%)`).
 
 ## Project Layout
 

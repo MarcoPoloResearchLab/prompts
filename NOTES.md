@@ -176,3 +176,30 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     </html>
     ```
 - [X] [PB-27] add privacy to the sitemap
+- [X] [PB-28] Tesst dont show what tests are running, what has passed, what is the code coverage.
+    ```shell
+    13:20:47 tyemirov@Vadyms-MacBook-Pro:~/Development/MarcoPoloResearchLab/prompts - [maintenance/PB-27-sitemap-privacy] $ npm test
+
+    > test
+    > node tests/run-tests.mjs
+
+    Running specs/app-flows.spec.mjs
+    ✓ specs/app-flows.spec.mjs
+    Executed specs: specs/app-flows.spec.mjs
+    All tests passed
+    ```
+- [ ] [PB-29] Tesst dont show what tests are running, what has passed, what is the code coverage. CHange the configuration so that `npm test` displays the running tests
+    ```
+    13:21:28 tyemirov@Vadyms-MacBook-Pro:~/Development/MarcoPoloResearchLab/prompts - [maintenance/PB-27-sitemap-privacy] $ npm test
+
+    > test
+    > node tests/run-tests.mjs
+
+    Running specs/app-flows.spec.mjs
+    ✓ specs/app-flows.spec.mjs
+    Coverage summary: Total 12.06% (343448/2848610 bytes) | JS 28.32% (309074/1091452) | CSS 1.96% (34374/1757158)
+    Running specs/runner-output.spec.mjs
+    ✓ specs/runner-output.spec.mjs
+    Executed specs: specs/app-flows.spec.mjs, specs/runner-output.spec.mjs
+    All tests passed
+    ```
