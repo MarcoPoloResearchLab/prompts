@@ -16,7 +16,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 
 - `toast-show` (detail: `{ message: string }`) — dispatched by copy/share handlers; the toast region listens within the app shell.
 - `theme-toggle` (detail: `{ mode: "light" | "dark" }`) — dispatched by the footer switch after applying the theme to `document.documentElement`.
-- `card-bubble` (detail: `{ x: number; y: number; size: number; theme: "light" | "dark" }`) — dispatched by cards to the bubble layer to render the floating bubble animation.
+- `card-bubble` (detail: `{ x: number; y: number; size: number; riseDistance: number; cardTop: number; theme: "light" | "dark" }`) — dispatched by cards to the bubble layer so bubbles travel from the click origin to the card's top edge.
 
 ## Developer Notes
 

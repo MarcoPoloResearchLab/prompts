@@ -6,9 +6,18 @@ import { createLogger } from "../utils/logging.js";
 const MAX_ACTIVE_BUBBLES = 6;
 const DEFAULT_THEME = "light";
 const MINIMUM_BUBBLE_SIZE = 24;
+const MINIMUM_MIDPOINT_DISTANCE = 18;
 
 /**
- * @typedef {{ id: string; x: number; y: number; size: number; theme: "light" | "dark" }} Bubble
+ * @typedef {{
+ *   id: string;
+ *   x: number;
+ *   y: number;
+ *   size: number;
+ *   theme: "light" | "dark";
+ *   riseDistance: number;
+ *   cardTop: number;
+ * }} Bubble
  */
 
 /**
@@ -21,14 +30,16 @@ export function BubbleLayer(dependencies = {}) {
     /** @type {Bubble[]} */
     bubbles: [],
     /**
-     * @param {{ x?: number; y?: number; size?: number; theme?: string }} detail
+     * @param {{ x?: number; y?: number; size?: number; theme?: string; riseDistance?: number; cardTop?: number }} detail
      */
     spawn(detail) {
       if (
         !detail ||
         typeof detail.x !== "number" ||
         typeof detail.y !== "number" ||
-        typeof detail.size !== "number"
+        typeof detail.size !== "number" ||
+        typeof detail.riseDistance !== "number" ||
+        typeof detail.cardTop !== "number"
       ) {
         logger.error("Bubble detail missing required coordinates", detail);
         return;
@@ -43,8 +54,13 @@ export function BubbleLayer(dependencies = {}) {
         x: detail.x,
         y: detail.y,
         size: Math.max(MINIMUM_BUBBLE_SIZE, detail.size),
+        riseDistance: Math.max(0, detail.riseDistance),
+        cardTop: detail.cardTop,
         theme
       };
+      if (window.__PROMPT_BUBBLES_TESTING__ === true) {
+        window.__lastBubbleState = bubble;
+      }
       const trimmedBubbles =
         this.bubbles.length >= MAX_ACTIVE_BUBBLES
           ? this.bubbles.slice(this.bubbles.length - (MAX_ACTIVE_BUBBLES - 1))
@@ -68,12 +84,15 @@ export function BubbleLayer(dependencies = {}) {
       const halfSize = bubble.size / 2;
       const left = bubble.x - halfSize;
       const top = bubble.y - halfSize;
+      const midpoint = Math.max(MINIMUM_MIDPOINT_DISTANCE, bubble.riseDistance * 0.55);
       return [
         `left:${left}px`,
         `top:${top}px`,
         `width:${bubble.size}px`,
         `height:${bubble.size}px`,
-        `animation-duration:${TIMINGS.bubbleLifetimeMs}ms`
+        `animation-duration:${TIMINGS.bubbleLifetimeMs}ms`,
+        `--app-bubble-rise-distance:${bubble.riseDistance}px`,
+        `--app-bubble-rise-midpoint:${midpoint}px`
       ].join(";");
     }
   };

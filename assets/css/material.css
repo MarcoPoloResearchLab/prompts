@@ -229,11 +229,11 @@ body {
   }
   55% {
     opacity: 0.55;
-    transform: translate3d(0, -20px, 0) scale(1);
+    transform: translate3d(0, calc(-1 * var(--app-bubble-rise-midpoint, 28px)), 0) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translate3d(0, -60px, 0) scale(1.1);
+    transform: translate3d(0, calc(-1 * var(--app-bubble-rise-distance, 60px)), 0) scale(1.1);
   }
 }
 

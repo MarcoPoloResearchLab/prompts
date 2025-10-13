@@ -19,7 +19,7 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Events:**  
   - `toast-show` — emitted after copy/share to display the global toast.  
   - `theme-toggle` — emitted when the footer switch changes modes.  
-  - `card-bubble` — dispatched from cards toward the bubble layer to render the floating animation at the click position.  
+  - `card-bubble` — dispatched from cards toward the bubble layer with `{ x, y, size, riseDistance, cardTop, theme }` so the bubble originates at the click point and rises to the card's top edge.  
   Both events bubble within the root container so components remain DOM-scoped.
 
 ## Local Development

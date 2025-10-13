@@ -258,7 +258,7 @@ export function AppShell(dependencies) {
     /**
      * @param {HTMLElement} cardElement
      * @param {Event} event
-     * @returns {{ x: number; y: number; size: number; theme: "light" | "dark" } | null}
+     * @returns {{ x: number; y: number; size: number; theme: "light" | "dark"; riseDistance: number } | null}
      */
     createBubbleDetail(cardElement, event) {
       const rect = cardElement.getBoundingClientRect();
@@ -273,11 +273,17 @@ export function AppShell(dependencies) {
       const clientX = isPointerEvent || isMouseEvent ? event.clientX : defaultX;
       const clientY = isPointerEvent || isMouseEvent ? event.clientY : defaultY;
       const bubbleSize = rect.width * 0.25;
+      const bubbleRadius = bubbleSize / 2;
+      const targetCenterY = rect.top + bubbleRadius;
+      const currentCenterY = clientY;
+      const riseDistance = Math.max(0, currentCenterY - targetCenterY);
       const themeAttribute = document.documentElement.getAttribute("data-bs-theme");
       return {
         x: clientX,
         y: clientY,
         size: bubbleSize,
+        riseDistance,
+        cardTop: rect.top,
         theme: themeAttribute === "dark" ? "dark" : "light"
       };
     }
