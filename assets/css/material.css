@@ -101,7 +101,7 @@ body {
   border: 1px solid var(--app-search-addon-border);
   border-right: 0;
   color: var(--app-search-addon-color);
-  padding-inline: 1rem;
+  padding-inline: 1.5rem;
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 

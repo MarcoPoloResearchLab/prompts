@@ -85,12 +85,16 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - Render prompt cards in a responsive Bootstrap grid with fixed heights
 - [X] [PB-06]  Develop an appropriate favicon usng SVG. Fix the error:
     `Static server: ENOENT: no such file or directory, open '/Users/tyemirov/Development/MarcoPoloResearchLab/prompts/favicon.ico'`
-- [ ] [PB-07] Increase the horizontal size of the space for the magnifying glass in the search prompt. It is too tight now, so that the horizontal borders of the button touch the icon
+- [X] [PB-07] Increase the horizontal size of the space for the magnifying glass in the search prompt. It is too tight now, so that the horizontal borders of the button touch the icon
 - [X] [PB-08] Horizontally align the theme toggle and the label, so that "Dark/Light mode" is visually aligned with the toggle
 - [X] [PB-09] The Share icon is almost invisible in the light mode
 - [ ] [PB-10] make clicking on any card emit a light bubble (respect the chosen theme). That may require an external JS library. The bubble shall resemble a soap bubble very much and float on top and disappear. The bubble is kinda transparent, maybe translusent, and is the size of a quater of the card's width
+- [ ] [PB-11] Move the placeholder and the text for the search to the right so that there is a little bit of space between the button and the placeholder
+- [ ] [PB-13] Move "Press / to search • Enter to copy the focused card" from the bottom of the page to the footer aligneg to the right in the footer AND move "Built for instant prompt workflows." under the title "Prompt Bubbles" and make "Built for instant prompt workflows" small font (like 6)
 
 ### BugFixes
+
+-[ ] [PB-12] Some rows have 3 cards for no obvious reason while other rows have 4 cards. In other scenarios some rows have 4 cards and other 5 cards. All rows should have the same number of cards at a given width of a viewport
 
 ### Maintenance
 

@@ -14,7 +14,7 @@ const CARD_FEEDBACK_SELECTOR = "[data-test='card-feedback']";
 const COPY_FEEDBACK_MESSAGE = "Prompt copied \u2713";
 const SHARE_FEEDBACK_MESSAGE = "Link copied \u2713";
 const THEME_TOGGLE_SELECTOR = "#themeToggle";
-const MIN_SEARCH_ADDON_PADDING_PX = 16;
+const MIN_SEARCH_ADDON_PADDING_PX = 24;
 const MAX_THEME_ALIGNMENT_DELTA_PX = 2;
 const SHARE_ICON_LIGHT_COLOR = "rgb(13, 34, 71)";
 const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
