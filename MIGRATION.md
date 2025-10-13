@@ -13,6 +13,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 - Card action rows now include a bubble like toggle; the button tracks a local count, reflects pressed state, and sits between copy and share.
 - Copy and share buttons in light theme share the dark accent token so both labels remain legible against the outline treatment.
 - The footer now includes a small Privacy • Terms link that routes to a standalone policy page under `/privacy/`.
+- The footer credits Marco Polo Research Lab with a dropdown menu that surfaces additional projects in a compact list.
 - The tag chip bar now lives in a sticky capsule beneath the navbar so filters remain accessible while scrolling.
 - Hash deep-links highlight cards using `data-linked-card="true"` and trigger smooth scroll after render.
 
@@ -26,6 +27,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 
 - Modules live under `js/`: shared constants, utilities (clipboard, storage, logging, theming), pure core logic, and Alpine factories (`ui/`).
 - Data fetches now target `./data/prompts.json`; the repository validates structure before exposing prompts and tags.
+- Footer dropdown destinations reside in `FOOTER_PROJECTS` (`js/constants.js`); adjust that array to update the lab projects list.
 - Like state persists through `localStorage` using the `prompt-bubbles-likes` key; `AppShell` owns helpers for toggling, persistence, and accessibility labels.
 - Copy button styles rely on the new `--app-copy-button-*` tokens injected in `assets/css/material.css`; update those variables when adjusting action colors.
 - Sticky filter styling is driven by `--app-filter-bar-*` tokens and the `.app-filter-bar` container; keep offsets in sync with the fixed top navbar height.

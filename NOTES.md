@@ -94,7 +94,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 - [X] [PB-11] Move the placeholder and the text for the search to the right so that there is a little bit of space between the button and the placeholder
 - [X] [PB-13] Move "Press / to search • Enter to copy the focused card" from the bottom of the page to the footer aligneg to the right in the footer AND move "Built for instant prompt workflows." under the title "Prompt Bubbles" and make "Built for instant prompt workflows" small font (like 6)
 - [X] [PB-14] Make bubble float up the top edge of the card in which the click happened.
-- [ ] [PB-21] Replace in the footer the label Prompt Bubbles with "Built by Marko Polo Research Lab". the "Marko Polo Research Lab" part is a drop-down that displays other Marko Polo projects.
+- [X] [PB-21] Replace in the footer the label Prompt Bubbles with "Built by Marko Polo Research Lab". the "Marko Polo Research Lab" part is a drop-down that displays other Marko Polo projects.
     - The functionality to mimic is
     ```go
         var (

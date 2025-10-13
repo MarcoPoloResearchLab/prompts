@@ -13,6 +13,10 @@ const FILTER_BAR_SELECTOR = "#chipBar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
 const PRIVACY_LINK_SELECTOR = "[data-role='privacy-link']";
+const FOOTER_PREFIX_SELECTOR = "[data-role='footer-prefix']";
+const FOOTER_PROJECTS_TOGGLE_SELECTOR = "[data-role='footer-projects-toggle']";
+const FOOTER_PROJECTS_MENU_SELECTOR = "[data-role='footer-projects-menu']";
+const FOOTER_PROJECT_ITEM_SELECTOR = "[data-role='footer-projects-item']";
 const PRIVACY_LINK_TEXT = "Privacy • Terms";
 const PRIVACY_HEADING_TEXT = "Privacy Policy — Prompt Bubbles";
 const PRIVACY_ROBOTS_META = "noindex,nofollow";
@@ -38,6 +42,21 @@ const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
 const BRAND_TAGLINE_TEXT = "Built for instant prompt workflows.";
 const FOOTER_SHORTCUT_TEXT = "Press / to search • Enter to copy the focused card";
+const FOOTER_PREFIX_TEXT = "Built by";
+const FOOTER_MENU_LABEL = "Marco Polo Research Lab";
+const FOOTER_MENU_TOGGLE_ARIA_LABEL = "Browse Marco Polo Research Lab projects";
+const FOOTER_PROJECT_LINKS = Object.freeze([
+  { label: "Marco Polo Research Lab", url: "https://mprlab.com" },
+  { label: "Gravity Notes", url: "https://gravity.mprlab.com" },
+  { label: "LoopAware", url: "https://loopaware.mprlab.com" },
+  { label: "Allergy Wheel", url: "https://allergy.mprlab.com" },
+  { label: "Social Threader", url: "https://threader.mprlab.com" },
+  { label: "RSVP", url: "https://rsvp.mprlab.com" },
+  { label: "Countdown Calendar", url: "https://countdown.mprlab.com" },
+  { label: "LLM Crossword", url: "https://llm-crossword.mprlab.com" },
+  { label: "Prompt Bubbles", url: "https://prompts.mprlab.com" },
+  { label: "Wallpapers", url: "https://wallpapers.mprlab.com" }
+]);
 const BUBBLE_LAYER_SELECTOR = "[data-role='bubble-layer']";
 const BUBBLE_SELECTOR = "[data-role='bubble']";
 const BUBBLE_BORDER_LIGHT = "rgba(25, 118, 210, 0.35)";
@@ -738,6 +757,50 @@ const captureGridRowLengths = (page) =>
     }
     return rows.map((row) => row.count);
   }, CARD_SELECTOR);
+const captureFooterMenuSnapshot = (page) =>
+  page.evaluate(
+    (prefixSelector, toggleSelector, menuSelector, itemSelector) => {
+      const prefixElement = document.querySelector(prefixSelector);
+      const toggleElement = document.querySelector(toggleSelector);
+      const menuElement = document.querySelector(menuSelector);
+      const itemElements = Array.from(document.querySelectorAll(itemSelector));
+      const isMenuVisible =
+        menuElement instanceof HTMLElement
+          ? (() => {
+              const styles = window.getComputedStyle(menuElement);
+              if (styles.getPropertyValue("display") === "none" || styles.getPropertyValue("visibility") === "hidden") {
+                return false;
+              }
+              const rect = menuElement.getBoundingClientRect();
+              return rect.height > 0 && rect.width > 0;
+            })()
+          : false;
+      return {
+        prefixText: prefixElement?.textContent?.trim() ?? "",
+        toggleLabel: toggleElement?.textContent?.trim() ?? "",
+        toggleId: toggleElement?.id ?? "",
+        toggleAriaExpanded: toggleElement?.getAttribute("aria-expanded") ?? "",
+        toggleAriaControls: toggleElement?.getAttribute("aria-controls") ?? "",
+        toggleAriaHaspopup: toggleElement?.getAttribute("aria-haspopup") ?? "",
+        toggleAriaLabel: toggleElement?.getAttribute("aria-label") ?? "",
+        menuId: menuElement?.id ?? "",
+        menuRole: menuElement?.getAttribute("role") ?? "",
+        menuLabelledBy: menuElement?.getAttribute("aria-labelledby") ?? "",
+        menuHasShowClass: menuElement?.classList.contains("show") ?? false,
+        menuVisible: isMenuVisible,
+        itemSummaries: itemElements.map((element) => ({
+          label: element.textContent?.trim() ?? "",
+          href: element.getAttribute("href") ?? "",
+          target: element.getAttribute("target") ?? "",
+          rel: element.getAttribute("rel") ?? ""
+        }))
+      };
+    },
+    FOOTER_PREFIX_SELECTOR,
+    FOOTER_PROJECTS_TOGGLE_SELECTOR,
+    FOOTER_PROJECTS_MENU_SELECTOR,
+    FOOTER_PROJECT_ITEM_SELECTOR
+  );
 export const run = async ({ browser, baseUrl, announceProgress }) => {
   const page = await browser.newPage();
   await Promise.all([
@@ -978,6 +1041,105 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     layoutChecks.privacyLinkHref.endsWith("/privacy/") || layoutChecks.privacyLinkHref.endsWith("/privacy"),
     true,
     "Privacy link should route to the privacy policy path"
+  );
+  const footerMenuInitial = await captureFooterMenuSnapshot(page);
+  assertEqual(footerMenuInitial.prefixText, FOOTER_PREFIX_TEXT, "Footer should credit the lab before the dropdown");
+  assertEqual(footerMenuInitial.toggleLabel, FOOTER_MENU_LABEL, "Footer dropdown toggle should display the lab name");
+  assertEqual(
+    footerMenuInitial.toggleAriaLabel,
+    FOOTER_MENU_TOGGLE_ARIA_LABEL,
+    "Footer dropdown toggle should expose an accessible description"
+  );
+  assertEqual(
+    footerMenuInitial.toggleAriaExpanded,
+    "false",
+    "Footer dropdown toggle should start collapsed"
+  );
+  assertEqual(
+    footerMenuInitial.toggleAriaHaspopup,
+    "menu",
+    "Footer dropdown toggle should declare a menu popup"
+  );
+  assertEqual(
+    footerMenuInitial.menuRole,
+    "menu",
+    "Footer dropdown should expose the menu role"
+  );
+  assertEqual(
+    footerMenuInitial.menuLabelledBy,
+    footerMenuInitial.toggleId,
+    "Footer dropdown should be labelled by its toggle"
+  );
+  assertEqual(
+    footerMenuInitial.toggleAriaControls,
+    footerMenuInitial.menuId,
+    "Footer dropdown toggle should reference the menu element"
+  );
+  assertEqual(
+    footerMenuInitial.menuHasShowClass,
+    false,
+    "Footer dropdown menu should not apply the show class before activation"
+  );
+  assertEqual(
+    footerMenuInitial.menuVisible,
+    false,
+    "Footer dropdown menu should remain hidden until toggled open"
+  );
+  await page.click(FOOTER_PROJECTS_TOGGLE_SELECTOR);
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const footerMenuExpanded = await captureFooterMenuSnapshot(page);
+  assertEqual(
+    footerMenuExpanded.toggleAriaExpanded,
+    "true",
+    "Footer dropdown toggle should mark itself expanded after activation"
+  );
+  assertEqual(
+    footerMenuExpanded.menuHasShowClass,
+    true,
+    "Footer dropdown menu should apply the show class when expanded"
+  );
+  assertEqual(
+    footerMenuExpanded.menuVisible,
+    true,
+    "Footer dropdown menu should render visibly when expanded"
+  );
+  const footerMenuLabels = footerMenuExpanded.itemSummaries.map((item) => item.label);
+  const footerMenuHrefs = footerMenuExpanded.itemSummaries.map((item) => item.href);
+  assertDeepEqual(
+    footerMenuLabels,
+    FOOTER_PROJECT_LINKS.map((link) => link.label),
+    "Footer dropdown should list all project names in order"
+  );
+  assertDeepEqual(
+    footerMenuHrefs,
+    FOOTER_PROJECT_LINKS.map((link) => link.url),
+    "Footer dropdown should link to each project URL in order"
+  );
+  const unsafeTargets = footerMenuExpanded.itemSummaries.filter(
+    (item) => item.target !== "_blank" || !String(item.rel ?? "").includes("noopener")
+  );
+  assertEqual(
+    unsafeTargets.length,
+    0,
+    "Footer dropdown links should open in a new tab with noopener hygiene"
+  );
+  await page.keyboard.press("Escape");
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const footerMenuCollapsed = await captureFooterMenuSnapshot(page);
+  assertEqual(
+    footerMenuCollapsed.toggleAriaExpanded,
+    "false",
+    "Footer dropdown toggle should collapse after pressing Escape"
+  );
+  assertEqual(
+    footerMenuCollapsed.menuHasShowClass,
+    false,
+    "Footer dropdown menu should remove the show class after collapsing"
+  );
+  assertEqual(
+    footerMenuCollapsed.menuVisible,
+    false,
+    "Footer dropdown menu should hide after collapsing"
   );
   await Promise.all([
     page.waitForNavigation({ waitUntil: "networkidle0" }),

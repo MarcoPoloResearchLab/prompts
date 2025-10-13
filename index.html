@@ -247,7 +247,56 @@
 
     <nav class="navbar bg-body-tertiary border-top fixed-bottom shadow-sm">
       <div class="container-fluid align-items-center gap-3">
-        <span class="small text-muted" x-text="strings.footerBranding"></span>
+        <div
+          class="d-inline-flex align-items-center gap-2 flex-wrap"
+          data-role="footer-projects"
+          x-ref="footerProjectsContainer"
+          x-on:click.away="closeFooterMenu()"
+          x-on:focusout="handleFooterMenuFocusOut($event)"
+        >
+          <span class="small text-muted" data-role="footer-prefix" x-text="strings.footerPrefix"></span>
+          <div class="dropdown">
+            <button
+              type="button"
+              class="btn btn-link btn-sm dropdown-toggle text-decoration-none text-muted px-0"
+              data-role="footer-projects-toggle"
+              x-bind:id="footerMenuToggleId"
+              x-on:click="toggleFooterMenu($event)"
+              x-on:keydown.escape.stop.prevent="closeFooterMenu()"
+              x-bind:aria-expanded="footerMenuOpen ? 'true' : 'false'"
+              x-bind:aria-controls="footerMenuId"
+              x-bind:aria-label="strings.footerMenuToggleAriaLabel"
+              aria-haspopup="menu"
+            >
+              <span x-text="strings.footerMenuLabel"></span>
+            </button>
+            <ul
+              class="dropdown-menu dropdown-menu-end shadow-sm"
+              data-role="footer-projects-menu"
+              x-bind:id="footerMenuId"
+              x-bind:aria-labelledby="footerMenuToggleId"
+              x-bind:class="{ show: footerMenuOpen }"
+              x-cloak
+              role="menu"
+              x-on:click="closeFooterMenu()"
+              x-on:keydown.escape.stop.prevent="closeFooterMenu()"
+            >
+              <template x-for="project in footerLinks" :key="project.url">
+                <li>
+                  <a
+                    class="dropdown-item small"
+                    data-role="footer-projects-item"
+                    x-bind:href="project.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    role="menuitem"
+                    x-text="project.label"
+                  ></a>
+                </li>
+              </template>
+            </ul>
+          </div>
+        </div>
         <a
           class="small text-muted text-decoration-none ms-3"
           data-role="privacy-link"

@@ -6,6 +6,11 @@
   --app-top-nav-border: rgba(25, 118, 210, 0.25);
   --app-footer-background: rgba(255, 255, 255, 0.9);
   --app-footer-border: rgba(25, 118, 210, 0.18);
+  --app-footer-menu-background: rgba(255, 255, 255, 0.98);
+  --app-footer-menu-border: rgba(25, 118, 210, 0.18);
+  --app-footer-menu-link: #0d2247;
+  --app-footer-menu-link-hover: rgba(25, 118, 210, 0.08);
+  --app-footer-menu-shadow: 0 16px 42px -22px rgba(13, 34, 71, 0.45);
   --app-search-addon-bg: rgba(25, 118, 210, 0.12);
   --app-search-addon-border: rgba(25, 118, 210, 0.28);
   --app-search-addon-color: #0d2247;
@@ -42,6 +47,11 @@
   --app-top-nav-border: rgba(64, 123, 255, 0.32);
   --app-footer-background: rgba(9, 15, 30, 0.92);
   --app-footer-border: rgba(64, 123, 255, 0.24);
+  --app-footer-menu-background: rgba(12, 20, 41, 0.95);
+  --app-footer-menu-border: rgba(111, 174, 255, 0.28);
+  --app-footer-menu-link: #d9e6ff;
+  --app-footer-menu-link-hover: rgba(64, 123, 255, 0.28);
+  --app-footer-menu-shadow: 0 16px 42px -22px rgba(0, 0, 0, 0.65);
   --app-search-addon-bg: rgba(64, 123, 255, 0.28);
   --app-search-addon-border: rgba(64, 123, 255, 0.44);
   --app-search-addon-color: #d9e6ff;
@@ -120,6 +130,47 @@ body {
 
 .navbar.fixed-bottom .form-switch .form-check-label {
   margin-bottom: 0;
+}
+
+[data-role="footer-projects"] {
+  gap: 0.5rem;
+}
+
+[data-role="footer-projects-toggle"] {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0;
+  border: none;
+  color: inherit;
+}
+
+[data-role="footer-projects-toggle"]:focus-visible {
+  box-shadow: none;
+  text-decoration: underline;
+}
+
+[data-role="footer-projects-toggle"]::after {
+  vertical-align: middle;
+}
+
+[data-role="footer-projects-menu"] {
+  min-width: 16.5rem;
+  background: var(--app-footer-menu-background);
+  border: 1px solid var(--app-footer-menu-border);
+  box-shadow: var(--app-footer-menu-shadow);
+  padding: 0.5rem 0;
+}
+
+[data-role="footer-projects-menu"] .dropdown-item {
+  font-size: 0.8125rem;
+  color: var(--app-footer-menu-link);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+[data-role="footer-projects-menu"] .dropdown-item:hover,
+[data-role="footer-projects-menu"] .dropdown-item:focus-visible {
+  background: var(--app-footer-menu-link-hover);
+  color: var(--app-footer-menu-link);
 }
 
 [data-role="footer-shortcuts"] {

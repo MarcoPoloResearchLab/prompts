@@ -20,6 +20,19 @@ export const EVENTS = Object.freeze({
   cardBubble: "card-bubble"
 });
 
+export const FOOTER_PROJECTS = Object.freeze([
+  Object.freeze({ label: "Marco Polo Research Lab", url: "https://mprlab.com" }),
+  Object.freeze({ label: "Gravity Notes", url: "https://gravity.mprlab.com" }),
+  Object.freeze({ label: "LoopAware", url: "https://loopaware.mprlab.com" }),
+  Object.freeze({ label: "Allergy Wheel", url: "https://allergy.mprlab.com" }),
+  Object.freeze({ label: "Social Threader", url: "https://threader.mprlab.com" }),
+  Object.freeze({ label: "RSVP", url: "https://rsvp.mprlab.com" }),
+  Object.freeze({ label: "Countdown Calendar", url: "https://countdown.mprlab.com" }),
+  Object.freeze({ label: "LLM Crossword", url: "https://llm-crossword.mprlab.com" }),
+  Object.freeze({ label: "Prompt Bubbles", url: "https://prompts.mprlab.com" }),
+  Object.freeze({ label: "Wallpapers", url: "https://wallpapers.mprlab.com" })
+]);
+
 export const STRINGS = Object.freeze({
   appTitle: "Prompt Bubbles",
   brandTagline: "Built for instant prompt workflows.",
@@ -42,8 +55,10 @@ export const STRINGS = Object.freeze({
   toastDismiss: "Dismiss notification",
   tagFilterLabel: "Tag filters",
   footerHint: "Press / to search • Enter to copy the focused card",
+  footerPrefix: "Built by",
+  footerMenuLabel: "Marco Polo Research Lab",
+  footerMenuToggleAriaLabel: "Browse Marco Polo Research Lab projects",
   themeToggleLabel: "Dark mode",
-  footerBranding: "Prompt Bubbles",
   searchIconLabel: "Search icon",
   errorLoading: "Unable to load prompt catalog. Please refresh the page.",
   privacyLinkLabel: "Privacy • Terms",

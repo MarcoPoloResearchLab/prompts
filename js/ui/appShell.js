@@ -1,6 +1,6 @@
 // @ts-check
 
-import { EVENTS, ICONS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
+import { EVENTS, FOOTER_PROJECTS, ICONS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
 import { createPlaceholderFragment, resolvePlaceholderText } from "../core/placeholders.js";
 import { createLogger } from "../utils/logging.js";
 import { escapeIdentifier } from "../utils/dom.js";
@@ -20,6 +20,9 @@ const CARD_FEEDBACK_VARIANTS = Object.freeze({
   copy: "text-success",
   share: "text-info"
 });
+
+const FOOTER_MENU_ID = "footerProjectsMenu";
+const FOOTER_TOGGLE_ID = "footerProjectsToggle";
 
 /**
  * @returns {PromptLikeCounts}
@@ -88,6 +91,10 @@ export function AppShell(dependencies) {
     tags: /** @type {string[]} */ ([]),
     filters: /** @type {PromptFilters} */ ({ ...DEFAULT_FILTERS }),
     searchHasText: false,
+    footerMenuOpen: false,
+    footerMenuId: FOOTER_MENU_ID,
+    footerMenuToggleId: FOOTER_TOGGLE_ID,
+    footerLinks: FOOTER_PROJECTS,
     likeCountsById: createLikeCountMap(),
     cardFeedbackById: Object.create(null),
     cardFeedbackTimers: Object.create(null),
@@ -177,6 +184,29 @@ export function AppShell(dependencies) {
       this.searchHasText = false;
       if (this.$refs.searchInput instanceof HTMLInputElement) {
         this.$refs.searchInput.focus();
+      }
+    },
+    toggleFooterMenu(event) {
+      if (event instanceof Event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      this.footerMenuOpen = !this.footerMenuOpen;
+    },
+    closeFooterMenu() {
+      if (this.footerMenuOpen) {
+        this.footerMenuOpen = false;
+      }
+    },
+    handleFooterMenuFocusOut(event) {
+      const relatedTarget = event?.relatedTarget;
+      const container = this.$refs.footerProjectsContainer;
+      if (!(container instanceof HTMLElement)) {
+        this.closeFooterMenu();
+        return;
+      }
+      if (!(relatedTarget instanceof HTMLElement) || !container.contains(relatedTarget)) {
+        this.closeFooterMenu();
       }
     },
     applyFilters() {
