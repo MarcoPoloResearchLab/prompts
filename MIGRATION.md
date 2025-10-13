@@ -6,7 +6,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 
 ## UI Changes
 
-- Fixed top navigation now combines brand, global search, and clear action; the fixed footer exposes the dark-mode switch.
+- Fixed top navigation now combines brand, tagline, and global search; the fixed footer hosts the keyboard shortcut hint alongside the dark-mode switch.
 - Prompt cards render via Alpine in a responsive Bootstrap grid (`row g-4`), guaranteeing consistent heights and Material accents.
 - Copy/share controls emit toast notifications handled by a dedicated Alpine factory; toasts surface in the top-right corner instead of per-card banners.
 - Hash deep-links highlight cards using `data-linked-card="true"` and trigger smooth scroll after render.

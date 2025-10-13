@@ -28,8 +28,11 @@
 <body>
   <div class="app-shell d-flex flex-column min-vh-100" x-data="AppShell()" x-init="init()" x-on:toast-show="forwardToast($event.detail)" x-cloak>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top shadow-sm">
-      <div class="container-fluid gap-3">
-        <a class="navbar-brand fw-semibold" href="#top" x-text="strings.appTitle"></a>
+      <div class="container-fluid gap-3 align-items-center">
+        <a class="navbar-brand fw-semibold d-flex flex-column gap-1 lh-sm" href="#top">
+          <span x-text="strings.appTitle"></span>
+          <small class="fs-6 fw-normal text-white-50" data-role="brand-tagline" x-text="strings.brandTagline"></small>
+        </a>
         <form class="d-flex align-items-center flex-grow-1 gap-2" role="search">
           <div class="input-group">
             <span class="input-group-text d-inline-flex align-items-center gap-2" data-role="search-addon">
@@ -163,8 +166,6 @@
             </template>
           </section>
         </template>
-
-        <p class="text-center text-muted mt-5" x-text="strings.footerHint"></p>
       </div>
     </main>
 
@@ -189,9 +190,10 @@
     </div>
 
     <nav class="navbar bg-body-tertiary border-top fixed-bottom shadow-sm">
-      <div class="container-fluid justify-content-between align-items-center">
-        <span class="small text-muted" x-text="strings.footerCta"></span>
-        <div class="form-check form-switch mb-0 d-flex align-items-center gap-2" x-data="ThemeToggle()" x-init="init()">
+      <div class="container-fluid align-items-center gap-3">
+        <span class="small text-muted" x-text="strings.footerBranding"></span>
+        <span class="small text-muted ms-auto" data-role="footer-shortcuts" x-text="strings.footerHint"></span>
+        <div class="form-check form-switch mb-0 d-flex align-items-center gap-2 flex-shrink-0" x-data="ThemeToggle()" x-init="init()">
           <input
             class="form-check-input"
             type="checkbox"

@@ -4,7 +4,7 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 
 ## Highlights
 
-- **Material layout:** fixed top navigation hosts global search; prompt cards flow in a responsive Bootstrap grid with consistent heights; a fixed footer exposes the dark mode switch.
+- **Material layout:** fixed top navigation hosts the brand, tagline, and global search; prompt cards flow in a responsive Bootstrap grid with consistent heights; the fixed footer surfaces the keyboard shortcut hint alongside the dark mode switch.
 - **Inline editing:** placeholders render as inline inputs so prompts can be tailored before copying.
 - **Persisted context:** the active tag and search query survive reloads through local storage.
 - **Shareable cards:** each card copies a deep link and the layout highlights the linked card when visiting `#card-id`.

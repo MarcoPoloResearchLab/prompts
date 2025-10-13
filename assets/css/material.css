@@ -66,6 +66,19 @@ body {
   transition: background 0.4s ease, border-color 0.4s ease;
 }
 
+.navbar .navbar-brand {
+  gap: 0.15rem;
+}
+
+[data-role="brand-tagline"] {
+  letter-spacing: 0.02em;
+}
+
+.navbar.fixed-bottom .container-fluid {
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
+
 .navbar.fixed-bottom .form-switch {
   align-items: center;
 }
@@ -77,6 +90,10 @@ body {
 
 .navbar.fixed-bottom .form-switch .form-check-label {
   margin-bottom: 0;
+}
+
+[data-role="footer-shortcuts"] {
+  white-space: nowrap;
 }
 
 .badge {

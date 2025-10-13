@@ -20,6 +20,8 @@ const MAX_THEME_ALIGNMENT_DELTA_PX = 2;
 const SHARE_ICON_LIGHT_COLOR = "rgb(13, 34, 71)";
 const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
 const COLOR_COMPONENT_TOLERANCE = 1;
+const BRAND_TAGLINE_TEXT = "Built for instant prompt workflows.";
+const FOOTER_SHORTCUT_TEXT = "Press / to search • Enter to copy the focused card";
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -308,6 +310,37 @@ export const run = async ({ browser, baseUrl }) => {
     inputPaddingLeft >= MIN_SEARCH_PLACEHOLDER_INSET_PX,
     true,
     `Search placeholder should start at least ${MIN_SEARCH_PLACEHOLDER_INSET_PX}px from the addon capsule`
+  );
+  const layoutChecks = await page.evaluate(() => {
+    const taglineElement = document.querySelector("[data-role='brand-tagline']");
+    const footerShortcutElement = document.querySelector("[data-role='footer-shortcuts']");
+    const mainShortcutElement = document.querySelector("main [data-role='footer-shortcuts']");
+    return {
+      brandTaglineText: taglineElement?.textContent?.trim() ?? "",
+      footerShortcutText: footerShortcutElement?.textContent?.trim() ?? "",
+      footerShortcutIsInFooter: Boolean(footerShortcutElement?.closest("nav.navbar.fixed-bottom")),
+      shortcutInMain: Boolean(mainShortcutElement)
+    };
+  });
+  assertEqual(
+    layoutChecks.brandTaglineText,
+    BRAND_TAGLINE_TEXT,
+    "Brand tagline should render beneath the navbar title"
+  );
+  assertEqual(
+    layoutChecks.footerShortcutText,
+    FOOTER_SHORTCUT_TEXT,
+    "Footer shortcut hint should match expected copy"
+  );
+  assertEqual(
+    layoutChecks.footerShortcutIsInFooter,
+    true,
+    "Keyboard shortcut hint must live in the footer"
+  );
+  assertEqual(
+    layoutChecks.shortcutInMain,
+    false,
+    "Keyboard shortcut hint should not render inside the main content"
   );
   const themeAlignmentDelta = await page.evaluate((maximumDelta) => {
     const toggleInput = document.querySelector("#themeToggle");

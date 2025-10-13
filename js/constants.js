@@ -20,6 +20,7 @@ export const EVENTS = Object.freeze({
 
 export const STRINGS = Object.freeze({
   appTitle: "Prompt Bubbles",
+  brandTagline: "Built for instant prompt workflows.",
   subtitle: "A visually stunning, zero-backend gallery of copy-ready prompts.",
   searchPlaceholder: "Search prompts (title, text, tags)…",
   searchAriaLabel: "Search prompts",
@@ -34,7 +35,7 @@ export const STRINGS = Object.freeze({
   tagFilterLabel: "Tag filters",
   footerHint: "Press / to search • Enter to copy the focused card",
   themeToggleLabel: "Dark mode",
-  footerCta: "Built for instant prompt workflows.",
+  footerBranding: "Prompt Bubbles",
   searchIconLabel: "Search icon",
   errorLoading: "Unable to load prompt catalog. Please refresh the page."
 });
