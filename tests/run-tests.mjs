@@ -58,6 +58,52 @@ const monitorConsoleWarnings = () => {
   };
 };
 
+const monitorConsoleLogs = () => {
+  const recordedLogs = [];
+  const originalLog = console.log;
+  console.log = (...entries) => {
+    recordedLogs.push(entries.map((entry) => String(entry)).join(" "));
+    originalLog(...entries);
+  };
+  return {
+    stop() {
+      console.log = originalLog;
+      return [...recordedLogs];
+    },
+    snapshot() {
+      return [...recordedLogs];
+    }
+  };
+};
+
+const createScenarioLogger = (specName) => {
+  const records = [];
+  const normalizedName = String(specName ?? "").trim() || "unknown-spec";
+  return {
+    start(description) {
+      const label = String(description ?? "").trim();
+      const message = `Running ${normalizedName} :: ${label}`;
+      console.log(message);
+      records.push({ description: label, status: "running" });
+    },
+    pass(description) {
+      const label = String(description ?? "").trim();
+      const message = `✓ ${normalizedName} :: ${label}`;
+      console.log(message);
+      records.push({ description: label, status: "passed" });
+    },
+    fail(description, error) {
+      const label = String(description ?? "").trim();
+      const message = `✗ ${normalizedName} :: ${label} — ${error instanceof Error ? error.message : String(error)}`;
+      console.log(message);
+      records.push({ description: label, status: "failed" });
+    },
+    records() {
+      return [...records];
+    }
+  };
+};
+
 const createCoverageTotals = () => ({
   js: { usedBytes: 0, totalBytes: 0 },
   css: { usedBytes: 0, totalBytes: 0 }
@@ -145,6 +191,7 @@ const startStaticServer = (port = DEFAULT_PORT) =>
 
 const main = async () => {
   const stopMonitoringConsoleWarnings = monitorConsoleWarnings();
+  const { stop: stopMonitoringConsoleLogs, snapshot: snapshotConsoleLogs } = monitorConsoleLogs();
   let consoleWarnings = [];
   const { server, port } = await startStaticServer(0);
   const browser = await puppeteer.launch({
@@ -181,19 +228,24 @@ const main = async () => {
       };
       scenarioRecords.push(scenarioRecord);
       console.log(`Running ${spec.name}`);
+      const scenarioLogger = createScenarioLogger(spec.name);
       try {
         const result = await spec.run({
           browser,
           baseUrl,
-          announceProgress: (page) => announceProgress(page, spec.name)
+          announceProgress: (page) => announceProgress(page, spec.name),
+          reportScenario: scenarioLogger,
+          logs: snapshotConsoleLogs()
         });
         scenarioRecord.status = "passed";
         scenarioRecord.durationMs = Date.now() - scenarioRecord.startedAt;
+        scenarioRecord.scenarios = scenarioLogger.records();
         accumulateCoverageTotals(coverageTotals, result?.coverage ?? null);
         console.log(`✓ ${spec.name}`);
       } catch (error) {
         scenarioRecord.status = "failed";
         scenarioRecord.durationMs = Date.now() - scenarioRecord.startedAt;
+        scenarioRecord.scenarios = scenarioLogger.records();
         globalThis.__PROMPT_BUBBLES_TEST_PROGRESS = {
           scenarios: formatScenarioRecords(scenarioRecords)
         };
@@ -218,11 +270,14 @@ const main = async () => {
     for (const spec of metaSpecs) {
       const startTimestamp = Date.now();
       console.log(`Running ${spec.name}`);
+      const scenarioLogger = createScenarioLogger(spec.name);
       try {
         await spec.run({
           browser,
           baseUrl,
-          announceProgress: (_, label) => announceProgress(undefined, label ?? spec.name)
+          announceProgress: (_, label) => announceProgress(undefined, label ?? spec.name),
+          reportScenario: scenarioLogger,
+          logs: snapshotConsoleLogs()
         });
         scenarioRecords.push({
           name: spec.name,
@@ -249,6 +304,8 @@ const main = async () => {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));
     consoleWarnings = stopMonitoringConsoleWarnings();
+    const recordedLogs = stopMonitoringConsoleLogs();
+    globalThis.__PROMPT_BUBBLES_RUNNER_LOGS = recordedLogs;
   }
   const staticServerWarnings = consoleWarnings.filter((message) => message.startsWith("Static server:"));
   if (staticServerWarnings.length > 0) {

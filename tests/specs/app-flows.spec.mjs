@@ -831,7 +831,42 @@ const captureFooterMenuSnapshot = (page) =>
     FOOTER_PROJECTS_MENU_SELECTOR,
     FOOTER_PROJECT_ITEM_SELECTOR
   );
-export const run = async ({ browser, baseUrl, announceProgress }) => {
+
+const createScenarioRunner = (reportScenario) => {
+  const hasReporter = reportScenario && typeof reportScenario.start === "function";
+  const run = async (description, action) => {
+    if (hasReporter) {
+      reportScenario.start(description);
+    }
+    try {
+      const result = await action();
+      if (hasReporter && typeof reportScenario.pass === "function") {
+        reportScenario.pass(description);
+      }
+      return result;
+    } catch (error) {
+      if (reportScenario && typeof reportScenario.fail === "function") {
+        reportScenario.fail(description, error);
+      }
+      throw error;
+    }
+  };
+  const runTable = async (groupLabel, scenarios, task) => {
+    if (!Array.isArray(scenarios)) {
+      return;
+    }
+    for (const scenario of scenarios) {
+      const label =
+        typeof scenario?.description === "string" && scenario.description.length > 0
+          ? `${groupLabel} :: ${scenario.description}`
+          : groupLabel;
+      await run(label, () => task(scenario));
+    }
+  };
+  return { run, runTable };
+};
+
+export const run = async ({ browser, baseUrl, announceProgress, reportScenario, logs: _logs }) => {
   const page = await browser.newPage();
   await Promise.all([
     page.coverage.startJSCoverage({ resetOnNavigation: false }),
@@ -858,7 +893,11 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     true,
     "Test runner should announce the active spec name before exercising the UI"
   );
+  const scenarioRunner = createScenarioRunner(reportScenario);
 
+  if (reportScenario && typeof reportScenario.start === "function") {
+    reportScenario.start("Initial layout validations");
+  }
   const faviconMetadata = await page.evaluate(() => {
     const iconLink = document.querySelector("link[rel='icon']");
     const maskLink = document.querySelector("link[rel='mask-icon']");
@@ -1094,6 +1133,9 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     true,
     `Filter chips should avoid pill styling (radius ≤ ${FILTER_CHIP_MAX_RADIUS_PX}px)`
   );
+  if (reportScenario && typeof reportScenario.pass === "function") {
+    reportScenario.pass("Initial layout validations");
+  }
   const footerMenuInitial = await captureFooterMenuSnapshot(page);
   assertEqual(footerMenuInitial.prefixText, FOOTER_PREFIX_TEXT, "Footer should credit the lab before the dropdown");
   assertEqual(footerMenuInitial.toggleLabel, FOOTER_MENU_LABEL, "Footer dropdown toggle should display the lab name");
@@ -1294,7 +1336,7 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     }
   ];
 
-  for (const scenario of searchScenarios) {
+  await scenarioRunner.runTable("Search filters", searchScenarios, async (scenario) => {
     await clearSearch(page);
     await setSearchValue(page, scenario.query);
     await waitForCardIds(page, scenario.expectedIds);
@@ -1305,8 +1347,9 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
       `Search scenario "${scenario.description}" should match expected cards`
     );
     const emptyStateSnapshot = await captureEmptyStateSnapshot(page);
+    const emptyVisible = Boolean(emptyStateSnapshot);
     assertEqual(
-      Boolean(emptyStateSnapshot),
+      emptyVisible,
       scenario.expectEmptyMessage,
       `Search scenario "${scenario.description}" should ${scenario.expectEmptyMessage ? "" : "not "}show empty message`
     );
@@ -1333,7 +1376,7 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
         "Empty state text color should match the active theme accent"
       );
     }
-  }
+  });
 
   await clearSearch(page);
   await waitForCardCount(page, initialCardIds.length);
