@@ -9,6 +9,8 @@ const COPY_BUTTON_SELECTOR = "[data-test='copy-button']";
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
+const CLEAR_BUTTON_SELECTOR = "[data-test='clear-search']";
+const CLEAR_BUTTON_LABEL = "Clear search";
 const BRAND_ACCENT_COLOR = "#1976d2";
 const CARD_FEEDBACK_SELECTOR = "[data-test='card-feedback']";
 const COPY_FEEDBACK_MESSAGE = "Prompt copied \u2713";
@@ -397,6 +399,18 @@ const captureEmptyStateSnapshot = (page) =>
       textColor: styles.getPropertyValue("color")
     };
   }, "[data-test='empty-state']");
+
+const isClearButtonVisible = (page) =>
+  page.evaluate((selector) => {
+    const button = document.querySelector(selector);
+    if (!button) {
+      return false;
+    }
+    const styles = getComputedStyle(button);
+    return (
+      styles.getPropertyValue("display") !== "none" && styles.getPropertyValue("visibility") !== "hidden"
+    );
+  }, CLEAR_BUTTON_SELECTOR);
 export const run = async ({ browser, baseUrl }) => {
   const page = await browser.newPage();
   await page.evaluateOnNewDocument(() => {
@@ -437,8 +451,11 @@ export const run = async ({ browser, baseUrl }) => {
   const initialCardIds = await getVisibleCardIds(page);
   const adjacentCardId = initialCardIds.find((identifier) => identifier !== "p01") ?? "";
   assertEqual(initialCardIds.length > 0, true, "Initial load should render cards");
-  const extraClearButtonCount = await page.evaluate(() => document.querySelectorAll("#clearSearch").length);
-  assertEqual(extraClearButtonCount, 0, "Search input should not render a duplicate clear button");
+  const clearButtonCount = await page.evaluate(
+    (selector) => document.querySelectorAll(selector).length,
+    CLEAR_BUTTON_SELECTOR
+  );
+  assertEqual(clearButtonCount, 1, "Search input should render exactly one clear button control");
   const baseThemeSnapshot = await captureThemeSnapshot(page);
   const addonPaddingLeft = parsePixels(baseThemeSnapshot.addonPaddingLeft);
   const addonPaddingRight = parsePixels(baseThemeSnapshot.addonPaddingRight);
@@ -604,6 +621,67 @@ export const run = async ({ browser, baseUrl }) => {
 
   await clearSearch(page);
   await waitForCardCount(page, initialCardIds.length);
+
+  const clearButtonInitiallyVisible = await isClearButtonVisible(page);
+  assertEqual(
+    clearButtonInitiallyVisible,
+    false,
+    "Clear button should remain hidden when the search input is empty"
+  );
+  await setSearchValue(page, "ai");
+  await page.waitForFunction(
+    (selector) => {
+      const button = document.querySelector(selector);
+      if (!button) {
+        return false;
+      }
+      const styles = getComputedStyle(button);
+      return styles.getPropertyValue("display") !== "none" && styles.getPropertyValue("visibility") !== "hidden";
+    },
+    {},
+    CLEAR_BUTTON_SELECTOR
+  );
+  const clearButtonMetadata = await page.evaluate((selector) => {
+    const button = document.querySelector(selector);
+    return {
+      exists: Boolean(button),
+      ariaLabel: button?.getAttribute("aria-label") ?? "",
+      tabIndex: button?.getAttribute("tabindex") ?? ""
+    };
+  }, CLEAR_BUTTON_SELECTOR);
+  assertEqual(clearButtonMetadata.exists, true, "Clear button should render when search has content");
+  assertEqual(
+    clearButtonMetadata.ariaLabel,
+    CLEAR_BUTTON_LABEL,
+    "Clear button should expose an accessible label describing its action"
+  );
+  assertEqual(
+    clearButtonMetadata.tabIndex === null || clearButtonMetadata.tabIndex === "" || clearButtonMetadata.tabIndex === "0",
+    true,
+    "Clear button should be focusable when displayed"
+  );
+  await page.click(CLEAR_BUTTON_SELECTOR);
+  await page.waitForFunction(
+    (selector) => {
+      const element = document.querySelector(selector);
+      return element instanceof HTMLInputElement && element.value === "";
+    },
+    {},
+    SEARCH_INPUT_SELECTOR
+  );
+  await waitForCardCount(page, initialCardIds.length);
+  const clearButtonAfterClickVisible = await isClearButtonVisible(page);
+  assertEqual(
+    clearButtonAfterClickVisible,
+    false,
+    "Clear button should hide again after clearing the search input"
+  );
+  const activeElementIdAfterClear = await page.evaluate(() => document.activeElement?.id ?? "");
+  assertEqual(
+    activeElementIdAfterClear,
+    "searchInput",
+    "Clearing the search should return focus to the search input"
+  );
 
   const chipScenarios = [
     {

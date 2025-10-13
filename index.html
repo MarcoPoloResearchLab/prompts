@@ -34,7 +34,7 @@
           <small class="fs-6 fw-normal text-white-50" data-role="brand-tagline" x-text="strings.brandTagline"></small>
         </a>
         <form class="d-flex align-items-center flex-grow-1 gap-2" role="search">
-          <div class="input-group">
+          <div class="input-group app-search-group">
             <span class="input-group-text d-inline-flex align-items-center gap-2" data-role="search-addon">
               <span class="material-icons-outlined" aria-hidden="true">search</span>
               <span class="visually-hidden" x-text="strings.searchIconLabel"></span>
@@ -50,6 +50,19 @@
               x-bind:aria-label="strings.searchAriaLabel"
               autocomplete="off"
             />
+            <button
+              type="button"
+              class="app-clear-search"
+              data-test="clear-search"
+              x-on:click="clearSearch()"
+              x-show="searchHasText"
+              x-bind:aria-label="strings.clearSearchLabel"
+              x-cloak
+              style="display: none;"
+            >
+              <span class="material-icons-outlined" aria-hidden="true">close</span>
+              <span class="visually-hidden" x-text="strings.clearSearchLabel"></span>
+            </button>
           </div>
         </form>
       </div>

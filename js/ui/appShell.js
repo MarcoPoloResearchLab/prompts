@@ -35,11 +35,13 @@ export function AppShell(dependencies) {
     filteredPrompts: /** @type {Prompt[]} */ ([]),
     tags: /** @type {string[]} */ ([]),
     filters: /** @type {PromptFilters} */ ({ ...DEFAULT_FILTERS }),
+    searchHasText: false,
     cardFeedbackById: Object.create(null),
     cardFeedbackTimers: Object.create(null),
     init() {
       this.restoreFilters();
-      this.$watch("filters.searchText", () => {
+      this.$watch("filters.searchText", (value) => {
+        this.searchHasText = typeof value === "string" && value.trim().length > 0;
         this.persistFilters();
         this.applyFilters();
       });
@@ -84,6 +86,8 @@ export function AppShell(dependencies) {
     restoreFilters() {
       const storedFilters = loadJson(STORAGE_KEYS.filters, DEFAULT_FILTERS);
       this.filters = { ...DEFAULT_FILTERS, ...storedFilters };
+      const currentSearchValue = this.filters.searchText;
+      this.searchHasText = typeof currentSearchValue === "string" && currentSearchValue.trim().length > 0;
     },
     persistFilters() {
       saveJson(STORAGE_KEYS.filters, this.filters);
@@ -100,6 +104,13 @@ export function AppShell(dependencies) {
       }
       this.$root.setAttribute("data-last-toast", detail.message);
       toastRegion.dispatchEvent(new CustomEvent("toast-show-internal", { detail, bubbles: false }));
+    },
+    clearSearch() {
+      this.filters.searchText = "";
+      this.searchHasText = false;
+      if (this.$refs.searchInput instanceof HTMLInputElement) {
+        this.$refs.searchInput.focus();
+      }
     },
     applyFilters() {
       this.filteredPrompts = promptsRepository.filter(this.prompts, this.filters);

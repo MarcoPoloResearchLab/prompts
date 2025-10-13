@@ -30,6 +30,7 @@ export const STRINGS = Object.freeze({
   copyAriaLabelPrefix: "Copy prompt:",
   shareAriaLabelPrefix: "Copy card link:",
   shareButtonLabel: "Share",
+  clearSearchLabel: "Clear search",
   copyToast: "Prompt copied ✓",
   shareToast: "Link copied ✓",
   toastDismiss: "Dismiss notification",
