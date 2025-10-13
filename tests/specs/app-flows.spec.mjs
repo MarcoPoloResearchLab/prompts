@@ -523,6 +523,20 @@ export const run = async ({ browser, baseUrl }) => {
     true,
     "Initial render should expose placeholder inputs for measurement"
   );
+  const searchInputMetadata = await page.evaluate((selector) => {
+    const searchInput = document.querySelector(selector);
+    if (!(searchInput instanceof HTMLInputElement)) {
+      throw new Error("Search input missing for metadata capture");
+    }
+    return {
+      type: searchInput.type
+    };
+  }, SEARCH_INPUT_SELECTOR);
+  assertEqual(
+    searchInputMetadata.type,
+    "text",
+    "Search input should suppress native cancel affordances by using text type"
+  );
   const maxPlaceholderOverflow = placeholderSnapshots.reduce(
     (maximum, snapshot) => Math.max(maximum, snapshot.overflowBy),
     0
