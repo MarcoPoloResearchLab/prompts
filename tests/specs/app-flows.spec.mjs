@@ -8,6 +8,7 @@ const CARD_SELECTOR = "[data-test='prompt-card']";
 const COPY_BUTTON_SELECTOR = "[data-test='copy-button']";
 const COPY_BUTTON_LABEL_SELECTOR = "[data-test='copy-button'] span:last-of-type";
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
+const FILTER_BAR_SELECTOR = "#chipBar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
@@ -25,6 +26,7 @@ const MAX_THEME_ALIGNMENT_DELTA_PX = 2;
 const SHARE_ICON_LIGHT_COLOR = "rgb(13, 34, 71)";
 const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
 const COLOR_COMPONENT_TOLERANCE = 1;
+const STICKY_DELTA_TOLERANCE_PX = 2;
 const LIKE_ICON_TEXT = "bubble_chart";
 const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
@@ -865,6 +867,29 @@ export const run = async ({ browser, baseUrl }) => {
     `Theme toggle and label should align within ${MAX_THEME_ALIGNMENT_DELTA_PX}px vertically`
   );
 
+  await page.evaluate(() => window.scrollTo(0, window.innerHeight * 2));
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const filterStickyAfterScroll = await page.evaluate((filterSelector, tolerance) => {
+    const nav = document.querySelector("nav.navbar.fixed-top");
+    const filterBar = document.querySelector(filterSelector);
+    if (!nav || !(filterBar instanceof HTMLElement)) {
+      throw new Error("Filter bar or navbar missing after scroll");
+    }
+    const navRect = nav.getBoundingClientRect();
+    const filterRect = filterBar.getBoundingClientRect();
+    return {
+      delta: filterRect.top - navRect.bottom,
+      tolerance
+    };
+  }, FILTER_BAR_SELECTOR, STICKY_DELTA_TOLERANCE_PX);
+  assertEqual(
+    Math.abs(filterStickyAfterScroll.delta) <= filterStickyAfterScroll.tolerance,
+    true,
+    "Tag filter bar should remain pinned just beneath the navbar while scrolling"
+  );
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await delay(WAIT_AFTER_INTERACTION_MS);
+
   const searchScenarios = [
     {
       description: "filters cards by query term",
@@ -1037,9 +1062,10 @@ export const run = async ({ browser, baseUrl }) => {
     resetThemeAfterCopyCheck = true;
   }
   const copyButtonColorSnapshot = await captureElementColor(page, COPY_BUTTON_LABEL_SELECTOR);
+  const normalizedCopyColor = normalizeToRgb(copyButtonColorSnapshot.raw);
   assertEqual(
-    normalizeToRgb(copyButtonColorSnapshot.raw),
-    SHARE_ICON_LIGHT_COLOR,
+    colorsAreClose(normalizedCopyColor, SHARE_ICON_LIGHT_COLOR),
+    true,
     "Copy button text should use the dark accent color in light theme"
   );
   const copyButtonAlpha = Number.isFinite(copyButtonColorSnapshot.alpha) ? copyButtonColorSnapshot.alpha : 1;

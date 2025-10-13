@@ -29,6 +29,10 @@
   --app-bubble-shadow: rgba(25, 118, 210, 0.24);
   --app-bubble-base: rgba(255, 255, 255, 0.08);
   --app-bubble-ambient: rgba(25, 118, 210, 0.12);
+  --app-top-nav-height: 4.75rem;
+  --app-filter-bar-offset: calc(var(--app-top-nav-height) + 0.5rem);
+  --app-filter-bar-background: rgba(255, 255, 255, 0.92);
+  --app-filter-bar-shadow: 0 18px 32px -20px rgba(13, 34, 71, 0.4);
 }
 
 [data-bs-theme="dark"] {
@@ -61,6 +65,8 @@
   --app-bubble-shadow: rgba(0, 12, 36, 0.42);
   --app-bubble-base: rgba(15, 26, 50, 0.35);
   --app-bubble-ambient: rgba(0, 0, 0, 0.45);
+  --app-filter-bar-background: rgba(9, 15, 30, 0.92);
+  --app-filter-bar-shadow: 0 18px 32px -20px rgba(0, 0, 0, 0.55);
 }
 
 [x-cloak] {
@@ -135,6 +141,24 @@ body {
   background: var(--app-tag-bg-hover);
   color: var(--app-tag-color);
   outline: none;
+}
+
+.app-filter-bar {
+  position: sticky;
+  top: var(--app-filter-bar-offset);
+  z-index: 1010;
+  margin: 0 auto 2rem;
+  padding: 0.75rem 1rem;
+  max-width: min(100%, 56rem);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 999px;
+  background: var(--app-filter-bar-background);
+  box-shadow: var(--app-filter-bar-shadow);
+  backdrop-filter: blur(18px);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 [data-test="like-button"] {

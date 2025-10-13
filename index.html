@@ -95,6 +95,8 @@
       <div class="app-main-container container-fluid py-5 px-4 px-xxl-5">
         <header class="mb-4 text-center">
           <p class="lead mb-3" x-text="strings.subtitle"></p>
+        </header>
+        <div class="app-filter-bar">
           <div class="d-flex flex-wrap justify-content-center gap-2" id="chipBar" role="group" x-bind:aria-label="strings.tagFilterLabel">
             <template x-for="tag in tags" :key="tag">
               <button
@@ -108,7 +110,7 @@
               ></button>
             </template>
           </div>
-        </header>
+        </div>
 
         <template x-if="hasError">
           <div class="alert alert-danger" role="alert" x-text="strings.errorLoading"></div>
