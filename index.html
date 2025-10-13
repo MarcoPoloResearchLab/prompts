@@ -118,9 +118,9 @@
         </template>
 
         <template x-if="!isLoading && !hasError">
-          <section class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4" id="grid" x-ref="grid" role="list" aria-label="Prompt cards">
+          <section class="prompt-grid" id="grid" x-ref="grid" role="list" aria-label="Prompt cards">
             <template x-if="filteredPrompts.length === 0">
-              <div class="col-12">
+              <div class="prompt-grid__empty">
                 <div
                   class="app-empty-state text-center"
                   data-test="empty-state"
@@ -131,7 +131,7 @@
             </template>
 
             <template x-for="prompt in filteredPrompts" :key="prompt.id">
-              <div class="col">
+              <div class="prompt-grid__cell">
                 <article
                   class="card h-100 shadow-sm"
                   x-bind:id="prompt.id"

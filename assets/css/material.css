@@ -149,6 +149,7 @@ body {
 
 [data-test="search-input"] {
   background: var(--app-search-input-bg);
+  background-color: var(--app-search-input-bg);
   border: 1px solid var(--app-search-input-border);
   border-left: 0;
   color: inherit;
@@ -195,6 +196,27 @@ body {
   padding: 1.5rem;
   border-radius: 0.75rem;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.prompt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.prompt-grid__cell {
+  display: flex;
+}
+
+.prompt-grid__cell > article {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.prompt-grid__empty {
+  grid-column: 1 / -1;
 }
 
 [data-test="prompt-card"] {

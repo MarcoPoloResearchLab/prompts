@@ -24,7 +24,6 @@ const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
 const COLOR_COMPONENT_TOLERANCE = 1;
 const BRAND_TAGLINE_TEXT = "Built for instant prompt workflows.";
 const FOOTER_SHORTCUT_TEXT = "Press / to search • Enter to copy the focused card";
-const EXPECTED_DESKTOP_COLUMNS = 4;
 const BUBBLE_LAYER_SELECTOR = "[data-role='bubble-layer']";
 const BUBBLE_SELECTOR = "[data-role='bubble']";
 const BUBBLE_BORDER_LIGHT = "rgba(25, 118, 210, 0.35)";
@@ -439,6 +438,22 @@ const capturePlaceholderSnapshots = (page) =>
       })
       .filter((snapshot) => snapshot !== null);
   });
+
+const captureGridRowLengths = (page) =>
+  page.evaluate((cardSelector) => {
+    const cards = Array.from(document.querySelectorAll(cardSelector));
+    const rows = [];
+    for (const card of cards) {
+      const rect = card.getBoundingClientRect();
+      const existingRow = rows.find((row) => Math.abs(row.top - rect.top) < 1);
+      if (existingRow) {
+        existingRow.count += 1;
+      } else {
+        rows.push({ top: rect.top, count: 1 });
+      }
+    }
+    return rows.map((row) => row.count);
+  }, CARD_SELECTOR);
 export const run = async ({ browser, baseUrl }) => {
   const page = await browser.newPage();
   await page.evaluateOnNewDocument(() => {
@@ -499,6 +514,42 @@ export const run = async ({ browser, baseUrl }) => {
     true,
     `Placeholder inputs should remain within card boundaries (max overflow ${maxPlaceholderOverflow.toFixed(2)}px)`
   );
+  const initialGridRows = await captureGridRowLengths(page);
+  assertEqual(initialGridRows.length > 0, true, "Grid should render at least one row of cards");
+  const interiorRows = initialGridRows.slice(0, -1);
+  if (interiorRows.length > 0) {
+    const expectedRowSize = interiorRows[0];
+    assertEqual(
+      interiorRows.every((rowSize) => rowSize === expectedRowSize),
+      true,
+      "All interior grid rows should maintain a consistent column count"
+    );
+  }
+  const mediumViewport = { width: 900, height: 900, deviceScaleFactor: 1 };
+  const wideViewport = { width: 1600, height: 900, deviceScaleFactor: 1 };
+  await page.setViewport(mediumViewport);
+  await waitForCardCount(page, initialCardIds.length);
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const mediumRows = await captureGridRowLengths(page);
+  const mediumMaxColumns = mediumRows.reduce((maximum, count) => Math.max(maximum, count), 0);
+  await page.setViewport(wideViewport);
+  await waitForCardCount(page, initialCardIds.length);
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const wideRows = await captureGridRowLengths(page);
+  const wideMaxColumns = wideRows.reduce((maximum, count) => Math.max(maximum, count), 0);
+  assertEqual(
+    wideMaxColumns >= mediumMaxColumns,
+    true,
+    "Wider viewports should not reduce the number of cards per row"
+  );
+  assertEqual(
+    wideMaxColumns > mediumMaxColumns,
+    true,
+    "Wider viewports should increase the number of cards per row when space allows"
+  );
+  await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
+  await waitForCardCount(page, initialCardIds.length);
+  await delay(WAIT_AFTER_INTERACTION_MS);
   const baseThemeSnapshot = await captureThemeSnapshot(page);
   const addonPaddingLeft = parsePixels(baseThemeSnapshot.addonPaddingLeft);
   const addonPaddingRight = parsePixels(baseThemeSnapshot.addonPaddingRight);
@@ -549,42 +600,16 @@ export const run = async ({ browser, baseUrl }) => {
     false,
     "Keyboard shortcut hint should not render inside the main content"
   );
-  const desktopRowCounts = await page.evaluate((cardSelector) => {
-    const cards = Array.from(document.querySelectorAll(cardSelector));
-    const tops = [];
-    const counts = [];
-    for (const card of cards) {
-      const rectTop = Math.round(card.getBoundingClientRect().top);
-      const existingIndex = tops.indexOf(rectTop);
-      if (existingIndex === -1) {
-        tops.push(rectTop);
-        counts.push(1);
-      } else {
-        counts[existingIndex] += 1;
-      }
-    }
-    return counts;
-  }, CARD_SELECTOR);
-  assertEqual(
-    desktopRowCounts[0],
-    EXPECTED_DESKTOP_COLUMNS,
-    `Desktop grid should render ${EXPECTED_DESKTOP_COLUMNS} cards per row`
-  );
-  const interiorDesktopCounts = desktopRowCounts.slice(0, -1);
-  const interiorDesktopConsistent =
-    interiorDesktopCounts.length === 0 ||
-    interiorDesktopCounts.every((count) => count === EXPECTED_DESKTOP_COLUMNS);
-  assertEqual(
-    interiorDesktopConsistent,
-    true,
-    `Each desktop row before the final partial row should contain ${EXPECTED_DESKTOP_COLUMNS} cards`
-  );
-  const lastRowCount = desktopRowCounts[desktopRowCounts.length - 1] ?? EXPECTED_DESKTOP_COLUMNS;
-  assertEqual(
-    lastRowCount <= EXPECTED_DESKTOP_COLUMNS,
-    true,
-    "The final desktop row should not exceed the expected column count"
-  );
+  const desktopRowCounts = await captureGridRowLengths(page);
+  const desktopInteriorCounts = desktopRowCounts.slice(0, -1);
+  if (desktopInteriorCounts.length > 0) {
+    const expectedDesktopRow = desktopInteriorCounts[0];
+    assertEqual(
+      desktopInteriorCounts.every((count) => count === expectedDesktopRow),
+      true,
+      "Desktop rows before the final partial row should share a consistent column count"
+    );
+  }
   const themeAlignmentDelta = await page.evaluate((maximumDelta) => {
     const toggleInput = document.querySelector("#themeToggle");
     const toggleLabel = document.querySelector("label[for='themeToggle']");
@@ -1022,6 +1047,15 @@ export const run = async ({ browser, baseUrl }) => {
   await page.click(THEME_TOGGLE_SELECTOR);
   await waitForThemeMode(page, initialThemeMode);
   await delay(WAIT_AFTER_INTERACTION_MS);
+  const finalThemeSnapshot = await captureThemeSnapshot(page);
+  const expectedInputBackground = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue("--app-search-input-bg")
+  );
+  assertEqual(
+    finalThemeSnapshot.inputBackgroundColor.trim(),
+    expectedInputBackground.trim(),
+    "Search input background should align with the active theme token"
+  );
 
   await page.goto(`${baseUrl}#p05`, { waitUntil: "networkidle0" });
   await waitForLinkedCard(page, "p05");
