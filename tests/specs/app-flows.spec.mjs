@@ -12,6 +12,10 @@ const SHARE_BUTTON_LABEL_SELECTOR = "[data-test='share-button'] span:last-of-typ
 const FILTER_BAR_SELECTOR = "#chipBar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
+const PRIVACY_LINK_SELECTOR = "[data-role='privacy-link']";
+const PRIVACY_LINK_TEXT = "Privacy • Terms";
+const PRIVACY_HEADING_TEXT = "Privacy Policy — Prompt Bubbles";
+const PRIVACY_ROBOTS_META = "noindex,nofollow";
 const APP_FLOWS_SPEC_IDENTIFIER = "specs/app-flows.spec.mjs";
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
@@ -863,11 +867,15 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     const taglineElement = document.querySelector("[data-role='brand-tagline']");
     const footerShortcutElement = document.querySelector("[data-role='footer-shortcuts']");
     const mainShortcutElement = document.querySelector("main [data-role='footer-shortcuts']");
+    const privacyLinkElement = document.querySelector("[data-role='privacy-link']");
     return {
       brandTaglineText: taglineElement?.textContent?.trim() ?? "",
       footerShortcutText: footerShortcutElement?.textContent?.trim() ?? "",
       footerShortcutIsInFooter: Boolean(footerShortcutElement?.closest("nav.navbar.fixed-bottom")),
-      shortcutInMain: Boolean(mainShortcutElement)
+      shortcutInMain: Boolean(mainShortcutElement),
+      privacyLinkText: privacyLinkElement?.textContent?.trim() ?? "",
+      privacyLinkIsSmall: Boolean(privacyLinkElement?.classList.contains("small")),
+      privacyLinkHref: privacyLinkElement?.getAttribute("href") ?? ""
     };
   });
   assertEqual(
@@ -890,6 +898,53 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     false,
     "Keyboard shortcut hint should not render inside the main content"
   );
+  assertEqual(
+    layoutChecks.privacyLinkText,
+    PRIVACY_LINK_TEXT,
+    "Footer should surface a Privacy • Terms link"
+  );
+  assertEqual(
+    layoutChecks.privacyLinkIsSmall,
+    true,
+    "Privacy link should use the small text treatment"
+  );
+  assertEqual(
+    layoutChecks.privacyLinkHref.endsWith("/privacy/") || layoutChecks.privacyLinkHref.endsWith("/privacy"),
+    true,
+    "Privacy link should route to the privacy policy path"
+  );
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle0" }),
+    page.click(PRIVACY_LINK_SELECTOR)
+  ]);
+  const privacyPageSnapshot = await page.evaluate(() => {
+    const heading = document.querySelector("h1");
+    const robotsMeta = document.querySelector('meta[name="robots"]');
+    const mailLink = document.querySelector('a[href^="mailto:"]');
+    return {
+      heading: heading?.textContent?.trim() ?? "",
+      robots: robotsMeta?.getAttribute("content") ?? "",
+      hasMailLink: Boolean(mailLink)
+    };
+  });
+  assertEqual(
+    privacyPageSnapshot.heading,
+    PRIVACY_HEADING_TEXT,
+    "Privacy policy page should render the expected heading"
+  );
+  assertEqual(
+    privacyPageSnapshot.robots,
+    PRIVACY_ROBOTS_META,
+    "Privacy policy page should prevent search indexing"
+  );
+  assertEqual(
+    privacyPageSnapshot.hasMailLink,
+    true,
+    "Privacy policy page should expose a contact email link"
+  );
+  await page.goBack({ waitUntil: "networkidle0" });
+  await waitForCardCount(page, initialCardIds.length);
+  await delay(WAIT_AFTER_INTERACTION_MS);
   const desktopRowCounts = await captureGridRowLengths(page);
   const desktopInteriorCounts = desktopRowCounts.slice(0, -1);
   if (desktopInteriorCounts.length > 0) {

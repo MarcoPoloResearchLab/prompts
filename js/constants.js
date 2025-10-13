@@ -45,7 +45,9 @@ export const STRINGS = Object.freeze({
   themeToggleLabel: "Dark mode",
   footerBranding: "Prompt Bubbles",
   searchIconLabel: "Search icon",
-  errorLoading: "Unable to load prompt catalog. Please refresh the page."
+  errorLoading: "Unable to load prompt catalog. Please refresh the page.",
+  privacyLinkLabel: "Privacy • Terms",
+  privacyLinkAriaLabel: "View privacy policy and terms"
 });
 
 export const TIMINGS = Object.freeze({

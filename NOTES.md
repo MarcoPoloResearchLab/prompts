@@ -150,7 +150,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 - [X] [PB-03] Clicking on copy or share doesnt produce a message withing the card to indicate that the card was copied or shared
 - [X] [PB-04] Theme doesnt fully switch the colors -- the background, the headers, the search the bagdes stay the same 
 - [X] [PB-05] There are multiple X signs in the search prompt when the prompt is entered at the end of the prompt -- as a button and as an inline x. only leave the inline x
-- [ ] [PB-26] add a small “Privacy • Terms” link. and I mean small. it must serve a page under /privacy
+- [X] [PB-26] add a small “Privacy • Terms” link. and I mean small. it must serve a page under /privacy
     ```html
     <!doctype html>
     <html lang="en">

@@ -12,6 +12,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 - Copy/share controls emit toast notifications handled by a dedicated Alpine factory; toasts surface in the top-right corner instead of per-card banners.
 - Card action rows now include a bubble like toggle; the button tracks a local count, reflects pressed state, and sits between copy and share.
 - Copy and share buttons in light theme share the dark accent token so both labels remain legible against the outline treatment.
+- The footer now includes a small Privacy • Terms link that routes to a standalone policy page under `/privacy/`.
 - The tag chip bar now lives in a sticky capsule beneath the navbar so filters remain accessible while scrolling.
 - Hash deep-links highlight cards using `data-linked-card="true"` and trigger smooth scroll after render.
 

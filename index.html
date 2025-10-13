@@ -248,6 +248,15 @@
     <nav class="navbar bg-body-tertiary border-top fixed-bottom shadow-sm">
       <div class="container-fluid align-items-center gap-3">
         <span class="small text-muted" x-text="strings.footerBranding"></span>
+        <a
+          class="small text-muted text-decoration-none ms-3"
+          data-role="privacy-link"
+          href="./privacy/"
+          x-bind:aria-label="strings.privacyLinkAriaLabel"
+          x-bind:title="strings.privacyLinkAriaLabel"
+        >
+          <span x-text="strings.privacyLinkLabel"></span>
+        </a>
         <span class="small text-muted ms-auto" data-role="footer-shortcuts" x-text="strings.footerHint"></span>
         <div class="form-check form-switch mb-0 d-flex align-items-center gap-2 flex-shrink-0" x-data="ThemeToggle()" x-init="init()">
           <input
