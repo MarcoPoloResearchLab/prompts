@@ -390,7 +390,7 @@ const captureElementColor = (page, selector) =>
     };
   }, selector);
 
-const triggerCardBubble = async (page, cardId) => {
+const clickCardSurface = async (page, cardId) => {
   const pointerPosition = await page.evaluate(
     (selector, id) => {
       const card = document.querySelector(`${selector}#${CSS.escape(id)}`);
@@ -400,14 +400,42 @@ const triggerCardBubble = async (page, cardId) => {
       const rect = card.getBoundingClientRect();
       return {
         x: rect.left + rect.width / 2,
-        y: rect.bottom - 6
+        y: rect.top + rect.height / 2
       };
     },
     CARD_SELECTOR,
     cardId
   );
   if (!pointerPosition) {
-    throw new Error(`Card "${cardId}" not found for bubble trigger`);
+    throw new Error(`Card "${cardId}" not found for click interaction`);
+  }
+  await page.mouse.click(pointerPosition.x, pointerPosition.y);
+  await delay(WAIT_AFTER_INTERACTION_MS);
+};
+
+const triggerLikeBubble = async (page, cardId) => {
+  const pointerPosition = await page.evaluate(
+    (cardSelector, buttonSelector, identifier) => {
+      const card = document.querySelector(`${cardSelector}#${CSS.escape(identifier)}`);
+      if (!card) {
+        return null;
+      }
+      const button = card.querySelector(buttonSelector);
+      if (!(button instanceof HTMLElement)) {
+        return null;
+      }
+      const rect = button.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      };
+    },
+    CARD_SELECTOR,
+    LIKE_BUTTON_SELECTOR,
+    cardId
+  );
+  if (!pointerPosition) {
+    throw new Error(`Like button missing on card "${cardId}" for bubble trigger`);
   }
   await page.mouse.click(pointerPosition.x, pointerPosition.y);
   await page.waitForFunction(
@@ -1162,6 +1190,7 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     true,
     "Like button label should update to reflect the liked count"
   );
+  await waitForBubbleRemoval(page);
   await reloadApp(page, baseUrl);
   await waitForCardCount(page, initialCardIds.length);
   const persistedLikeSnapshot = await getCardLikeSnapshot(page, "p01");
@@ -1177,6 +1206,7 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     true,
     "Like button label should reflect the cleared count"
   );
+  await waitForBubbleRemoval(page);
   await reloadApp(page, baseUrl);
   await waitForCardCount(page, initialCardIds.length);
   const resetLikeSnapshot = await getCardLikeSnapshot(page, "p01");
@@ -1192,7 +1222,27 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     true,
     "Share icon should match the active theme color"
   );
-  await triggerCardBubble(page, "p01");
+  await waitForBubbleRemoval(page);
+  await page.evaluate(() => {
+    window.__lastBubbleState = null;
+  });
+  await clickCardSurface(page, "p01");
+  const bubbleAfterCardClick = await page.evaluate(
+    (bubbleSelector) => document.querySelector(bubbleSelector) !== null,
+    BUBBLE_SELECTOR
+  );
+  assertEqual(
+    bubbleAfterCardClick,
+    false,
+    "Card click should no longer spawn bubble animation"
+  );
+  const cardClickBubbleState = await page.evaluate(() => window.__lastBubbleState ?? null);
+  assertEqual(
+    cardClickBubbleState === null,
+    true,
+    "Card click should not update bubble metadata"
+  );
+  await triggerLikeBubble(page, "p01");
   const initialBubbleSnapshot = await snapshotBubble(page, "p01");
   assertEqual(
     initialBubbleSnapshot !== null,
@@ -1322,7 +1372,7 @@ export const run = async ({ browser, baseUrl, announceProgress }) => {
     true,
     "Share icon should switch to the alternate theme accent color"
   );
-  await triggerCardBubble(page, "p01");
+  await triggerLikeBubble(page, "p01");
   const toggledBubbleSnapshot = await snapshotBubble(page, "p01");
   assertEqual(
     toggledBubbleSnapshot !== null,

@@ -12,7 +12,7 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Readable actions:** the copy control now uses the dark accent color in light theme for higher contrast and clarity.
 - **Sticky filters:** the tag chip bar stays affixed beneath the navbar so filters remain within reach while browsing.
 - **Notifications:** copy and share actions raise an event-scoped toast; no inline handlers or global mutations.
-- **Atmospheric feedback:** clicking any card emits a theme-aware bubble animation that fades after the interaction.
+- **Atmospheric feedback:** pressing the bubble like toggle emits a theme-aware bubble animation that fades after the interaction.
 
 ## Front-End Architecture
 
@@ -22,7 +22,7 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Events:**  
   - `toast-show` — emitted after copy/share to display the global toast.  
   - `theme-toggle` — emitted when the footer switch changes modes.  
-  - `card-bubble` — dispatched from cards toward the bubble layer with `{ x, y, size, riseDistance, cardTop, theme }` so the bubble originates at the click point and rises to the card's top edge.  
+- `card-bubble` — dispatched by the like toggle toward the bubble layer with `{ x, y, size, riseDistance, cardTop, theme }` so the bubble originates at the interaction point and rises to the card's top edge.  
   Both events bubble within the root container so components remain DOM-scoped.
 
 ## Local Development

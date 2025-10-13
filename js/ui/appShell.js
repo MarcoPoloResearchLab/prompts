@@ -227,6 +227,19 @@ export function AppShell(dependencies) {
       return `${STRINGS.likeButtonAriaPrefix} ${prompt.title}. ${STRINGS.likeButtonCountPrefix} ${likeCount}. ${stateHint}`;
     },
     /**
+     * @param {Event} event
+     * @param {Prompt} prompt
+     * @returns {void}
+     */
+    handleLikeButtonClick(event, prompt) {
+      if (!prompt || typeof prompt.id !== "string" || prompt.id.trim().length === 0) {
+        logger.error("Like button pressed without prompt context");
+        return;
+      }
+      this.toggleLike(prompt.id);
+      this.emitBubbleFromEvent(event);
+    },
+    /**
      * @param {string} cardId
      * @returns {void}
      */
@@ -254,6 +267,29 @@ export function AppShell(dependencies) {
       }
       this.likeCountsById = sanitizeLikeCounts(nextCounts);
       this.persistLikes();
+    },
+    /**
+     * @param {Event} [event]
+     * @returns {void}
+     */
+    emitBubbleFromEvent(event) {
+      const targetElement = event?.currentTarget ?? event?.target ?? null;
+      const cardElement = this.findCardElement(targetElement);
+      if (!cardElement) {
+        logger.error("Bubble requested without card context");
+        return;
+      }
+      const bubbleDetail = this.createBubbleDetail(cardElement, event);
+      if (!bubbleDetail) {
+        logger.error("Bubble detail missing coordinates");
+        return;
+      }
+      const bubbleLayerHost = this.$root.querySelector("[data-role='bubble-layer']");
+      if (!(bubbleLayerHost instanceof HTMLElement)) {
+        logger.error("Bubble layer host missing");
+        return;
+      }
+      bubbleLayerHost.dispatchEvent(new CustomEvent(EVENTS.cardBubble, { detail: bubbleDetail }));
     },
     /**
      * @param {HTMLElement} textContainer
@@ -319,28 +355,6 @@ export function AppShell(dependencies) {
       this.setCardFeedback(prompt.id, STRINGS.shareToast, "share");
       this.$dispatch(EVENTS.toastShow, { message: STRINGS.shareToast });
       requestAnimationFrame(() => this.highlightLinkedCard());
-    },
-    /**
-     * @param {Event} event
-     */
-    handleCardClick(event) {
-      const target = event?.currentTarget ?? event?.target ?? null;
-      const cardElement = this.findCardElement(target);
-      if (!cardElement) {
-        logger.error("Bubble requested without card context");
-        return;
-      }
-      const bubbleDetail = this.createBubbleDetail(cardElement, event);
-      if (!bubbleDetail) {
-        logger.error("Bubble detail missing coordinates");
-        return;
-      }
-      const bubbleLayerHost = this.$root.querySelector("[data-role='bubble-layer']");
-      if (!(bubbleLayerHost instanceof HTMLElement)) {
-        logger.error("Bubble layer host missing");
-        return;
-      }
-      bubbleLayerHost.dispatchEvent(new CustomEvent(EVENTS.cardBubble, { detail: bubbleDetail }));
     },
     /**
      * @param {Event} event
@@ -414,8 +428,18 @@ export function AppShell(dependencies) {
       const hasPointerEvent = typeof PointerEvent !== "undefined";
       const isPointerEvent = hasPointerEvent && event instanceof PointerEvent;
       const isMouseEvent = event instanceof MouseEvent;
-      const clientX = isPointerEvent || isMouseEvent ? event.clientX : defaultX;
-      const clientY = isPointerEvent || isMouseEvent ? event.clientY : defaultY;
+      const hasPointerCoordinates = isPointerEvent || isMouseEvent;
+      let clientX = hasPointerCoordinates ? event.clientX : defaultX;
+      let clientY = hasPointerCoordinates ? event.clientY : defaultY;
+      const syntheticPointer =
+        hasPointerCoordinates &&
+        (!Number.isFinite(clientX) ||
+          !Number.isFinite(clientY) ||
+          (event instanceof MouseEvent && event.detail === 0));
+      if (syntheticPointer || (clientX === 0 && clientY === 0)) {
+        clientX = defaultX;
+        clientY = defaultY;
+      }
       const bubbleSize = rect.width * 0.25;
       const bubbleRadius = bubbleSize / 2;
       const targetCenterY = rect.top + bubbleRadius;

@@ -8,7 +8,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 
 - Fixed top navigation now combines brand, tagline, and global search; the fixed footer hosts the keyboard shortcut hint alongside the dark-mode switch.
 - Prompt cards render via Alpine in a responsive Bootstrap grid (`row g-4`), guaranteeing consistent heights and Material accents.
-- Card clicks now emit a floating bubble animation that mirrors the active theme for richer feedback.
+- The bubble like toggle now emits a floating animation that mirrors the active theme for richer feedback.
 - Copy/share controls emit toast notifications handled by a dedicated Alpine factory; toasts surface in the top-right corner instead of per-card banners.
 - Card action rows now include a bubble like toggle; the button tracks a local count, reflects pressed state, and sits between copy and share.
 - Copy buttons in light theme swap to the dark accent token so their labels remain legible against the outline treatment.
@@ -19,7 +19,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 
 - `toast-show` (detail: `{ message: string }`) — dispatched by copy/share handlers; the toast region listens within the app shell.
 - `theme-toggle` (detail: `{ mode: "light" | "dark" }`) — dispatched by the footer switch after applying the theme to `document.documentElement`.
-- `card-bubble` (detail: `{ x: number; y: number; size: number; riseDistance: number; cardTop: number; theme: "light" | "dark" }`) — dispatched by cards to the bubble layer so bubbles travel from the click origin to the card's top edge.
+- `card-bubble` (detail: `{ x: number; y: number; size: number; riseDistance: number; cardTop: number; theme: "light" | "dark" }`) — dispatched by the like toggle to the bubble layer so bubbles travel from the interaction point to the card's top edge.
 
 ## Developer Notes
 

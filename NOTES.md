@@ -125,6 +125,9 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
         }
     )
     ```
+- [ ] [PB-28] The second sticky row with the filters/banges must be inconspcious -- it is currently in some oval elemnts, that should go away. The row with filters must fit in a single row, so there will be no two rows of badges.
+- [X] [PB-29] Change the bubbles to only float when a bubble icon is pressed
+- [ ] [PB-30] Review the theme as allpied to all elemnts on the page. The share button still poorly styled for both dark and light themes: it gets light highlighting in the darm mode and is poorly visible in light mode. Use the same styling as the copy button
 
 ### BugFixes
 
@@ -147,3 +150,29 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 - [X] [PB-03] Clicking on copy or share doesnt produce a message withing the card to indicate that the card was copied or shared
 - [X] [PB-04] Theme doesnt fully switch the colors -- the background, the headers, the search the bagdes stay the same 
 - [X] [PB-05] There are multiple X signs in the search prompt when the prompt is entered at the end of the prompt -- as a button and as an inline x. only leave the inline x
+- [ ] [PB-26] add a small “Privacy • Terms” link. and I mean small. it must serve a page under /privacy
+    ```html
+    <!doctype html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>Privacy Policy — RSVP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <style>
+        body{font:16px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:40px;max-width:800px}
+        h1{font-size:1.6rem;margin-bottom:.2rem}
+    </style>
+    </head>
+    <body>
+    <h1>Privacy Policy — Prompts Bubbles</h1>
+    <p><strong>Effective Date:</strong> 2025-10-11</p>
+    <p>RSVP uses Google Identity Services to authenticate users. We receive your Google profile
+        information (name, email, profile image) only to sign you in. We do not sell or share your data,
+        and we only store your notes so the service functions.</p>
+    <p>To request deletion of your data, contact
+        <a href="mailto:support@mprlab.com">support@mprlab.com</a>.</p>
+    </body>
+    </html>
+    ```
+- [ ] [PB-27] add privacy to the sitemap
