@@ -16,6 +16,9 @@ const SHARE_FEEDBACK_MESSAGE = "Link copied \u2713";
 const THEME_TOGGLE_SELECTOR = "#themeToggle";
 const MIN_SEARCH_ADDON_PADDING_PX = 16;
 const MAX_THEME_ALIGNMENT_DELTA_PX = 2;
+const SHARE_ICON_LIGHT_COLOR = "rgb(13, 34, 71)";
+const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
+const COLOR_COMPONENT_TOLERANCE = 1;
 
 const delay = (milliseconds) =>
   new Promise((resolve) => {
@@ -101,6 +104,7 @@ const captureThemeSnapshot = (page) =>
     const searchAddon = document.querySelector("[data-role='search-addon']");
     const searchInput = document.querySelector("[data-test='search-input']");
     const tagBadge = document.querySelector("[data-role='card-tag']");
+    const shareIcon = document.querySelector("[data-role='share-icon']");
     return {
       bodyBackgroundImage: bodyStyles.getPropertyValue("background-image"),
       topNavBackgroundColor: topNav ? getComputedStyle(topNav).getPropertyValue("background-color") : "",
@@ -110,10 +114,22 @@ const captureThemeSnapshot = (page) =>
       addonPaddingRight: searchAddon ? getComputedStyle(searchAddon).getPropertyValue("padding-right") : "",
       inputBackgroundColor: searchInput ? getComputedStyle(searchInput).getPropertyValue("background-color") : "",
       tagBackgroundColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("background-color") : "",
-      tagColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("color") : ""
+      tagColor: tagBadge ? getComputedStyle(tagBadge).getPropertyValue("color") : "",
+      shareIconColor: shareIcon ? getComputedStyle(shareIcon).getPropertyValue("color") : ""
     };
   });
 const parsePixels = (value) => Number.parseFloat(String(value).replace("px", "")) || 0;
+const parseRgbComponents = (value) => (String(value).match(/\d+/g) ?? []).map(Number);
+const colorsAreClose = (actual, expected) => {
+  const actualComponents = parseRgbComponents(actual);
+  const expectedComponents = parseRgbComponents(expected);
+  if (actualComponents.length !== 3 || expectedComponents.length !== 3) {
+    return false;
+  }
+  return actualComponents.every((component, index) =>
+    Math.abs(component - expectedComponents[index]) <= COLOR_COMPONENT_TOLERANCE
+  );
+};
 
 const stubClipboard = async (page) => {
   await page.evaluateOnNewDocument(() => {
@@ -425,6 +441,13 @@ export const run = async ({ browser, baseUrl }) => {
 
   const initialThemeMode = await page.evaluate(() => document.documentElement.getAttribute("data-bs-theme") ?? "light");
   const initialThemeSnapshot = await captureThemeSnapshot(page);
+  const expectedInitialShareIconColor =
+    initialThemeMode === "dark" ? SHARE_ICON_DARK_COLOR : SHARE_ICON_LIGHT_COLOR;
+  assertEqual(
+    colorsAreClose(initialThemeSnapshot.shareIconColor.trim(), expectedInitialShareIconColor),
+    true,
+    "Share icon should match the active theme color"
+  );
   await page.click(THEME_TOGGLE_SELECTOR);
   const toggledThemeMode = initialThemeMode === "dark" ? "light" : "dark";
   await waitForThemeMode(page, toggledThemeMode);
@@ -464,6 +487,13 @@ export const run = async ({ browser, baseUrl }) => {
     toggledThemeSnapshot.addonColor === initialThemeSnapshot.addonColor,
     false,
     "Theme switch should update search addon icon color"
+  );
+  const expectedToggledShareIconColor =
+    toggledThemeMode === "dark" ? SHARE_ICON_DARK_COLOR : SHARE_ICON_LIGHT_COLOR;
+  assertEqual(
+    colorsAreClose(toggledThemeSnapshot.shareIconColor.trim(), expectedToggledShareIconColor),
+    true,
+    "Share icon should switch to the alternate theme accent color"
   );
   await page.click(THEME_TOGGLE_SELECTOR);
   await waitForThemeMode(page, initialThemeMode);

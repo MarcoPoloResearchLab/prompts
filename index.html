@@ -142,7 +142,7 @@
                           x-bind:aria-label="`${strings.copyAriaLabelPrefix} ${prompt.title}`"
                           x-on:click="copyCard($event)"
                         >
-                          <span class="material-icons-outlined" aria-hidden="true" x-text="icon('copy')"></span>
+                        <span class="material-icons-outlined" aria-hidden="true" x-text="icon('copy')"></span>
                           <span x-text="strings.copyButtonLabel"></span>
                         </button>
                         <button
@@ -152,7 +152,7 @@
                           x-bind:aria-label="`${strings.shareAriaLabelPrefix} ${prompt.title}`"
                           x-on:click="shareCard($event, prompt)"
                         >
-                          <span class="material-icons-outlined" aria-hidden="true" x-text="icon('share')"></span>
+                          <span class="material-icons-outlined" aria-hidden="true" data-role="share-icon" x-text="icon('share')"></span>
                           <span x-text="strings.shareButtonLabel"></span>
                         </button>
                       </div>

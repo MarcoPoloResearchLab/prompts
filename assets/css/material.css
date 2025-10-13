@@ -16,6 +16,7 @@
   --app-tag-color: #0d2247;
   --app-placeholder-bg: rgba(25, 118, 210, 0.08);
   --app-placeholder-border: rgba(25, 118, 210, 0.55);
+  --app-share-icon-color: #0d2247;
 }
 
 [data-bs-theme="dark"] {
@@ -35,6 +36,7 @@
   --app-tag-color: #d9e6ff;
   --app-placeholder-bg: rgba(64, 123, 255, 0.26);
   --app-placeholder-border: rgba(64, 123, 255, 0.56);
+  --app-share-icon-color: #d9e6ff;
 }
 
 [x-cloak] {
@@ -178,4 +180,8 @@ body {
     transition-duration: 0.001ms !important;
     animation-duration: 0.001ms !important;
   }
+}
+[data-role="share-icon"] {
+  color: var(--app-share-icon-color);
+  transition: color 0.2s ease;
 }
