@@ -6,7 +6,6 @@ import { createLogger } from "../utils/logging.js";
 const MAX_ACTIVE_BUBBLES = 6;
 const DEFAULT_THEME = "light";
 const MINIMUM_BUBBLE_SIZE = 24;
-const MINIMUM_MIDPOINT_DISTANCE = 18;
 
 /**
  * @typedef {{
@@ -84,15 +83,13 @@ export function BubbleLayer(dependencies = {}) {
       const halfSize = bubble.size / 2;
       const left = bubble.x - halfSize;
       const top = bubble.y - halfSize;
-      const midpoint = Math.max(MINIMUM_MIDPOINT_DISTANCE, bubble.riseDistance * 0.55);
       return [
         `left:${left}px`,
         `top:${top}px`,
         `width:${bubble.size}px`,
         `height:${bubble.size}px`,
         `animation-duration:${TIMINGS.bubbleLifetimeMs}ms`,
-        `--app-bubble-rise-distance:${bubble.riseDistance}px`,
-        `--app-bubble-rise-midpoint:${midpoint}px`
+        `--app-bubble-rise-distance:${bubble.riseDistance}px`
       ].join(";");
     }
   };

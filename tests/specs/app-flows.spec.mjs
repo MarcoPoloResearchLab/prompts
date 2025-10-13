@@ -34,6 +34,7 @@ const BUBBLE_LIFETIME_MS = 1700;
 const BUBBLE_REMOVAL_GRACE_MS = 220;
 const BUBBLE_RISE_DISTANCE_TOLERANCE_PX = 4;
 const BUBBLE_FINAL_ALIGNMENT_TOLERANCE_PX = 1.5;
+const BUBBLE_LINEAR_EXPECTED_KEYFRAMES = 2;
 const EMPTY_STATE_LIGHT_BACKGROUND = "rgb(232, 240, 255)";
 const EMPTY_STATE_LIGHT_TEXT = "rgb(13, 34, 71)";
 const EMPTY_STATE_DARK_BACKGROUND = "rgb(26, 44, 92)";
@@ -365,6 +366,33 @@ const snapshotBubble = (page, cardId) =>
     CARD_SELECTOR,
     cardId
   );
+
+const captureBubbleAnimationMetadata = (page) =>
+  page.evaluate((bubbleSelector) => {
+    const bubble = document.querySelector(bubbleSelector);
+    if (!bubble) {
+      return null;
+    }
+    const animations = bubble.getAnimations?.();
+    if (!Array.isArray(animations) || animations.length === 0) {
+      return null;
+    }
+    const animation = animations[0];
+    const effect = animation?.effect;
+    const keyframes = typeof effect?.getKeyframes === "function" ? effect.getKeyframes() : [];
+    const timing = typeof effect?.getTiming === "function" ? effect.getTiming() : {};
+    const computed = typeof effect?.getComputedTiming === "function" ? effect.getComputedTiming() : {};
+    const easingValue =
+      typeof timing.easing === "string" && timing.easing.trim().length > 0
+        ? timing.easing
+        : typeof computed.easing === "string" && computed.easing.trim().length > 0
+          ? computed.easing
+          : "linear";
+    return {
+      keyframeCount: keyframes.length,
+      easing: easingValue
+    };
+  }, BUBBLE_SELECTOR);
 
 const waitForBubbleRemoval = (page) =>
   page.waitForFunction(
@@ -940,6 +968,26 @@ export const run = async ({ browser, baseUrl }) => {
     initialThemeMode,
     "Bubble metadata should record the active theme"
   );
+  const initialAnimationMetadata = await captureBubbleAnimationMetadata(page);
+  assertEqual(
+    initialAnimationMetadata !== null,
+    true,
+    "Bubble animation should expose metadata for verification"
+  );
+  if (!initialAnimationMetadata) {
+    throw new Error("Initial bubble animation metadata missing");
+  }
+  assertEqual(
+    initialAnimationMetadata.keyframeCount,
+    BUBBLE_LINEAR_EXPECTED_KEYFRAMES,
+    "Bubble animation should define only starting and ending keyframes to ensure linear travel"
+  );
+  const initialEasing = (initialAnimationMetadata.easing ?? "").trim().toLowerCase();
+  assertEqual(
+    initialEasing === "linear",
+    true,
+    "Bubble animation should apply linear easing to avoid mid-flight slowdowns"
+  );
   const initialBubbleRatio =
     initialBubbleSnapshot.cardWidth === 0
       ? 0
@@ -1038,6 +1086,26 @@ export const run = async ({ browser, baseUrl }) => {
   if (!toggledBubbleSnapshot) {
     throw new Error("Toggled bubble snapshot missing");
   }
+  const toggledAnimationMetadata = await captureBubbleAnimationMetadata(page);
+  assertEqual(
+    toggledAnimationMetadata !== null,
+    true,
+    "Bubble animation should expose metadata after theme changes"
+  );
+  if (!toggledAnimationMetadata) {
+    throw new Error("Toggled bubble animation metadata missing");
+  }
+  assertEqual(
+    toggledAnimationMetadata.keyframeCount,
+    BUBBLE_LINEAR_EXPECTED_KEYFRAMES,
+    "Bubble animation should continue using only starting and ending keyframes after theme changes"
+  );
+  const toggledEasing = (toggledAnimationMetadata.easing ?? "").trim().toLowerCase();
+  assertEqual(
+    toggledEasing === "linear",
+    true,
+    "Bubble animation should remain linear after theme changes"
+  );
   const expectedToggledBubbleBorder =
     toggledThemeMode === "dark" ? BUBBLE_BORDER_DARK : BUBBLE_BORDER_LIGHT;
   assertEqual(

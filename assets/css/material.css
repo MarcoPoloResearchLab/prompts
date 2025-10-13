@@ -321,7 +321,7 @@ body {
   opacity: 0;
   transform: translate3d(0, 0, 0) scale(0.85);
   animation-name: app-bubble-rise;
-  animation-timing-function: ease-out;
+  animation-timing-function: linear;
   animation-fill-mode: forwards;
 }
 
@@ -334,13 +334,9 @@ body {
     opacity: 0.75;
     transform: translate3d(0, 0, 0) scale(0.85);
   }
-  55% {
-    opacity: 0.55;
-    transform: translate3d(0, calc(-1 * var(--app-bubble-rise-midpoint, 28px)), 0) scale(1);
-  }
   100% {
     opacity: 0;
-    transform: translate3d(0, calc(-1 * var(--app-bubble-rise-distance, 60px)), 0) scale(1.1);
+    transform: translate3d(0, calc(-1 * var(--app-bubble-rise-distance, 60px)), 0) scale(1.12);
   }
 }
 
