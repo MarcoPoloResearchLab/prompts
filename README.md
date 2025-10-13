@@ -1,29 +1,52 @@
 # Prompt Bubbles
 
-Prompt Bubbles is lightning-fast gallery of copy-ready AI prompts for ChatGPT, Claude, Gemini etc. The interface is contained in a single HTML file and allows filtering and copying of prompts directly in the browser.
+Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Materia theme and Alpine.js. The site runs entirely on static assets, provides instant search, and keeps the experience consistent across devices.
 
-## What it is
-A single-page site to search, filter, tweak placeholders inline, and copy prompts in one hit. Cards are deep-linkable; your last search and tag persist locally.
+## Highlights
 
-## Why it’s useful
+- **Material layout:** fixed top navigation hosts the brand, tagline, and global search; prompt cards flow in a responsive Bootstrap grid with consistent heights; the fixed footer surfaces the keyboard shortcut hint alongside the dark mode switch.
+- **Inline editing:** placeholders render as inline inputs so prompts can be tailored before copying.
+- **Persisted context:** the active tag and search query survive reloads through local storage.
+- **Shareable cards:** each card copies a deep link and the layout highlights the linked card when visiting `#card-id`.
+- **Notifications:** copy and share actions raise an event-scoped toast; no inline handlers or global mutations.
+- **Atmospheric feedback:** clicking any card emits a theme-aware bubble animation that fades after the interaction.
 
-* **Fast:** “/” to search, **Enter** to copy.
-* **Accurate:** tag chips + full-text across titles, text, and tags.
-* **Shareable:** one-click card links.
+## Front-End Architecture
 
-## What’s next
+- **Modules:** ES modules live under `js/` (`constants.js`, `utils/`, `core/`, `ui/`, `app.js`). Alpine factories own component state; pure helpers live in `core/` and `utils/`.
+- **Styling:** Bootstrap 5.3 (Materia) is sourced from CDN. Custom overrides reside in `assets/css/material.css` and respect `prefers-reduced-motion`.
+- **Data:** Prompt catalog loads from `data/prompts.json` and is validated on boot before rendering.
+- **Events:**  
+  - `toast-show` — emitted after copy/share to display the global toast.  
+  - `theme-toggle` — emitted when the footer switch changes modes.  
+  - `card-bubble` — dispatched from cards toward the bubble layer with `{ x, y, size, riseDistance, cardTop, theme }` so the bubble originates at the click point and rises to the card's top edge.  
+  Both events bubble within the root container so components remain DOM-scoped.
 
-* **Accounts:** sign in to save favorites.
-* **Community:** upvote/downvote prompts; quality rises to the top.
-* **Submissions:** add your own prompts with tags and placeholders.
-* **Curation tools:** moderation queue, versioning, and edit history.
-* **API:** read-only endpoint for embedding top prompts in apps.
+## Local Development
 
-## Who it’s for
-Builders, writers, analysts, and teams who want a clean, fast prompt library that just works—soon with community brains on top.
+```bash
+npm install
+npm test
+```
 
+`npm test` starts a static server, launches Puppeteer, and exercises the end-to-end flows (search, filtering, copy/share, hash highlighting, and persisted filters).
+
+## Project Layout
+
+```
+assets/
+  css/material.css   # custom theme refinements
+data/prompts.json    # prompt catalog
+js/
+  constants.js
+  types.d.js
+  utils/
+  core/
+  ui/
+  app.js             # Alpine composition root
+tests/               # Puppeteer integration specs
+```
 
 ## License
 
-This project is proprietary software. All rights reserved by Marco Polo Research Lab.  
-See the [LICENSE](./LICENSE) file for details.
+This project is proprietary software. All rights reserved by Marco Polo Research Lab. See [LICENSE](./LICENSE).

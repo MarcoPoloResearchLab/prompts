@@ -79,14 +79,35 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 
 ### Improvements
 
-- [ ] [PB-02] Restyle the site using material design, and follow the implementation gudiance.
+- [X] [PB-02] Restyle the site using material design, and follow the implementation gudiance.
     - Replace custom layout with Bootstrap and Material Design theme
     - Add fixed top and bottom navbars with search and dark mode switch
     - Render prompt cards in a responsive Bootstrap grid with fixed heights
-
+- [X] [PB-06]  Develop an appropriate favicon usng SVG. Fix the error:
+    `Static server: ENOENT: no such file or directory, open '/Users/tyemirov/Development/MarcoPoloResearchLab/prompts/favicon.ico'`
+- [X] [PB-07] Increase the horizontal size of the space for the magnifying glass in the search prompt. It is too tight now, so that the horizontal borders of the button touch the icon
+- [X] [PB-08] Horizontally align the theme toggle and the label, so that "Dark/Light mode" is visually aligned with the toggle
+- [X] [PB-09] The Share icon is almost invisible in the light mode
+- [X] [PB-10] make clicking on any card emit a light bubble (respect the chosen theme). That may require an external JS library. The bubble shall resemble a soap bubble very much and float on top and disappear. The bubble is kinda transparent, maybe translusent, and is the size of a quater of the card's width
+- [X] [PB-11] Move the placeholder and the text for the search to the right so that there is a little bit of space between the button and the placeholder
+- [X] [PB-13] Move "Press / to search • Enter to copy the focused card" from the bottom of the page to the footer aligneg to the right in the footer AND move "Built for instant prompt workflows." under the title "Prompt Bubbles" and make "Built for instant prompt workflows" small font (like 6)
+- [X] [PB-14] Make bubble float up the top edge of the card in which the click happened.
 
 ### BugFixes
+
+- [X] [PB-12] Some rows have 3 cards for no obvious reason while other rows have 4 cards. In other scenarios some rows have 4 cards and other 5 cards. All rows should have the same number of cards at a given width of a viewport
+- [X] [PB-15] make "No prompts match your search" message the selected theme. Ensure we say "No prompts match your search" and we dont say 
+"No prompts match your search/filter."
+- [X] [PB-16] The X that should be dynamically available at the end of the search prompt in response to input is no longer appearing. Fix the regression.
+- [X] [PB-17] Ensure that the placheolder dont grow over the borders of the cards. e.g. "Person (e.g. a professional in your field)" goes outside of the card borders
+- [X] [PB-18] The number of columns shall be dynamic and change in response to the width of the viewport but it shall be the same for a given width of a viewport, and it was inconsistent. Now the max is locked in on 4 and it's incorrect we shall nto prescribe the max -- as many as will fit in the viepoirt given that each row has the same number of cards unless it's the last row. So, there can be 25 cards in a row if the width allows for it.
+ The search prompt changes to dark background in the light theme
+- [X] [PB-19] There are two x signs when text is entered in the search prompt: one is constantly visible, and one is appearing on mous hover. There must be only one x sign, which cleans the search prompt. The x sign must be visible if there is text in the search input. There must be no x signs if there is no text. Clicking on x clears the text. Fix the regression.
+- [X] [PB-20] When clicked, the bubble slows down to the middle of the card and then continues its ascend. There shall be no slowing down.
 
 ### Maintenance
 
 - [X] [PB-01] Write tests covering current functionality and the layout blueprint. Add test coverage and get to the high degree of test coverage
+- [X] [PB-03] Clicking on copy or share doesnt produce a message withing the card to indicate that the card was copied or shared
+- [X] [PB-04] Theme doesnt fully switch the colors -- the background, the headers, the search the bagdes stay the same 
+- [X] [PB-05] There are multiple X signs in the search prompt when the prompt is entered at the end of the prompt -- as a button and as an inline x. only leave the inline x

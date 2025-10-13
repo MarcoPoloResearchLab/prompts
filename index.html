@@ -1,50 +1,256 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Prompt Bubbles — Curated ChatGPT Prompts</title>
   <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#1976d2" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d2247" />
 
-  <link rel="stylesheet" href="./assets/styles/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css" integrity="sha384-VBL1RyvoruUqGMPUNqtIIXcw1GvJClSiGRgG8jeIuaIXkjQsnjo8dY1ZFxfI6lkC" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" />
+  <link rel="stylesheet" href="./assets/css/material.css" />
+  <link rel="icon" type="image/svg+xml" href="./assets/img/favicon.svg" />
+  <link rel="mask-icon" href="./assets/img/favicon.svg" color="#1976d2" />
+
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-R6J165F21E"></script>
   <script>
-    /** analyticsId identifies the site for Google Analytics */
-    const ANALYTICS_ID = "G-R6J165F21E";
-    /** gtag pushes analytics events to the data layer */
     window.dataLayer = window.dataLayer || [];
     function gtag(){ dataLayer.push(arguments); }
     gtag("js", new Date());
-    gtag("config", ANALYTICS_ID);
+    gtag("config", "G-R6J165F21E");
   </script>
 </head>
 
 <body>
-<div class="shell">
-  <div class="topsearch">
-    <div class="searchrow" role="region" aria-label="Search">
-      <div class="searchbox">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 0 0 1.57-4.23C15.99 6.01 13.48 3.5 10.49 3.5S5 6.01 5 9s2.51 5.5 5.5 5.5a6.47 6.47 0 0 0 4.23-1.57l.27.28v.79L20 20.49 21.49 19 15.5 14Zm-5 0C8.01 14 6 11.99 6 9.5S8.01 5 10.5 5 15 7.01 15 9.5 12.99 14 10.5 14Z"/></svg>
-        <input id="searchInput" data-test="search-input" type="search" placeholder="Search prompts (title, text, tags)..." autocomplete="off" aria-label="Search prompts" />
-        <button class="search-clear" id="clearSearch" title="Clear search" aria-label="Clear search">✕</button>
+  <div class="app-shell d-flex flex-column min-vh-100" x-data="AppShell()" x-init="init()" x-on:toast-show="forwardToast($event.detail)" x-cloak>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top shadow-sm">
+      <div class="container-fluid gap-3 align-items-center">
+        <a class="navbar-brand fw-semibold d-flex flex-column gap-1 lh-sm" href="#top">
+          <span x-text="strings.appTitle"></span>
+          <small class="fs-6 fw-normal text-white-50" data-role="brand-tagline" x-text="strings.brandTagline"></small>
+        </a>
+        <form class="d-flex align-items-center flex-grow-1 gap-2" role="search">
+          <div class="input-group app-search-group">
+            <span class="input-group-text d-inline-flex align-items-center gap-2" data-role="search-addon">
+              <span class="material-icons-outlined" aria-hidden="true">search</span>
+              <span class="visually-hidden" x-text="strings.searchIconLabel"></span>
+            </span>
+            <input
+              id="searchInput"
+              data-test="search-input"
+              x-ref="searchInput"
+              class="form-control"
+              type="text"
+              role="searchbox"
+              inputmode="search"
+              enterkeyhint="search"
+              x-model.debounce.150ms="filters.searchText"
+              x-bind:placeholder="strings.searchPlaceholder"
+              x-bind:aria-label="strings.searchAriaLabel"
+              autocomplete="off"
+            />
+            <button
+              type="button"
+              class="app-clear-search"
+              data-test="clear-search"
+              x-on:click="clearSearch()"
+              x-show="searchHasText"
+              x-bind:aria-label="strings.clearSearchLabel"
+              x-cloak
+              style="display: none;"
+            >
+              <span class="material-icons-outlined" aria-hidden="true">close</span>
+              <span class="visually-hidden" x-text="strings.clearSearchLabel"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </nav>
+
+    <div
+      class="bubble-layer"
+      data-role="bubble-layer"
+      x-data="BubbleLayer()"
+      x-ref="bubbleLayer"
+      x-on:card-bubble="spawn($event.detail)"
+      aria-hidden="true"
+    >
+      <template x-for="bubble in bubbles" :key="bubble.id">
+        <span
+          class="bubble-layer__bubble"
+          data-role="bubble"
+          x-bind:data-theme="bubble.theme"
+          x-bind:data-rise-distance="bubble.riseDistance"
+          x-bind:style="styleFor(bubble)"
+          x-transition.opacity
+        ></span>
+      </template>
+    </div>
+
+    <main class="flex-fill">
+      <div class="app-main-container container-fluid py-5 px-4 px-xxl-5">
+        <header class="mb-4 text-center">
+          <p class="lead mb-3" x-text="strings.subtitle"></p>
+          <div class="d-flex flex-wrap justify-content-center gap-2" id="chipBar" role="group" x-bind:aria-label="strings.tagFilterLabel">
+            <template x-for="tag in tags" :key="tag">
+              <button
+                type="button"
+                class="btn btn-sm"
+                data-test="tag-chip"
+                x-bind:data-active="isActiveTag(tag) ? 'true' : 'false'"
+                x-bind:class="isActiveTag(tag) ? 'btn-primary' : 'btn-outline-primary'"
+                x-on:click="selectTag(tag)"
+                x-text="chipLabel(tag)"
+              ></button>
+            </template>
+          </div>
+        </header>
+
+        <template x-if="hasError">
+          <div class="alert alert-danger" role="alert" x-text="strings.errorLoading"></div>
+        </template>
+
+        <template x-if="isLoading && !hasError">
+          <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+          </div>
+        </template>
+
+        <template x-if="!isLoading && !hasError">
+          <section class="prompt-grid" id="grid" x-ref="grid" role="list" aria-label="Prompt cards">
+            <template x-if="filteredPrompts.length === 0">
+              <div class="prompt-grid__empty">
+                <div
+                  class="app-empty-state text-center"
+                  data-test="empty-state"
+                  role="status"
+                  x-text="emptyMessage()"
+                ></div>
+              </div>
+            </template>
+
+            <template x-for="prompt in filteredPrompts" :key="prompt.id">
+              <div class="prompt-grid__cell">
+                <article
+                  class="card h-100 shadow-sm"
+                  x-bind:id="prompt.id"
+                  data-test="prompt-card"
+                  role="listitem"
+                  tabindex="0"
+                  x-on:click="handleCardClick($event)"
+                  x-on:keydown="handleCardKeydown($event)"
+                >
+                  <div class="card-body d-flex flex-column gap-3">
+                    <div>
+                      <h2 class="h5 card-title mb-1" x-text="prompt.title"></h2>
+                      <div class="d-flex flex-wrap gap-2">
+                        <template x-for="tag in prompt.tags" :key="`${prompt.id}-${tag}`">
+                          <button
+                            type="button"
+                            class="badge border-0"
+                            data-role="card-tag"
+                            x-on:click="selectTag(tag)"
+                            x-text="tag"
+                          ></button>
+                        </template>
+                      </div>
+                    </div>
+
+                    <div
+                      class="prompt-text border rounded p-3 bg-body-tertiary text-start"
+                      data-role="prompt-text"
+                      x-ref="text"
+                      x-init="renderPromptText($el, prompt.text)"
+                    ></div>
+
+                    <div class="mt-auto d-flex flex-column gap-2">
+                      <template x-if="cardFeedbackById[prompt.id]">
+                        <p
+                          class="small fw-semibold mb-0"
+                          data-test="card-feedback"
+                          role="status"
+                          aria-live="polite"
+                          x-bind:class="cardFeedbackClass(prompt.id)"
+                          x-text="cardFeedbackById[prompt.id].message"
+                          x-transition.opacity
+                        ></p>
+                      </template>
+                      <div class="d-flex justify-content-between align-items-center gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
+                          data-test="copy-button"
+                          x-bind:aria-label="`${strings.copyAriaLabelPrefix} ${prompt.title}`"
+                          x-on:click="copyCard($event)"
+                        >
+                        <span class="material-icons-outlined" aria-hidden="true" x-text="icon('copy')"></span>
+                          <span x-text="strings.copyButtonLabel"></span>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+                          data-test="share-button"
+                          x-bind:aria-label="`${strings.shareAriaLabelPrefix} ${prompt.title}`"
+                          x-on:click="shareCard($event, prompt)"
+                        >
+                          <span class="material-icons-outlined" aria-hidden="true" data-role="share-icon" x-text="icon('share')"></span>
+                          <span x-text="strings.shareButtonLabel"></span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </template>
+          </section>
+        </template>
+      </div>
+    </main>
+
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;" x-data="ToastRegion()" data-role="toast-region" x-on:toast-show-internal="handleShow($event.detail)" x-cloak>
+      <div
+        class="toast align-items-center text-bg-primary border-0"
+        data-test="global-toast"
+        role="status"
+        x-show="isVisible"
+        x-transition.opacity
+      >
+        <div class="d-flex">
+          <div class="toast-body" x-text="message"></div>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            x-bind:aria-label="$store.app.strings.toastDismiss"
+            x-on:click="dismiss"
+          ></button>
+        </div>
       </div>
     </div>
+
+    <nav class="navbar bg-body-tertiary border-top fixed-bottom shadow-sm">
+      <div class="container-fluid align-items-center gap-3">
+        <span class="small text-muted" x-text="strings.footerBranding"></span>
+        <span class="small text-muted ms-auto" data-role="footer-shortcuts" x-text="strings.footerHint"></span>
+        <div class="form-check form-switch mb-0 d-flex align-items-center gap-2 flex-shrink-0" x-data="ThemeToggle()" x-init="init()">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            role="switch"
+            id="themeToggle"
+            x-on:change="toggle()"
+            x-bind:checked="mode === 'dark'"
+            x-bind:aria-label="$store.app.strings.themeToggleLabel"
+          />
+          <label class="form-check-label" for="themeToggle" x-text="$store.app.strings.themeToggleLabel"></label>
+        </div>
+      </div>
+    </nav>
   </div>
 
-  <header>
-    <div class="titlebar" aria-label="Site header">
-      <div class="logo" aria-hidden="true"></div>
-      <h1>Prompt Bubbles</h1>
-    </div>
-    <p class="subtitle">A visually stunning, zero-backend gallery of copy-ready prompts.</p>
-    <div class="chips" id="chipBar" aria-label="Tag filters"></div>
-  </header>
-
-  <main>
-    <section class="grid" id="grid" role="list" aria-label="Prompt cards"></section>
-    <p class="footer">Tip: Press <strong>/</strong> to jump to search • Press <strong>Enter</strong> on a focused card to copy</p>
-  </main>
-</div>
-<script src="./assets/scripts/app.js"></script>
+  <script type="module" src="./js/app.js"></script>
 </body>
 </html>

@@ -26,12 +26,28 @@ const contentTypeFor = (filePath) => MIME_MAP.get(path.extname(filePath).toLower
 
 const resolvePath = (requestPath) => {
   const normalizedPath = decodeURIComponent(requestPath.split("?")[0]);
+  if (normalizedPath === "/favicon.ico") {
+    return path.resolve(ROOT_DIRECTORY, "./assets/img/favicon.svg");
+  }
   const targetPath = normalizedPath.endsWith("/") ? `${normalizedPath}index.html` : normalizedPath;
   const absolutePath = path.resolve(ROOT_DIRECTORY, `.${targetPath}`);
   if (!absolutePath.startsWith(ROOT_DIRECTORY)) {
     throw new Error("Attempted directory traversal");
   }
   return absolutePath;
+};
+
+const monitorConsoleWarnings = () => {
+  const recordedWarnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...entries) => {
+    recordedWarnings.push(entries.map((entry) => String(entry)).join(" "));
+    originalWarn(...entries);
+  };
+  return () => {
+    console.warn = originalWarn;
+    return recordedWarnings;
+  };
 };
 
 const startStaticServer = (port = DEFAULT_PORT) =>
@@ -62,6 +78,8 @@ const startStaticServer = (port = DEFAULT_PORT) =>
   });
 
 const main = async () => {
+  const stopMonitoringConsoleWarnings = monitorConsoleWarnings();
+  let consoleWarnings = [];
   const { server, port } = await startStaticServer(0);
   const browser = await puppeteer.launch({
     headless: "new",
@@ -70,11 +88,16 @@ const main = async () => {
   try {
     const baseUrl = `http://${HOST}:${port}/index.html`;
     await runAppFlows({ browser, baseUrl });
-    console.log("All tests passed");
   } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));
+    consoleWarnings = stopMonitoringConsoleWarnings();
   }
+  const staticServerWarnings = consoleWarnings.filter((message) => message.startsWith("Static server:"));
+  if (staticServerWarnings.length > 0) {
+    throw new Error(`Static server emitted warnings:\n${staticServerWarnings.join("\n")}`);
+  }
+  console.log("All tests passed");
 };
 
 main().catch((error) => {
