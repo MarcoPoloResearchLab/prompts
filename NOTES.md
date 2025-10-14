@@ -144,7 +144,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - [X] [PB-24] The badges / filters button shall be sticky -- always visible.
     - [X] [PB-25] the `npm test` command does not display which tests are running making it difficult to asses coverage of progress or failures. Make npm test output the tests to stdio
     - [X] [PB-33] The bubble floats within the card, so if the card is partially hidden byt he filtering row/header, the bubble goes underneath them. It's as if the card was a window into some world where there are bubbles, but the bubbles can't eascape the borders of the cards.
-    - [ ] [PB-34] The filtering buttons must be evenly spread across the width of the viewport. 
+    - [X] [PB-34] The filtering buttons must be evenly spread across the width of the viewport. 
     - [ ] [PB-35] The filtering buttons must not touch the top or the bottom border of the row they are in
 
 ### Maintenance

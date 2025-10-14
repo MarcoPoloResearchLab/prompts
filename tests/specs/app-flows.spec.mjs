@@ -43,6 +43,8 @@ const FILTER_NAV_GAP_TOLERANCE_PX = 1;
 const FILTER_OVERFLOW_TOLERANCE_PX = 0.75;
 const FILTER_FONT_MAX_PX = 13.6;
 const FILTER_FONT_DELTA_TOLERANCE_PX = 0.65;
+const FILTER_ROW_EDGE_TOLERANCE_PX = 2;
+const FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX = 3;
 const LIKE_ICON_TEXT = "bubble_chart";
 const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
@@ -776,12 +778,22 @@ const captureFilterLayoutSnapshot = (page) =>
     const navRect = nav.getBoundingClientRect();
     const wrapperRect = wrapper.getBoundingClientRect();
     const containerStyles = window.getComputedStyle(chipContainer);
+    const containerRect = chipContainer.getBoundingClientRect();
+    const viewportWidth = Number.isFinite(window.innerWidth)
+      ? window.innerWidth
+      : Number.isFinite(document.documentElement.clientWidth)
+      ? document.documentElement.clientWidth
+      : containerRect.width;
     const chipRects = chips.map((chip) => chip.getBoundingClientRect());
     const topPositions = new Set(chipRects.map((rect) => rect.top.toFixed(2)));
     let maxBorderRadius = 0;
     let usesButtonClass = false;
     let minFontPx = Number.POSITIVE_INFINITY;
     let maxFontPx = 0;
+    let minChipWidth = Number.POSITIVE_INFINITY;
+    let maxChipWidth = 0;
+    let minTopInset = Number.POSITIVE_INFINITY;
+    let minBottomInset = Number.POSITIVE_INFINITY;
     for (const chip of chips) {
       if (chip.classList.contains("btn") || chip.classList.contains("btn-outline-primary")) {
         usesButtonClass = true;
@@ -801,11 +813,41 @@ const captureFilterLayoutSnapshot = (page) =>
         }
       }
     }
+    for (const rect of chipRects) {
+      if (Number.isFinite(rect.width)) {
+        if (rect.width < minChipWidth) {
+          minChipWidth = rect.width;
+        }
+        if (rect.width > maxChipWidth) {
+          maxChipWidth = rect.width;
+        }
+      }
+      const topInset = rect.top - containerRect.top;
+      const bottomInset = containerRect.bottom - rect.bottom;
+      if (Number.isFinite(topInset) && topInset < minTopInset) {
+        minTopInset = topInset;
+      }
+      if (Number.isFinite(bottomInset) && bottomInset < minBottomInset) {
+        minBottomInset = bottomInset;
+      }
+    }
     if (!Number.isFinite(minFontPx)) {
       minFontPx = 0;
     }
     if (!Number.isFinite(maxFontPx)) {
       maxFontPx = 0;
+    }
+    if (!Number.isFinite(minChipWidth)) {
+      minChipWidth = 0;
+    }
+    if (!Number.isFinite(maxChipWidth)) {
+      maxChipWidth = 0;
+    }
+    if (!Number.isFinite(minTopInset)) {
+      minTopInset = 0;
+    }
+    if (!Number.isFinite(minBottomInset)) {
+      minBottomInset = 0;
     }
     return {
       rowCount: topPositions.size,
@@ -817,7 +859,15 @@ const captureFilterLayoutSnapshot = (page) =>
       minFontPx,
       maxFontPx,
       maxBorderRadius,
-      usesButtonClass
+      usesButtonClass,
+      containerLeft: containerRect.left,
+      containerRight: containerRect.right,
+      containerWidth: containerRect.width,
+      viewportWidth,
+      minChipWidth,
+      maxChipWidth,
+      minTopInset,
+      minBottomInset
     };
   }, ".app-filter-bar", "#chipBar", CHIP_SELECTOR);
 const captureFooterMenuSnapshot = (page) =>
@@ -1199,6 +1249,26 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     true,
     "Filter chip typography should cap at the desktop font size"
   );
+  const leftEdgeDelta = Math.abs(filterLayoutSnapshot.containerLeft ?? 0);
+  const rightEdgeDelta = Math.abs(
+    (filterLayoutSnapshot.viewportWidth ?? 0) - (filterLayoutSnapshot.containerRight ?? 0)
+  );
+  const chipWidthDelta = (filterLayoutSnapshot.maxChipWidth ?? 0) - (filterLayoutSnapshot.minChipWidth ?? 0);
+  assertEqual(
+    leftEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
+    true,
+    `Filter chip rail should align with the viewport left edge (delta=${leftEdgeDelta.toFixed(2)}px)`
+  );
+  assertEqual(
+    rightEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
+    true,
+    `Filter chip rail should stretch to the viewport right edge (delta=${rightEdgeDelta.toFixed(2)}px)`
+  );
+  assertEqual(
+    chipWidthDelta <= FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX,
+    true,
+    `Filter chips should consume uniform widths across the row (delta=${chipWidthDelta.toFixed(2)}px)`
+  );
   const filterLayoutScenarios = [
     {
       description: "desktop width",
@@ -1246,6 +1316,27 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       scenarioSnapshot.maxFontPx <= FILTER_FONT_MAX_PX + FILTER_FONT_DELTA_TOLERANCE_PX,
       true,
       `Filter chip typography should stay capped at ${scenario.description}`
+    );
+    const scenarioLeftEdgeDelta = Math.abs(scenarioSnapshot.containerLeft ?? 0);
+    const scenarioRightEdgeDelta = Math.abs(
+      (scenarioSnapshot.viewportWidth ?? 0) - (scenarioSnapshot.containerRight ?? 0)
+    );
+    const scenarioChipWidthDelta =
+      (scenarioSnapshot.maxChipWidth ?? 0) - (scenarioSnapshot.minChipWidth ?? 0);
+    assertEqual(
+      scenarioLeftEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
+      true,
+      `Filter chip rail should anchor to the viewport left edge at ${scenario.description} (delta=${scenarioLeftEdgeDelta.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioRightEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
+      true,
+      `Filter chip rail should reach the viewport right edge at ${scenario.description} (delta=${scenarioRightEdgeDelta.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioChipWidthDelta <= FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX,
+      true,
+      `Filter chips should maintain uniform widths at ${scenario.description} (delta=${scenarioChipWidthDelta.toFixed(2)}px)`
     );
   });
   const desktopLayout = filterLayoutResults.find((entry) => entry.description === "desktop width")?.snapshot;
