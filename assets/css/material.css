@@ -150,6 +150,9 @@ body {
 }
 
 [data-role="footer-projects"] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -176,6 +179,17 @@ body {
   border: 1px solid var(--app-footer-menu-border);
   box-shadow: var(--app-footer-menu-shadow);
   padding: 0.5rem 0;
+  position: absolute;
+  top: auto;
+  bottom: calc(100% + 0.5rem);
+  right: 0;
+  left: auto;
+  margin: 0;
+  transform-origin: bottom right;
+}
+
+[data-role="footer-projects-menu"].show {
+  display: block;
 }
 
 [data-role="footer-projects-menu"] .dropdown-item {
@@ -206,6 +220,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -272,7 +287,10 @@ body {
 }
 
 .app-filter-bar .container-fluid {
-  max-width: 62rem;
+  max-width: none;
+  width: 100%;
+  padding-inline: 0;
+  margin-inline: 0;
 }
 
 .app-filter-bar__inner {
@@ -281,6 +299,9 @@ body {
   gap: 0.5rem;
   width: 100%;
   align-items: stretch;
+  justify-items: stretch;
+  padding-block: calc(var(--chip-padding-block, 0.4rem) + 0.35rem);
+  padding-inline: calc(var(--chip-padding-inline, 0.85rem) + 0.75rem);
 }
 
 .privacy-article {

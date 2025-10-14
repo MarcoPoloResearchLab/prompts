@@ -100,7 +100,7 @@
 
     <main class="flex-fill">
       <div class="app-filter-bar" data-role="filter-bar">
-        <div class="container-fluid px-4 px-xxl-5">
+        <div class="container-fluid">
           <div
             class="app-filter-bar__inner"
             id="chipBar"
@@ -115,6 +115,7 @@
                 class="filter-chip"
                 data-role="filter-chip"
                 data-test="tag-chip"
+                x-bind:data-tag="tag"
                 x-bind:data-active="isActiveTag(tag) ? 'true' : 'false'"
                 x-bind:aria-pressed="isActiveTag(tag) ? 'true' : 'false'"
                 x-on:click="selectTag(tag)"

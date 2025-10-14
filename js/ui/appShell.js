@@ -474,6 +474,9 @@ export function AppShell(dependencies) {
      * @returns {string}
      */
     chipLabel(tag) {
+      if (tag === TAGS.all) {
+        return STRINGS.allTagChipLabel;
+      }
       return tag;
     },
     updateNavHeight() {

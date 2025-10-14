@@ -43,6 +43,12 @@ const FILTER_NAV_GAP_TOLERANCE_PX = 1;
 const FILTER_OVERFLOW_TOLERANCE_PX = 0.75;
 const FILTER_FONT_MAX_PX = 13.6;
 const FILTER_FONT_DELTA_TOLERANCE_PX = 0.65;
+const FILTER_ROW_EDGE_TOLERANCE_PX = 2;
+const FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX = 3;
+const FILTER_VERTICAL_INSET_MIN_PX = 6;
+const FILTER_HORIZONTAL_INSET_MIN_PX = 12;
+const ALL_CHIP_DISPLAY_LABEL = "★ ALL";
+const ALL_CHIP_DATA_TAG = "all";
 const LIKE_ICON_TEXT = "bubble_chart";
 const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
@@ -79,6 +85,8 @@ const EMPTY_STATE_LIGHT_TEXT = "rgb(13, 34, 71)";
 const EMPTY_STATE_DARK_BACKGROUND = "rgb(26, 44, 92)";
 const EMPTY_STATE_DARK_TEXT = "rgb(217, 230, 255)";
 const PLACEHOLDER_OVERFLOW_TOLERANCE_PX = 1.5;
+const FOOTER_MENU_VERTICAL_GAP_TOLERANCE_PX = 4;
+const FOOTER_MENU_VIEWPORT_PADDING_PX = 4;
 const calculateUsedBytes = (sourceLength, ranges) => {
   if (!Array.isArray(ranges) || ranges.length === 0) {
     return 0;
@@ -190,10 +198,17 @@ const waitForCardCount = (page, expectedCount) =>
 
 const waitForActiveChip = (page, label) =>
   page.waitForFunction(
-    (selector, targetLabel) =>
-      Array.from(document.querySelectorAll(`${selector}[data-active='true']`)).some(
-        (element) => element.textContent?.trim().toLowerCase() === targetLabel.toLowerCase()
-      ),
+    (selector, targetLabel) => {
+      const normalizedLabel = targetLabel.trim().toLowerCase();
+      return Array.from(document.querySelectorAll(`${selector}[data-active='true']`)).some((element) => {
+        const rawTag = element.getAttribute("data-tag");
+        if (typeof rawTag === "string" && rawTag.trim().length > 0) {
+          return rawTag.trim().toLowerCase() === normalizedLabel;
+        }
+        const text = element.textContent?.trim() ?? "";
+        return text.toLowerCase() === normalizedLabel;
+      });
+    },
     {},
     CHIP_SELECTOR,
     label
@@ -333,10 +348,18 @@ const setSearchValue = async (page, value) => {
 const clickChipByLabel = async (page, label) => {
   const didClick = await page.evaluate(
     (chipSelector, targetLabel) => {
-      const chip = Array.from(document.querySelectorAll(chipSelector)).find(
-        (element) => element.textContent?.trim().toLowerCase() === targetLabel.toLowerCase()
-      );
-      if (!chip) return false;
+      const normalizedLabel = targetLabel.trim().toLowerCase();
+      const chip = Array.from(document.querySelectorAll(chipSelector)).find((element) => {
+        const rawTag = element.getAttribute("data-tag");
+        if (typeof rawTag === "string" && rawTag.trim().length > 0) {
+          return rawTag.trim().toLowerCase() === normalizedLabel;
+        }
+        const text = element.textContent?.trim() ?? "";
+        return text.toLowerCase() === normalizedLabel;
+      });
+      if (!chip) {
+        return false;
+      }
       chip.click();
       return true;
     },
@@ -693,7 +716,14 @@ const reloadApp = async (page, baseUrl) => {
 
 const getActiveChipLabels = (page) =>
   page.$$eval(`${CHIP_SELECTOR}[data-active='true']`, (elements) =>
-    elements.map((element) => element.textContent?.trim())
+    elements.map((element) => {
+      const rawTag = element.getAttribute("data-tag");
+      if (typeof rawTag === "string" && rawTag.trim().length > 0) {
+        return rawTag.trim().toLowerCase();
+      }
+      const text = element.textContent?.trim() ?? "";
+      return text.toLowerCase();
+    })
   );
 
 const captureEmptyStateSnapshot = (page) =>
@@ -776,12 +806,24 @@ const captureFilterLayoutSnapshot = (page) =>
     const navRect = nav.getBoundingClientRect();
     const wrapperRect = wrapper.getBoundingClientRect();
     const containerStyles = window.getComputedStyle(chipContainer);
+    const containerRect = chipContainer.getBoundingClientRect();
+    const viewportWidth = Number.isFinite(window.innerWidth)
+      ? window.innerWidth
+      : Number.isFinite(document.documentElement.clientWidth)
+      ? document.documentElement.clientWidth
+      : containerRect.width;
     const chipRects = chips.map((chip) => chip.getBoundingClientRect());
     const topPositions = new Set(chipRects.map((rect) => rect.top.toFixed(2)));
     let maxBorderRadius = 0;
     let usesButtonClass = false;
     let minFontPx = Number.POSITIVE_INFINITY;
     let maxFontPx = 0;
+    let minChipWidth = Number.POSITIVE_INFINITY;
+    let maxChipWidth = 0;
+    let minTopInset = Number.POSITIVE_INFINITY;
+    let minBottomInset = Number.POSITIVE_INFINITY;
+    let minLeftInset = Number.POSITIVE_INFINITY;
+    let minRightInset = Number.POSITIVE_INFINITY;
     for (const chip of chips) {
       if (chip.classList.contains("btn") || chip.classList.contains("btn-outline-primary")) {
         usesButtonClass = true;
@@ -801,12 +843,63 @@ const captureFilterLayoutSnapshot = (page) =>
         }
       }
     }
+    for (const rect of chipRects) {
+      if (Number.isFinite(rect.width)) {
+        if (rect.width < minChipWidth) {
+          minChipWidth = rect.width;
+        }
+        if (rect.width > maxChipWidth) {
+          maxChipWidth = rect.width;
+        }
+      }
+      const topInset = rect.top - containerRect.top;
+      const bottomInset = containerRect.bottom - rect.bottom;
+      if (Number.isFinite(topInset) && topInset < minTopInset) {
+        minTopInset = topInset;
+      }
+      if (Number.isFinite(bottomInset) && bottomInset < minBottomInset) {
+        minBottomInset = bottomInset;
+      }
+      const leftInset = rect.left - containerRect.left;
+      const rightInset = containerRect.right - rect.right;
+      if (Number.isFinite(leftInset) && leftInset < minLeftInset) {
+        minLeftInset = leftInset;
+      }
+      if (Number.isFinite(rightInset) && rightInset < minRightInset) {
+        minRightInset = rightInset;
+      }
+    }
     if (!Number.isFinite(minFontPx)) {
       minFontPx = 0;
     }
     if (!Number.isFinite(maxFontPx)) {
       maxFontPx = 0;
     }
+    if (!Number.isFinite(minChipWidth)) {
+      minChipWidth = 0;
+    }
+    if (!Number.isFinite(maxChipWidth)) {
+      maxChipWidth = 0;
+    }
+    if (!Number.isFinite(minTopInset)) {
+      minTopInset = 0;
+    }
+    if (!Number.isFinite(minBottomInset)) {
+      minBottomInset = 0;
+    }
+    if (!Number.isFinite(minLeftInset)) {
+      minLeftInset = 0;
+    }
+    if (!Number.isFinite(minRightInset)) {
+      minRightInset = 0;
+    }
+    const chipsExposeDataTag = chips.every((chip) => {
+      const rawTag = chip.getAttribute("data-tag");
+      return typeof rawTag === "string" && rawTag.trim().length > 0;
+    });
+    const firstChip = chips[0] ?? null;
+    const firstChipLabel = firstChip?.textContent?.trim() ?? "";
+    const firstChipTag = firstChip?.getAttribute("data-tag")?.trim() ?? "";
     return {
       rowCount: topPositions.size,
       navGap: wrapperRect.top - navRect.bottom,
@@ -817,7 +910,20 @@ const captureFilterLayoutSnapshot = (page) =>
       minFontPx,
       maxFontPx,
       maxBorderRadius,
-      usesButtonClass
+      usesButtonClass,
+      containerLeft: containerRect.left,
+      containerRight: containerRect.right,
+      containerWidth: containerRect.width,
+      viewportWidth,
+      minChipWidth,
+      maxChipWidth,
+      minTopInset,
+      minBottomInset,
+      minLeftInset,
+      minRightInset,
+      chipsExposeDataTag,
+      firstChipLabel,
+      firstChipTag
     };
   }, ".app-filter-bar", "#chipBar", CHIP_SELECTOR);
 const captureFooterMenuSnapshot = (page) =>
@@ -827,6 +933,12 @@ const captureFooterMenuSnapshot = (page) =>
       const toggleElement = document.querySelector(toggleSelector);
       const menuElement = document.querySelector(menuSelector);
       const itemElements = Array.from(document.querySelectorAll(itemSelector));
+      const toggleRect =
+        toggleElement instanceof HTMLElement ? toggleElement.getBoundingClientRect() : null;
+      const menuRect = menuElement instanceof HTMLElement ? menuElement.getBoundingClientRect() : null;
+      const viewportHeight = Number.isFinite(window.innerHeight)
+        ? window.innerHeight
+        : document.documentElement.clientHeight;
       const isMenuVisible =
         menuElement instanceof HTMLElement
           ? (() => {
@@ -851,6 +963,11 @@ const captureFooterMenuSnapshot = (page) =>
         menuLabelledBy: menuElement?.getAttribute("aria-labelledby") ?? "",
         menuHasShowClass: menuElement?.classList.contains("show") ?? false,
         menuVisible: isMenuVisible,
+        toggleTop: toggleRect?.top ?? Number.NaN,
+        toggleBottom: toggleRect?.bottom ?? Number.NaN,
+        menuTop: menuRect?.top ?? Number.NaN,
+        menuBottom: menuRect?.bottom ?? Number.NaN,
+        viewportHeight,
         itemSummaries: itemElements.map((element) => ({
           label: element.textContent?.trim() ?? "",
           href: element.getAttribute("href") ?? "",
@@ -1199,6 +1316,73 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     true,
     "Filter chip typography should cap at the desktop font size"
   );
+  const leftEdgeDelta = Math.abs(filterLayoutSnapshot.containerLeft ?? 0);
+  const rightEdgeDelta = Math.abs(
+    (filterLayoutSnapshot.viewportWidth ?? 0) - (filterLayoutSnapshot.containerRight ?? 0)
+  );
+  const chipWidthDelta = (filterLayoutSnapshot.maxChipWidth ?? 0) - (filterLayoutSnapshot.minChipWidth ?? 0);
+  const topInsetValue = Number.isFinite(filterLayoutSnapshot.minTopInset)
+    ? filterLayoutSnapshot.minTopInset
+    : 0;
+  const bottomInsetValue = Number.isFinite(filterLayoutSnapshot.minBottomInset)
+    ? filterLayoutSnapshot.minBottomInset
+    : 0;
+  const leftInsetValue = Number.isFinite(filterLayoutSnapshot.minLeftInset)
+    ? filterLayoutSnapshot.minLeftInset
+    : 0;
+  const rightInsetValue = Number.isFinite(filterLayoutSnapshot.minRightInset)
+    ? filterLayoutSnapshot.minRightInset
+    : 0;
+  assertEqual(
+    leftEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
+    true,
+    `Filter chip rail should align with the viewport left edge (delta=${leftEdgeDelta.toFixed(2)}px)`
+  );
+  assertEqual(
+    rightEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
+    true,
+    `Filter chip rail should stretch to the viewport right edge (delta=${rightEdgeDelta.toFixed(2)}px)`
+  );
+  assertEqual(
+    chipWidthDelta <= FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX,
+    true,
+    `Filter chips should consume uniform widths across the row (delta=${chipWidthDelta.toFixed(2)}px)`
+  );
+  assertEqual(
+    topInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
+    true,
+    `Filter chip rail should leave padding above the chips (inset=${topInsetValue.toFixed(2)}px)`
+  );
+  assertEqual(
+    bottomInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
+    true,
+    `Filter chip rail should leave padding below the chips (inset=${bottomInsetValue.toFixed(2)}px)`
+  );
+  assertEqual(
+    filterLayoutSnapshot.chipsExposeDataTag,
+    true,
+    "Filter chips should expose data-tag attributes for raw identifiers"
+  );
+  assertEqual(
+    (filterLayoutSnapshot.firstChipTag ?? "").toLowerCase(),
+    ALL_CHIP_DATA_TAG,
+    "First filter chip should target the all tag"
+  );
+  assertEqual(
+    filterLayoutSnapshot.firstChipLabel,
+    ALL_CHIP_DISPLAY_LABEL,
+    "All chip should render star-prefixed uppercase label"
+  );
+  assertEqual(
+    leftInsetValue >= FILTER_HORIZONTAL_INSET_MIN_PX,
+    true,
+    `Filter chip rail should leave padding before the first chip (inset=${leftInsetValue.toFixed(2)}px)`
+  );
+  assertEqual(
+    rightInsetValue >= FILTER_HORIZONTAL_INSET_MIN_PX,
+    true,
+    `Filter chip rail should leave padding after the last chip (inset=${rightInsetValue.toFixed(2)}px)`
+  );
   const filterLayoutScenarios = [
     {
       description: "desktop width",
@@ -1246,6 +1430,74 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       scenarioSnapshot.maxFontPx <= FILTER_FONT_MAX_PX + FILTER_FONT_DELTA_TOLERANCE_PX,
       true,
       `Filter chip typography should stay capped at ${scenario.description}`
+    );
+    const scenarioLeftEdgeDelta = Math.abs(scenarioSnapshot.containerLeft ?? 0);
+    const scenarioRightEdgeDelta = Math.abs(
+      (scenarioSnapshot.viewportWidth ?? 0) - (scenarioSnapshot.containerRight ?? 0)
+    );
+    const scenarioChipWidthDelta =
+      (scenarioSnapshot.maxChipWidth ?? 0) - (scenarioSnapshot.minChipWidth ?? 0);
+    const scenarioTopInsetValue = Number.isFinite(scenarioSnapshot.minTopInset)
+      ? scenarioSnapshot.minTopInset
+      : 0;
+    const scenarioBottomInsetValue = Number.isFinite(scenarioSnapshot.minBottomInset)
+      ? scenarioSnapshot.minBottomInset
+      : 0;
+    const scenarioLeftInsetValue = Number.isFinite(scenarioSnapshot.minLeftInset)
+      ? scenarioSnapshot.minLeftInset
+      : 0;
+    const scenarioRightInsetValue = Number.isFinite(scenarioSnapshot.minRightInset)
+      ? scenarioSnapshot.minRightInset
+      : 0;
+    assertEqual(
+      scenarioLeftEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
+      true,
+      `Filter chip rail should anchor to the viewport left edge at ${scenario.description} (delta=${scenarioLeftEdgeDelta.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioRightEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
+      true,
+      `Filter chip rail should reach the viewport right edge at ${scenario.description} (delta=${scenarioRightEdgeDelta.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioChipWidthDelta <= FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX,
+      true,
+      `Filter chips should maintain uniform widths at ${scenario.description} (delta=${scenarioChipWidthDelta.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioTopInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
+      true,
+      `Filter rail should keep top padding at ${scenario.description} (inset=${scenarioTopInsetValue.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioBottomInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
+      true,
+      `Filter rail should keep bottom padding at ${scenario.description} (inset=${scenarioBottomInsetValue.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioSnapshot.chipsExposeDataTag,
+      true,
+      `Filter chips should expose data-tag attributes at ${scenario.description}`
+    );
+    assertEqual(
+      (scenarioSnapshot.firstChipTag ?? "").toLowerCase(),
+      ALL_CHIP_DATA_TAG,
+      `First filter chip should target the all tag at ${scenario.description}`
+    );
+    assertEqual(
+      scenarioSnapshot.firstChipLabel,
+      ALL_CHIP_DISPLAY_LABEL,
+      `All chip should render the star-prefixed label at ${scenario.description}`
+    );
+    assertEqual(
+      scenarioLeftInsetValue >= FILTER_HORIZONTAL_INSET_MIN_PX,
+      true,
+      `Filter rail should keep left padding at ${scenario.description} (inset=${scenarioLeftInsetValue.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioRightInsetValue >= FILTER_HORIZONTAL_INSET_MIN_PX,
+      true,
+      `Filter rail should keep right padding at ${scenario.description} (inset=${scenarioRightInsetValue.toFixed(2)}px)`
     );
   });
   const desktopLayout = filterLayoutResults.find((entry) => entry.description === "desktop width")?.snapshot;
@@ -1357,6 +1609,28 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     footerMenuExpanded.menuVisible,
     true,
     "Footer dropdown menu should render visibly when expanded"
+  );
+  assertEqual(
+    Number.isFinite(footerMenuExpanded.toggleTop) && Number.isFinite(footerMenuExpanded.menuTop),
+    true,
+    "Footer dropdown geometry should be measurable when expanded"
+  );
+  const dropupGap = footerMenuExpanded.toggleTop - footerMenuExpanded.menuBottom;
+  const menuAboveToggle = footerMenuExpanded.menuBottom <= footerMenuExpanded.toggleTop + FOOTER_MENU_VERTICAL_GAP_TOLERANCE_PX;
+  const menuTopAboveToggle = footerMenuExpanded.menuTop <= footerMenuExpanded.toggleTop - FOOTER_MENU_VERTICAL_GAP_TOLERANCE_PX;
+  const menuWithinViewport =
+    footerMenuExpanded.menuTop >= FOOTER_MENU_VIEWPORT_PADDING_PX &&
+    footerMenuExpanded.menuBottom <= footerMenuExpanded.viewportHeight - FOOTER_MENU_VIEWPORT_PADDING_PX;
+  assertEqual(menuAboveToggle, true, `Footer dropdown should anchor above its toggle (gap=${dropupGap.toFixed(2)}px)`);
+  assertEqual(
+    menuTopAboveToggle,
+    true,
+    "Footer dropdown menu top edge should sit above the toggle control"
+  );
+  assertEqual(
+    menuWithinViewport,
+    true,
+    "Footer dropdown menu should stay within the viewport when expanded"
   );
   const footerMenuLabels = footerMenuExpanded.itemSummaries.map((item) => item.label);
   const footerMenuHrefs = footerMenuExpanded.itemSummaries.map((item) => item.href);
