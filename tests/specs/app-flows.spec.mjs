@@ -45,6 +45,7 @@ const FILTER_FONT_MAX_PX = 13.6;
 const FILTER_FONT_DELTA_TOLERANCE_PX = 0.65;
 const FILTER_ROW_EDGE_TOLERANCE_PX = 2;
 const FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX = 3;
+const FILTER_VERTICAL_INSET_MIN_PX = 6;
 const LIKE_ICON_TEXT = "bubble_chart";
 const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
@@ -1254,6 +1255,12 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     (filterLayoutSnapshot.viewportWidth ?? 0) - (filterLayoutSnapshot.containerRight ?? 0)
   );
   const chipWidthDelta = (filterLayoutSnapshot.maxChipWidth ?? 0) - (filterLayoutSnapshot.minChipWidth ?? 0);
+  const topInsetValue = Number.isFinite(filterLayoutSnapshot.minTopInset)
+    ? filterLayoutSnapshot.minTopInset
+    : 0;
+  const bottomInsetValue = Number.isFinite(filterLayoutSnapshot.minBottomInset)
+    ? filterLayoutSnapshot.minBottomInset
+    : 0;
   assertEqual(
     leftEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
     true,
@@ -1268,6 +1275,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     chipWidthDelta <= FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX,
     true,
     `Filter chips should consume uniform widths across the row (delta=${chipWidthDelta.toFixed(2)}px)`
+  );
+  assertEqual(
+    topInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
+    true,
+    `Filter chip rail should leave padding above the chips (inset=${topInsetValue.toFixed(2)}px)`
+  );
+  assertEqual(
+    bottomInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
+    true,
+    `Filter chip rail should leave padding below the chips (inset=${bottomInsetValue.toFixed(2)}px)`
   );
   const filterLayoutScenarios = [
     {
@@ -1323,6 +1340,12 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     );
     const scenarioChipWidthDelta =
       (scenarioSnapshot.maxChipWidth ?? 0) - (scenarioSnapshot.minChipWidth ?? 0);
+    const scenarioTopInsetValue = Number.isFinite(scenarioSnapshot.minTopInset)
+      ? scenarioSnapshot.minTopInset
+      : 0;
+    const scenarioBottomInsetValue = Number.isFinite(scenarioSnapshot.minBottomInset)
+      ? scenarioSnapshot.minBottomInset
+      : 0;
     assertEqual(
       scenarioLeftEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
       true,
@@ -1337,6 +1360,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       scenarioChipWidthDelta <= FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX,
       true,
       `Filter chips should maintain uniform widths at ${scenario.description} (delta=${scenarioChipWidthDelta.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioTopInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
+      true,
+      `Filter rail should keep top padding at ${scenario.description} (inset=${scenarioTopInsetValue.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioBottomInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
+      true,
+      `Filter rail should keep bottom padding at ${scenario.description} (inset=${scenarioBottomInsetValue.toFixed(2)}px)`
     );
   });
   const desktopLayout = filterLayoutResults.find((entry) => entry.description === "desktop width")?.snapshot;
