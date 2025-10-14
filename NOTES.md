@@ -143,7 +143,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 - [X] [PB-23] The word Copy in light theme is pale and hardly visible on a button
 - [X] [PB-24] The badges / filters button shall be sticky -- always visible.
 - [X] [PB-25] the `npm test` command does not display which tests are running making it difficult to asses coverage of progress or failures. Make npm test output the tests to stdio
-- [ ] [PB-33] The bubble floats within the card, so if the card is partially hidden byt he filtering row/header, the bubble goes underneath them. It's as if the card was a window into some world where there are bubbles, but the bubbles can't eascape the borders of the cards. 
+- [X] [PB-33] The bubble floats within the card, so if the card is partially hidden byt he filtering row/header, the bubble goes underneath them. It's as if the card was a window into some world where there are bubbles, but the bubbles can't eascape the borders of the cards.
 
 ### Maintenance
 
@@ -204,13 +204,13 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     Executed specs: specs/app-flows.spec.mjs, specs/runner-output.spec.mjs
     All tests passed
     ```
-- [ ] [PB-30] The badges filtering is inconscpicious -- it doesnt have a border, it doesnt have a horizontal or a vertical scroller. It's an alwyas present sticky row with badges, and all badges are always visible in one row. No matter how small the page, the badges just proportianlly decrease. If the page is very wide, the bagdes spread out. It's a sticky row of constant number of badges, always visible. They dont become larger than current size, but then get very very small if the page is narrow in order to fit in the row. The filtering row is a second row attached to the header. there is no space between them.
-- [ ] [PB-31] Bug: Theme doesn't fully switch the colors of the privacy page. 
+- [X] [PB-30] The badges filtering is inconscpicious -- it doesnt have a border, it doesnt have a horizontal or a vertical scroller. It's an alwyas present sticky row with badges, and all badges are always visible in one row. No matter how small the page, the badges just proportianlly decrease. If the page is very wide, the bagdes spread out. It's a sticky row of constant number of badges, always visible. They dont become larger than current size, but then get very very small if the page is narrow in order to fit in the row. The filtering row is a second row attached to the header. there is no space between them.
+- [X] [PB-31] Bug: Theme doesn't fully switch the colors of the privacy page.
     1. Clicking on Prompt Bubble in the fotter returns the user to the top of the Prompt Bubble page with cards
     2. The footer and the header are always visible on all pages. Refactor the code so that The footer and the header are visible on the Privacy page.
     3. There is no search prompt when the footer is on the privacy page
     4. There is no filtering badges row when the footer is on the Privacy page
-- [ ] [PB-32] Refactor the footer
+- [X] [PB-32] Refactor the footer
     1. "Privacy • Terms" in the footer font is 3 -- it is very, very small.
     2. "Privacy • Terms" in the footer is aligned to the left.
     3. Built By Marco Polo Research Lab is aligned to the right.

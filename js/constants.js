@@ -1,6 +1,10 @@
 // @ts-check
 
-export const DATA_PATH = "./data/prompts.json";
+export const DATA_PATH = "/data/prompts.json";
+
+export const PATHS = Object.freeze({
+  privacy: "/privacy/"
+});
 
 export const TAGS = Object.freeze({
   all: "all"
@@ -56,7 +60,7 @@ export const STRINGS = Object.freeze({
   tagFilterLabel: "Tag filters",
   footerHint: "Press / to search • Enter to copy the focused card",
   footerPrefix: "Built by",
-  footerMenuLabel: "Marco Polo Research Lab",
+  footerMenuLabel: "Built By Marco Polo Research Lab",
   footerMenuToggleAriaLabel: "Browse Marco Polo Research Lab projects",
   themeToggleLabel: "Dark mode",
   searchIconLabel: "Search icon",

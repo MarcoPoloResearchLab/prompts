@@ -13,6 +13,7 @@ const FILTER_BAR_SELECTOR = "#chipBar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
 const PRIVACY_LINK_SELECTOR = "[data-role='privacy-link']";
+const PRIVACY_ARTICLE_SELECTOR = "[data-role='privacy-article']";
 const FOOTER_PREFIX_SELECTOR = "[data-role='footer-prefix']";
 const FOOTER_PROJECTS_TOGGLE_SELECTOR = "[data-role='footer-projects-toggle']";
 const FOOTER_PROJECTS_MENU_SELECTOR = "[data-role='footer-projects-menu']";
@@ -38,14 +39,16 @@ const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
 const COLOR_COMPONENT_TOLERANCE = 1;
 const STICKY_DELTA_TOLERANCE_PX = 2;
 const FILTER_CHIP_MAX_RADIUS_PX = 12;
-const FILTER_CONTAINER_SCROLL_VALUES = Object.freeze(["auto", "scroll", "overlay"]);
+const FILTER_NAV_GAP_TOLERANCE_PX = 1;
+const FILTER_OVERFLOW_TOLERANCE_PX = 0.75;
+const FILTER_FONT_MAX_PX = 13.6;
+const FILTER_FONT_DELTA_TOLERANCE_PX = 0.65;
 const LIKE_ICON_TEXT = "bubble_chart";
 const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
 const BRAND_TAGLINE_TEXT = "Built for instant prompt workflows.";
 const FOOTER_SHORTCUT_TEXT = "Press / to search • Enter to copy the focused card";
-const FOOTER_PREFIX_TEXT = "Built by";
-const FOOTER_MENU_LABEL = "Marco Polo Research Lab";
+const FOOTER_MENU_LABEL = "Built By Marco Polo Research Lab";
 const FOOTER_MENU_TOGGLE_ARIA_LABEL = "Browse Marco Polo Research Lab projects";
 const FOOTER_PROJECT_LINKS = Object.freeze([
   { label: "Marco Polo Research Lab", url: "https://mprlab.com" },
@@ -68,7 +71,8 @@ const BUBBLE_SIZE_TOLERANCE = 0.06;
 const BUBBLE_LIFETIME_MS = 1700;
 const BUBBLE_REMOVAL_GRACE_MS = 220;
 const BUBBLE_RISE_DISTANCE_TOLERANCE_PX = 4;
-const BUBBLE_FINAL_ALIGNMENT_TOLERANCE_PX = 1.5;
+const BUBBLE_VIEWPORT_MARGIN_PX = 8;
+const BUBBLE_VIEWPORT_TARGET_TOLERANCE_PX = 6;
 const BUBBLE_LINEAR_EXPECTED_KEYFRAMES = 2;
 const EMPTY_STATE_LIGHT_BACKGROUND = "rgb(232, 240, 255)";
 const EMPTY_STATE_LIGHT_TEXT = "rgb(13, 34, 71)";
@@ -549,7 +553,7 @@ const triggerLikeBubble = async (page, cardId) => {
 
 const snapshotBubble = (page, cardId) =>
   page.evaluate(
-    async (bubbleSelector, cardSelector, id) => {
+    async (bubbleSelector, cardSelector, id, viewportMargin) => {
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
           resolve();
@@ -611,7 +615,7 @@ const snapshotBubble = (page, cardId) =>
         const bubbleTopValue = Number.parseFloat(bubbleStyle.top ?? "");
         initialBubbleTop = Number.isFinite(bubbleTopValue) ? bubbleTopValue : bubbleRect.top;
       }
-      const expectedRiseDistance = Math.max(0, initialBubbleTop - cardRect.top);
+      const expectedRiseDistance = Math.max(0, initialBubbleTop - viewportMargin);
       return {
         theme: bubble.getAttribute("data-theme") ?? "",
         borderColor: bubbleStyle.borderTopColor,
@@ -623,7 +627,8 @@ const snapshotBubble = (page, cardId) =>
     },
     BUBBLE_SELECTOR,
     CARD_SELECTOR,
-    cardId
+    cardId,
+    BUBBLE_VIEWPORT_MARGIN_PX
   );
 
 const captureBubbleAnimationMetadata = (page) =>
@@ -760,37 +765,65 @@ const captureGridRowLengths = (page) =>
     return rows.map((row) => row.count);
   }, CARD_SELECTOR);
 const captureFilterLayoutSnapshot = (page) =>
-  page.evaluate((containerSelector, chipSelector) => {
-    const container = document.querySelector(containerSelector);
+  page.evaluate((wrapperSelector, chipContainerSelector, chipSelector) => {
+    const nav = document.querySelector("nav.navbar.fixed-top");
+    const wrapper = document.querySelector(wrapperSelector);
+    const chipContainer = document.querySelector(chipContainerSelector);
     const chips = Array.from(document.querySelectorAll(chipSelector));
-    const topPositions = new Set();
+    if (!(nav instanceof HTMLElement) || !(wrapper instanceof HTMLElement) || !(chipContainer instanceof HTMLElement)) {
+      throw new Error("Filter layout prerequisites missing");
+    }
+    const navRect = nav.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const containerStyles = window.getComputedStyle(chipContainer);
+    const chipRects = chips.map((chip) => chip.getBoundingClientRect());
+    const topPositions = new Set(chipRects.map((rect) => rect.top.toFixed(2)));
     let maxBorderRadius = 0;
     let usesButtonClass = false;
+    let minFontPx = Number.POSITIVE_INFINITY;
+    let maxFontPx = 0;
     for (const chip of chips) {
-      const rect = chip.getBoundingClientRect();
-      topPositions.add(rect.top.toFixed(2));
       if (chip.classList.contains("btn") || chip.classList.contains("btn-outline-primary")) {
         usesButtonClass = true;
       }
-      const chipStyles = getComputedStyle(chip);
+      const chipStyles = window.getComputedStyle(chip);
       const radius = Number.parseFloat(chipStyles.getPropertyValue("border-radius"));
       if (Number.isFinite(radius) && radius > maxBorderRadius) {
         maxBorderRadius = radius;
       }
+      const fontSize = Number.parseFloat(chipStyles.getPropertyValue("font-size"));
+      if (Number.isFinite(fontSize)) {
+        if (fontSize < minFontPx) {
+          minFontPx = fontSize;
+        }
+        if (fontSize > maxFontPx) {
+          maxFontPx = fontSize;
+        }
+      }
     }
-    const containerStyles = container ? getComputedStyle(container) : null;
+    if (!Number.isFinite(minFontPx)) {
+      minFontPx = 0;
+    }
+    if (!Number.isFinite(maxFontPx)) {
+      maxFontPx = 0;
+    }
     return {
       rowCount: topPositions.size,
-      flexWrap: containerStyles?.getPropertyValue("flex-wrap")?.trim().toLowerCase() ?? "",
-      overflowX: containerStyles?.getPropertyValue("overflow-x")?.trim().toLowerCase() ?? "",
+      navGap: wrapperRect.top - navRect.bottom,
+      navHeight: navRect.height,
+      overflowDelta: Math.max(0, chipContainer.scrollWidth - chipContainer.clientWidth),
+      display: containerStyles.getPropertyValue("display"),
+      gridTemplateColumns: containerStyles.getPropertyValue("grid-template-columns"),
+      minFontPx,
+      maxFontPx,
       maxBorderRadius,
       usesButtonClass
     };
-  }, FILTER_BAR_SELECTOR, CHIP_SELECTOR);
+  }, ".app-filter-bar", "#chipBar", CHIP_SELECTOR);
 const captureFooterMenuSnapshot = (page) =>
   page.evaluate(
-    (prefixSelector, toggleSelector, menuSelector, itemSelector) => {
-      const prefixElement = document.querySelector(prefixSelector);
+    (toggleSelector, menuSelector, itemSelector) => {
+      const container = document.querySelector("[data-role='footer-projects']");
       const toggleElement = document.querySelector(toggleSelector);
       const menuElement = document.querySelector(menuSelector);
       const itemElements = Array.from(document.querySelectorAll(itemSelector));
@@ -806,7 +839,7 @@ const captureFooterMenuSnapshot = (page) =>
             })()
           : false;
       return {
-        prefixText: prefixElement?.textContent?.trim() ?? "",
+        containerClasses: container?.className ?? "",
         toggleLabel: toggleElement?.textContent?.trim() ?? "",
         toggleId: toggleElement?.id ?? "",
         toggleAriaExpanded: toggleElement?.getAttribute("aria-expanded") ?? "",
@@ -826,11 +859,28 @@ const captureFooterMenuSnapshot = (page) =>
         }))
       };
     },
-    FOOTER_PREFIX_SELECTOR,
     FOOTER_PROJECTS_TOGGLE_SELECTOR,
     FOOTER_PROJECTS_MENU_SELECTOR,
     FOOTER_PROJECT_ITEM_SELECTOR
   );
+
+const captureFooterLayoutSnapshot = (page) =>
+  page.evaluate(() => {
+    const container = document.querySelector("nav.navbar.fixed-bottom .container-fluid");
+    if (!(container instanceof HTMLElement)) {
+      return [];
+    }
+    return Array.from(container.querySelectorAll("[data-role]")).map((element) => {
+      const rect = element.getBoundingClientRect();
+      const styles = getComputedStyle(element);
+      return {
+        role: element.getAttribute("data-role") ?? "",
+        left: rect.left,
+        fontSize: styles.getPropertyValue("font-size"),
+        flexGrow: styles.getPropertyValue("flex-grow")
+      };
+    });
+  });
 
 const createScenarioRunner = (reportScenario) => {
   const hasReporter = reportScenario && typeof reportScenario.start === "function";
@@ -1103,8 +1153,8 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   );
   assertEqual(
     layoutChecks.privacyLinkIsSmall,
-    true,
-    "Privacy link should use the small text treatment"
+    false,
+    "Privacy link should use the standard footer type size"
   );
   assertEqual(
     layoutChecks.privacyLinkHref.endsWith("/privacy/") || layoutChecks.privacyLinkHref.endsWith("/privacy"),
@@ -1114,14 +1164,25 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   const filterLayoutSnapshot = await captureFilterLayoutSnapshot(page);
   assertEqual(filterLayoutSnapshot.rowCount, 1, "Filter chips should render on a single row");
   assertEqual(
-    filterLayoutSnapshot.flexWrap,
-    "nowrap",
-    "Filter chip container should disable wrapping to preserve a single row"
+    Math.abs(filterLayoutSnapshot.navGap) <= FILTER_NAV_GAP_TOLERANCE_PX,
+    true,
+    "Filter chip rail should sit flush beneath the navbar without extra spacing"
   );
   assertEqual(
-    FILTER_CONTAINER_SCROLL_VALUES.includes(filterLayoutSnapshot.overflowX),
+    filterLayoutSnapshot.overflowDelta <= FILTER_OVERFLOW_TOLERANCE_PX,
     true,
-    "Filter chip container should allow horizontal scrolling when content overflows"
+    "Filter chip rail should avoid horizontal overflow so chips stay visible"
+  );
+  const filterDisplay = String(filterLayoutSnapshot.display ?? "").toLowerCase();
+  assertEqual(
+    filterDisplay.includes("grid"),
+    true,
+    "Filter chip container should use a grid layout for proportional sizing"
+  );
+  assertEqual(
+    String(filterLayoutSnapshot.gridTemplateColumns ?? "").trim().length > 0,
+    true,
+    "Filter chip container should declare explicit grid columns"
   );
   assertEqual(
     filterLayoutSnapshot.usesButtonClass,
@@ -1133,11 +1194,111 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     true,
     `Filter chips should avoid pill styling (radius ≤ ${FILTER_CHIP_MAX_RADIUS_PX}px)`
   );
+  assertEqual(
+    filterLayoutSnapshot.maxFontPx <= FILTER_FONT_MAX_PX + FILTER_FONT_DELTA_TOLERANCE_PX,
+    true,
+    "Filter chip typography should cap at the desktop font size"
+  );
+  const filterLayoutScenarios = [
+    {
+      description: "desktop width",
+      viewport: { width: 1280, height: 900 },
+      maxNavGapPx: FILTER_NAV_GAP_TOLERANCE_PX
+    },
+    {
+      description: "narrow width",
+      viewport: { width: 480, height: 900 },
+      maxNavGapPx: FILTER_NAV_GAP_TOLERANCE_PX
+    }
+  ];
+  const filterLayoutResults = [];
+  await scenarioRunner.runTable("Filter row layout", filterLayoutScenarios, async (scenario) => {
+    await page.setViewport({
+      width: scenario.viewport.width,
+      height: scenario.viewport.height,
+      deviceScaleFactor: 1
+    });
+    await reloadApp(page, baseUrl);
+    const scenarioSnapshot = await captureFilterLayoutSnapshot(page);
+    filterLayoutResults.push({ description: scenario.description, snapshot: scenarioSnapshot });
+    assertEqual(
+      scenarioSnapshot.rowCount,
+      1,
+      `Filter chips should remain a single row at ${scenario.description}`
+    );
+    assertEqual(
+      Math.abs(scenarioSnapshot.navGap) <= scenario.maxNavGapPx,
+      true,
+      `Filter rail should stay attached to the navbar at ${scenario.description}`
+    );
+    assertEqual(
+      scenarioSnapshot.overflowDelta <= FILTER_OVERFLOW_TOLERANCE_PX,
+      true,
+      `Filter rail should avoid horizontal overflow at ${scenario.description}`
+    );
+    const scenarioDisplay = String(scenarioSnapshot.display ?? "").toLowerCase();
+    assertEqual(
+      scenarioDisplay.includes("grid"),
+      true,
+      `Filter chip container should rely on grid layout at ${scenario.description}`
+    );
+    assertEqual(
+      scenarioSnapshot.maxFontPx <= FILTER_FONT_MAX_PX + FILTER_FONT_DELTA_TOLERANCE_PX,
+      true,
+      `Filter chip typography should stay capped at ${scenario.description}`
+    );
+  });
+  const desktopLayout = filterLayoutResults.find((entry) => entry.description === "desktop width")?.snapshot;
+  const narrowLayout = filterLayoutResults.find((entry) => entry.description === "narrow width")?.snapshot;
+  if (desktopLayout && narrowLayout) {
+    assertEqual(
+      narrowLayout.maxFontPx <= desktopLayout.maxFontPx + FILTER_FONT_DELTA_TOLERANCE_PX,
+      true,
+      "Filter chips should shrink or match the desktop font size on narrow viewports"
+    );
+    assertEqual(
+      narrowLayout.minFontPx <= desktopLayout.minFontPx + FILTER_FONT_DELTA_TOLERANCE_PX,
+      true,
+      "Filter chips should never grow when the viewport narrows"
+    );
+  }
+  await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
+  await reloadApp(page, baseUrl);
+  await page.waitForSelector(BUBBLE_LAYER_SELECTOR);
   if (reportScenario && typeof reportScenario.pass === "function") {
     reportScenario.pass("Initial layout validations");
   }
+  const footerLayoutSnapshot = await captureFooterLayoutSnapshot(page);
+  const orderedFooterRoles = footerLayoutSnapshot
+    .filter((entry) => ["privacy-link", "footer-theme-toggle", "footer-shortcuts", "footer-projects"].includes(entry.role))
+    .sort((left, right) => left.left - right.left)
+    .map((entry) => entry.role);
+  assertDeepEqual(
+    orderedFooterRoles,
+    ["privacy-link", "footer-theme-toggle", "footer-shortcuts", "footer-projects"],
+    "Footer elements should follow the specified left-to-right order"
+  );
+  const privacyFooterEntry = footerLayoutSnapshot.find((entry) => entry.role === "privacy-link");
+  if (!privacyFooterEntry) {
+    throw new Error("Privacy link entry missing from footer layout snapshot");
+  }
+  assertEqual(
+    Number.parseFloat(privacyFooterEntry.fontSize) >= 14,
+    true,
+    "Privacy link should use a readable font size"
+  );
+  const spacerEntry = footerLayoutSnapshot.find((entry) => entry.role === "footer-spacer");
+  assertEqual(
+    spacerEntry !== undefined && Number.parseFloat(spacerEntry.flexGrow) > 0,
+    true,
+    "Footer spacer should expand to separate the theme toggle from the shortcut hint"
+  );
   const footerMenuInitial = await captureFooterMenuSnapshot(page);
-  assertEqual(footerMenuInitial.prefixText, FOOTER_PREFIX_TEXT, "Footer should credit the lab before the dropdown");
+  assertEqual(
+    footerMenuInitial.containerClasses.includes("dropup"),
+    true,
+    "Footer projects container should render as a drop-up"
+  );
   assertEqual(footerMenuInitial.toggleLabel, FOOTER_MENU_LABEL, "Footer dropdown toggle should display the lab name");
   assertEqual(
     footerMenuInitial.toggleAriaLabel,
@@ -1239,16 +1400,46 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     page.waitForNavigation({ waitUntil: "networkidle0" }),
     page.click(PRIVACY_LINK_SELECTOR)
   ]);
-  const privacyPageSnapshot = await page.evaluate(() => {
-    const heading = document.querySelector("h1");
-    const robotsMeta = document.querySelector('meta[name="robots"]');
-    const mailLink = document.querySelector('a[href^="mailto:"]');
-    return {
-      heading: heading?.textContent?.trim() ?? "",
-      robots: robotsMeta?.getAttribute("content") ?? "",
-      hasMailLink: Boolean(mailLink)
-    };
-  });
+  const initialPrivacyTheme = await page.evaluate(
+    () => document.documentElement.getAttribute("data-bs-theme") ?? "light"
+  );
+  await page.waitForSelector(PRIVACY_ARTICLE_SELECTOR);
+  await page.waitForSelector(CHIP_SELECTOR);
+  const privacyPageSnapshot = await page.evaluate(
+    (selectors) => {
+      const heading = document.querySelector("h1");
+      const robotsMeta = document.querySelector('meta[name="robots"]');
+      const mailLink = document.querySelector('a[href^="mailto:"]');
+      const nav = document.querySelector("nav.navbar.fixed-top");
+      const footer = document.querySelector("nav.navbar.fixed-bottom");
+      const navStyles = nav ? getComputedStyle(nav) : null;
+      const footerStyles = footer ? getComputedStyle(footer) : null;
+      const searchInput = document.querySelector(selectors.searchInput);
+      const chips = Array.from(document.querySelectorAll(selectors.chipSelector));
+      const article = document.querySelector(selectors.articleSelector);
+      const articleStyles = article ? getComputedStyle(article) : null;
+      const isElementVisible = (styles) =>
+        Boolean(styles) &&
+        styles.getPropertyValue("display") !== "none" &&
+        styles.getPropertyValue("visibility") !== "hidden";
+      return {
+        heading: heading?.textContent?.trim() ?? "",
+        robots: robotsMeta?.getAttribute("content") ?? "",
+        hasMailLink: Boolean(mailLink),
+        navVisible: isElementVisible(navStyles),
+        footerVisible: isElementVisible(footerStyles),
+        hasSearch: Boolean(searchInput),
+        chipCount: chips.length,
+        articleBackground: articleStyles?.getPropertyValue("background-color") ?? "",
+        articleColor: articleStyles?.getPropertyValue("color") ?? ""
+      };
+    },
+    {
+      searchInput: SEARCH_INPUT_SELECTOR,
+      chipSelector: CHIP_SELECTOR,
+      articleSelector: PRIVACY_ARTICLE_SELECTOR
+    }
+  );
   assertEqual(
     privacyPageSnapshot.heading,
     PRIVACY_HEADING_TEXT,
@@ -1264,6 +1455,52 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     true,
     "Privacy policy page should expose a contact email link"
   );
+  assertEqual(privacyPageSnapshot.navVisible, true, "Privacy policy should reuse the global header");
+  assertEqual(privacyPageSnapshot.footerVisible, true, "Privacy policy should reuse the global footer");
+  assertEqual(
+    privacyPageSnapshot.hasSearch,
+    true,
+    "Privacy policy should expose the global search control within the header"
+  );
+  assertEqual(
+    privacyPageSnapshot.chipCount > 0,
+    true,
+    "Privacy policy should render the tag filter rail"
+  );
+  const toggledPrivacyTheme = initialPrivacyTheme === "dark" ? "light" : "dark";
+  await page.click(THEME_TOGGLE_SELECTOR);
+  await waitForThemeMode(page, toggledPrivacyTheme);
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const privacyThemeSnapshot = await page.evaluate((articleSelector) => {
+    const article = document.querySelector(articleSelector);
+    const articleStyles = article ? getComputedStyle(article) : null;
+    return {
+      theme: document.documentElement.getAttribute("data-bs-theme") ?? "",
+      articleBackground: articleStyles?.getPropertyValue("background-color") ?? "",
+      articleColor: articleStyles?.getPropertyValue("color") ?? ""
+    };
+  }, PRIVACY_ARTICLE_SELECTOR);
+  assertEqual(
+    privacyThemeSnapshot.theme,
+    toggledPrivacyTheme,
+    "Privacy policy should respect theme toggles"
+  );
+  assertEqual(
+    colorsAreClose(
+      privacyThemeSnapshot.articleBackground.trim(),
+      privacyPageSnapshot.articleBackground.trim()
+    ),
+    false,
+    "Privacy policy surface background should respond to theme toggles"
+  );
+  assertEqual(
+    colorsAreClose(privacyThemeSnapshot.articleColor.trim(), privacyPageSnapshot.articleColor.trim()),
+    false,
+    "Privacy policy typography should respond to theme toggles"
+  );
+  await page.click(THEME_TOGGLE_SELECTOR);
+  await waitForThemeMode(page, initialPrivacyTheme);
+  await delay(WAIT_AFTER_INTERACTION_MS);
   await page.goBack({ waitUntil: "networkidle0" });
   await waitForCardCount(page, initialCardIds.length);
   await delay(WAIT_AFTER_INTERACTION_MS);
@@ -1723,7 +1960,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   assertEqual(
     initialRiseDelta <= BUBBLE_RISE_DISTANCE_TOLERANCE_PX,
     true,
-    `Bubble should rise until it reaches the originating card's top edge (expected ${formatNumber(
+    `Bubble should rise toward the viewport header target (expected ${formatNumber(
       initialBubbleSnapshot.expectedRiseDistance
     )}px, got ${formatNumber(initialBubbleSnapshot.computedRiseDistance)}px)`
   );
@@ -1735,12 +1972,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     typeof initialBubbleState.y === "number" && typeof initialBubbleState.size === "number"
       ? initialBubbleState.y - initialBubbleState.size / 2 - initialBubbleState.riseDistance
       : Number.NaN;
-  const initialCardTop = typeof initialBubbleState.cardTop === "number" ? initialBubbleState.cardTop : Number.NaN;
-  const initialFinalDelta = Math.abs(initialFinalTop - initialCardTop);
   assertEqual(
-    Number.isFinite(initialFinalDelta) && initialFinalDelta <= BUBBLE_FINAL_ALIGNMENT_TOLERANCE_PX,
+    Number.isFinite(initialFinalTop) && initialFinalTop >= 0,
     true,
-    `Bubble final position should align with the card top edge (delta ${formatNumber(initialFinalDelta)}px)`
+    "Bubble final position should remain within the visible viewport"
+  );
+  assertEqual(
+    Number.isFinite(initialFinalTop) &&
+      initialFinalTop <= BUBBLE_VIEWPORT_MARGIN_PX + BUBBLE_VIEWPORT_TARGET_TOLERANCE_PX,
+    true,
+    `Bubble final position should reach the header band (top ${formatNumber(initialFinalTop)}px)`
   );
   await delay(BUBBLE_LIFETIME_MS + BUBBLE_REMOVAL_GRACE_MS);
   await waitForBubbleRemoval(page);
@@ -1866,7 +2107,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   assertEqual(
     toggledRiseDelta <= BUBBLE_RISE_DISTANCE_TOLERANCE_PX,
     true,
-    `Bubble should continue to rise to the card's top edge after switching theme (expected ${formatNumber(
+    `Bubble should continue to rise toward the viewport header band after switching theme (expected ${formatNumber(
       toggledBubbleSnapshot.expectedRiseDistance
     )}px, got ${formatNumber(toggledBubbleSnapshot.computedRiseDistance)}px)`
   );
@@ -1878,14 +2119,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     typeof toggledBubbleState.y === "number" && typeof toggledBubbleState.size === "number"
       ? toggledBubbleState.y - toggledBubbleState.size / 2 - toggledBubbleState.riseDistance
       : Number.NaN;
-  const toggledCardTop = typeof toggledBubbleState.cardTop === "number" ? toggledBubbleState.cardTop : Number.NaN;
-  const toggledFinalDelta = Math.abs(toggledFinalTop - toggledCardTop);
   assertEqual(
-    Number.isFinite(toggledFinalDelta) && toggledFinalDelta <= BUBBLE_FINAL_ALIGNMENT_TOLERANCE_PX,
+    Number.isFinite(toggledFinalTop) && toggledFinalTop >= 0,
     true,
-    `Bubble final position should align with the card top edge after switching theme (delta ${formatNumber(
-      toggledFinalDelta
-    )}px)`
+    "Bubble final position should remain within the visible viewport after switching theme"
+  );
+  assertEqual(
+    Number.isFinite(toggledFinalTop) &&
+      toggledFinalTop <= BUBBLE_VIEWPORT_MARGIN_PX + BUBBLE_VIEWPORT_TARGET_TOLERANCE_PX,
+    true,
+    `Bubble final position should reach the header band after switching theme (top ${formatNumber(toggledFinalTop)}px)`
   );
   await delay(BUBBLE_LIFETIME_MS + BUBBLE_REMOVAL_GRACE_MS);
   await waitForBubbleRemoval(page);
