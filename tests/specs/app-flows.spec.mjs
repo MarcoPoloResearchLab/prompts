@@ -47,6 +47,8 @@ const FILTER_ROW_EDGE_TOLERANCE_PX = 2;
 const FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX = 3;
 const FILTER_VERTICAL_INSET_MIN_PX = 6;
 const FILTER_HORIZONTAL_INSET_MIN_PX = 12;
+const ALL_CHIP_DISPLAY_LABEL = "★ ALL";
+const ALL_CHIP_DATA_TAG = "all";
 const LIKE_ICON_TEXT = "bubble_chart";
 const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
@@ -194,10 +196,17 @@ const waitForCardCount = (page, expectedCount) =>
 
 const waitForActiveChip = (page, label) =>
   page.waitForFunction(
-    (selector, targetLabel) =>
-      Array.from(document.querySelectorAll(`${selector}[data-active='true']`)).some(
-        (element) => element.textContent?.trim().toLowerCase() === targetLabel.toLowerCase()
-      ),
+    (selector, targetLabel) => {
+      const normalizedLabel = targetLabel.trim().toLowerCase();
+      return Array.from(document.querySelectorAll(`${selector}[data-active='true']`)).some((element) => {
+        const rawTag = element.getAttribute("data-tag");
+        if (typeof rawTag === "string" && rawTag.trim().length > 0) {
+          return rawTag.trim().toLowerCase() === normalizedLabel;
+        }
+        const text = element.textContent?.trim() ?? "";
+        return text.toLowerCase() === normalizedLabel;
+      });
+    },
     {},
     CHIP_SELECTOR,
     label
@@ -337,10 +346,18 @@ const setSearchValue = async (page, value) => {
 const clickChipByLabel = async (page, label) => {
   const didClick = await page.evaluate(
     (chipSelector, targetLabel) => {
-      const chip = Array.from(document.querySelectorAll(chipSelector)).find(
-        (element) => element.textContent?.trim().toLowerCase() === targetLabel.toLowerCase()
-      );
-      if (!chip) return false;
+      const normalizedLabel = targetLabel.trim().toLowerCase();
+      const chip = Array.from(document.querySelectorAll(chipSelector)).find((element) => {
+        const rawTag = element.getAttribute("data-tag");
+        if (typeof rawTag === "string" && rawTag.trim().length > 0) {
+          return rawTag.trim().toLowerCase() === normalizedLabel;
+        }
+        const text = element.textContent?.trim() ?? "";
+        return text.toLowerCase() === normalizedLabel;
+      });
+      if (!chip) {
+        return false;
+      }
       chip.click();
       return true;
     },
@@ -697,7 +714,14 @@ const reloadApp = async (page, baseUrl) => {
 
 const getActiveChipLabels = (page) =>
   page.$$eval(`${CHIP_SELECTOR}[data-active='true']`, (elements) =>
-    elements.map((element) => element.textContent?.trim())
+    elements.map((element) => {
+      const rawTag = element.getAttribute("data-tag");
+      if (typeof rawTag === "string" && rawTag.trim().length > 0) {
+        return rawTag.trim().toLowerCase();
+      }
+      const text = element.textContent?.trim() ?? "";
+      return text.toLowerCase();
+    })
   );
 
 const captureEmptyStateSnapshot = (page) =>
@@ -867,6 +891,13 @@ const captureFilterLayoutSnapshot = (page) =>
     if (!Number.isFinite(minRightInset)) {
       minRightInset = 0;
     }
+    const chipsExposeDataTag = chips.every((chip) => {
+      const rawTag = chip.getAttribute("data-tag");
+      return typeof rawTag === "string" && rawTag.trim().length > 0;
+    });
+    const firstChip = chips[0] ?? null;
+    const firstChipLabel = firstChip?.textContent?.trim() ?? "";
+    const firstChipTag = firstChip?.getAttribute("data-tag")?.trim() ?? "";
     return {
       rowCount: topPositions.size,
       navGap: wrapperRect.top - navRect.bottom,
@@ -887,7 +918,10 @@ const captureFilterLayoutSnapshot = (page) =>
       minTopInset,
       minBottomInset,
       minLeftInset,
-      minRightInset
+      minRightInset,
+      chipsExposeDataTag,
+      firstChipLabel,
+      firstChipTag
     };
   }, ".app-filter-bar", "#chipBar", CHIP_SELECTOR);
 const captureFooterMenuSnapshot = (page) =>
@@ -1312,6 +1346,21 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     `Filter chip rail should leave padding below the chips (inset=${bottomInsetValue.toFixed(2)}px)`
   );
   assertEqual(
+    filterLayoutSnapshot.chipsExposeDataTag,
+    true,
+    "Filter chips should expose data-tag attributes for raw identifiers"
+  );
+  assertEqual(
+    (filterLayoutSnapshot.firstChipTag ?? "").toLowerCase(),
+    ALL_CHIP_DATA_TAG,
+    "First filter chip should target the all tag"
+  );
+  assertEqual(
+    filterLayoutSnapshot.firstChipLabel,
+    ALL_CHIP_DISPLAY_LABEL,
+    "All chip should render star-prefixed uppercase label"
+  );
+  assertEqual(
     leftInsetValue >= FILTER_HORIZONTAL_INSET_MIN_PX,
     true,
     `Filter chip rail should leave padding before the first chip (inset=${leftInsetValue.toFixed(2)}px)`
@@ -1411,6 +1460,21 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       scenarioBottomInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
       true,
       `Filter rail should keep bottom padding at ${scenario.description} (inset=${scenarioBottomInsetValue.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioSnapshot.chipsExposeDataTag,
+      true,
+      `Filter chips should expose data-tag attributes at ${scenario.description}`
+    );
+    assertEqual(
+      (scenarioSnapshot.firstChipTag ?? "").toLowerCase(),
+      ALL_CHIP_DATA_TAG,
+      `First filter chip should target the all tag at ${scenario.description}`
+    );
+    assertEqual(
+      scenarioSnapshot.firstChipLabel,
+      ALL_CHIP_DISPLAY_LABEL,
+      `All chip should render the star-prefixed label at ${scenario.description}`
     );
     assertEqual(
       scenarioLeftInsetValue >= FILTER_HORIZONTAL_INSET_MIN_PX,

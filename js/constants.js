@@ -58,6 +58,7 @@ export const STRINGS = Object.freeze({
   likeButtonInactiveHint: "Click to add your like.",
   toastDismiss: "Dismiss notification",
   tagFilterLabel: "Tag filters",
+  allTagChipLabel: "★ ALL",
   footerHint: "Press / to search • Enter to copy the focused card",
   footerPrefix: "Built by",
   footerMenuLabel: "Built By Marco Polo Research Lab",
