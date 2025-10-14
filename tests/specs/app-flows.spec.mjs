@@ -85,6 +85,8 @@ const EMPTY_STATE_LIGHT_TEXT = "rgb(13, 34, 71)";
 const EMPTY_STATE_DARK_BACKGROUND = "rgb(26, 44, 92)";
 const EMPTY_STATE_DARK_TEXT = "rgb(217, 230, 255)";
 const PLACEHOLDER_OVERFLOW_TOLERANCE_PX = 1.5;
+const FOOTER_MENU_VERTICAL_GAP_TOLERANCE_PX = 4;
+const FOOTER_MENU_VIEWPORT_PADDING_PX = 4;
 const calculateUsedBytes = (sourceLength, ranges) => {
   if (!Array.isArray(ranges) || ranges.length === 0) {
     return 0;
@@ -931,6 +933,12 @@ const captureFooterMenuSnapshot = (page) =>
       const toggleElement = document.querySelector(toggleSelector);
       const menuElement = document.querySelector(menuSelector);
       const itemElements = Array.from(document.querySelectorAll(itemSelector));
+      const toggleRect =
+        toggleElement instanceof HTMLElement ? toggleElement.getBoundingClientRect() : null;
+      const menuRect = menuElement instanceof HTMLElement ? menuElement.getBoundingClientRect() : null;
+      const viewportHeight = Number.isFinite(window.innerHeight)
+        ? window.innerHeight
+        : document.documentElement.clientHeight;
       const isMenuVisible =
         menuElement instanceof HTMLElement
           ? (() => {
@@ -955,6 +963,11 @@ const captureFooterMenuSnapshot = (page) =>
         menuLabelledBy: menuElement?.getAttribute("aria-labelledby") ?? "",
         menuHasShowClass: menuElement?.classList.contains("show") ?? false,
         menuVisible: isMenuVisible,
+        toggleTop: toggleRect?.top ?? Number.NaN,
+        toggleBottom: toggleRect?.bottom ?? Number.NaN,
+        menuTop: menuRect?.top ?? Number.NaN,
+        menuBottom: menuRect?.bottom ?? Number.NaN,
+        viewportHeight,
         itemSummaries: itemElements.map((element) => ({
           label: element.textContent?.trim() ?? "",
           href: element.getAttribute("href") ?? "",
@@ -1596,6 +1609,28 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     footerMenuExpanded.menuVisible,
     true,
     "Footer dropdown menu should render visibly when expanded"
+  );
+  assertEqual(
+    Number.isFinite(footerMenuExpanded.toggleTop) && Number.isFinite(footerMenuExpanded.menuTop),
+    true,
+    "Footer dropdown geometry should be measurable when expanded"
+  );
+  const dropupGap = footerMenuExpanded.toggleTop - footerMenuExpanded.menuBottom;
+  const menuAboveToggle = footerMenuExpanded.menuBottom <= footerMenuExpanded.toggleTop + FOOTER_MENU_VERTICAL_GAP_TOLERANCE_PX;
+  const menuTopAboveToggle = footerMenuExpanded.menuTop <= footerMenuExpanded.toggleTop - FOOTER_MENU_VERTICAL_GAP_TOLERANCE_PX;
+  const menuWithinViewport =
+    footerMenuExpanded.menuTop >= FOOTER_MENU_VIEWPORT_PADDING_PX &&
+    footerMenuExpanded.menuBottom <= footerMenuExpanded.viewportHeight - FOOTER_MENU_VIEWPORT_PADDING_PX;
+  assertEqual(menuAboveToggle, true, `Footer dropdown should anchor above its toggle (gap=${dropupGap.toFixed(2)}px)`);
+  assertEqual(
+    menuTopAboveToggle,
+    true,
+    "Footer dropdown menu top edge should sit above the toggle control"
+  );
+  assertEqual(
+    menuWithinViewport,
+    true,
+    "Footer dropdown menu should stay within the viewport when expanded"
   );
   const footerMenuLabels = footerMenuExpanded.itemSummaries.map((item) => item.label);
   const footerMenuHrefs = footerMenuExpanded.itemSummaries.map((item) => item.href);

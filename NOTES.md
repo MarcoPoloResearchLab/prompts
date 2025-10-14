@@ -147,7 +147,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - [X] [PB-34] The filtering buttons must be evenly spread across the width of the viewport. 
     - [X] [PB-35] The filtering buttons must not touch the top or the bottom border of the row they are in
     - [X] [PB-36] The ALL filter button must render with a leading star and uppercase label while remaining selectable
-    - [ ] Make the Built By marko Polo Research Lab open the dropdown UP and not down. Write the tesst verifying the visiblility of the dropdown after it has been clicked on
+    - [X] [PB-37] Make the Built By marko Polo Research Lab open the dropdown UP and not down. Write the tesst verifying the visiblility of the dropdown after it has been clicked on
 
 ### Maintenance
 

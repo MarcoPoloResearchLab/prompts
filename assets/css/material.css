@@ -150,6 +150,9 @@ body {
 }
 
 [data-role="footer-projects"] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -176,6 +179,17 @@ body {
   border: 1px solid var(--app-footer-menu-border);
   box-shadow: var(--app-footer-menu-shadow);
   padding: 0.5rem 0;
+  position: absolute;
+  top: auto;
+  bottom: calc(100% + 0.5rem);
+  right: 0;
+  left: auto;
+  margin: 0;
+  transform-origin: bottom right;
+}
+
+[data-role="footer-projects-menu"].show {
+  display: block;
 }
 
 [data-role="footer-projects-menu"] .dropdown-item {
