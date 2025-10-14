@@ -46,6 +46,7 @@ const FILTER_FONT_DELTA_TOLERANCE_PX = 0.65;
 const FILTER_ROW_EDGE_TOLERANCE_PX = 2;
 const FILTER_CHIP_WIDTH_DELTA_TOLERANCE_PX = 3;
 const FILTER_VERTICAL_INSET_MIN_PX = 6;
+const FILTER_HORIZONTAL_INSET_MIN_PX = 12;
 const LIKE_ICON_TEXT = "bubble_chart";
 const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
@@ -795,6 +796,8 @@ const captureFilterLayoutSnapshot = (page) =>
     let maxChipWidth = 0;
     let minTopInset = Number.POSITIVE_INFINITY;
     let minBottomInset = Number.POSITIVE_INFINITY;
+    let minLeftInset = Number.POSITIVE_INFINITY;
+    let minRightInset = Number.POSITIVE_INFINITY;
     for (const chip of chips) {
       if (chip.classList.contains("btn") || chip.classList.contains("btn-outline-primary")) {
         usesButtonClass = true;
@@ -831,6 +834,14 @@ const captureFilterLayoutSnapshot = (page) =>
       if (Number.isFinite(bottomInset) && bottomInset < minBottomInset) {
         minBottomInset = bottomInset;
       }
+      const leftInset = rect.left - containerRect.left;
+      const rightInset = containerRect.right - rect.right;
+      if (Number.isFinite(leftInset) && leftInset < minLeftInset) {
+        minLeftInset = leftInset;
+      }
+      if (Number.isFinite(rightInset) && rightInset < minRightInset) {
+        minRightInset = rightInset;
+      }
     }
     if (!Number.isFinite(minFontPx)) {
       minFontPx = 0;
@@ -850,6 +861,12 @@ const captureFilterLayoutSnapshot = (page) =>
     if (!Number.isFinite(minBottomInset)) {
       minBottomInset = 0;
     }
+    if (!Number.isFinite(minLeftInset)) {
+      minLeftInset = 0;
+    }
+    if (!Number.isFinite(minRightInset)) {
+      minRightInset = 0;
+    }
     return {
       rowCount: topPositions.size,
       navGap: wrapperRect.top - navRect.bottom,
@@ -868,7 +885,9 @@ const captureFilterLayoutSnapshot = (page) =>
       minChipWidth,
       maxChipWidth,
       minTopInset,
-      minBottomInset
+      minBottomInset,
+      minLeftInset,
+      minRightInset
     };
   }, ".app-filter-bar", "#chipBar", CHIP_SELECTOR);
 const captureFooterMenuSnapshot = (page) =>
@@ -1261,6 +1280,12 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   const bottomInsetValue = Number.isFinite(filterLayoutSnapshot.minBottomInset)
     ? filterLayoutSnapshot.minBottomInset
     : 0;
+  const leftInsetValue = Number.isFinite(filterLayoutSnapshot.minLeftInset)
+    ? filterLayoutSnapshot.minLeftInset
+    : 0;
+  const rightInsetValue = Number.isFinite(filterLayoutSnapshot.minRightInset)
+    ? filterLayoutSnapshot.minRightInset
+    : 0;
   assertEqual(
     leftEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
     true,
@@ -1285,6 +1310,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     bottomInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
     true,
     `Filter chip rail should leave padding below the chips (inset=${bottomInsetValue.toFixed(2)}px)`
+  );
+  assertEqual(
+    leftInsetValue >= FILTER_HORIZONTAL_INSET_MIN_PX,
+    true,
+    `Filter chip rail should leave padding before the first chip (inset=${leftInsetValue.toFixed(2)}px)`
+  );
+  assertEqual(
+    rightInsetValue >= FILTER_HORIZONTAL_INSET_MIN_PX,
+    true,
+    `Filter chip rail should leave padding after the last chip (inset=${rightInsetValue.toFixed(2)}px)`
   );
   const filterLayoutScenarios = [
     {
@@ -1346,6 +1381,12 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     const scenarioBottomInsetValue = Number.isFinite(scenarioSnapshot.minBottomInset)
       ? scenarioSnapshot.minBottomInset
       : 0;
+    const scenarioLeftInsetValue = Number.isFinite(scenarioSnapshot.minLeftInset)
+      ? scenarioSnapshot.minLeftInset
+      : 0;
+    const scenarioRightInsetValue = Number.isFinite(scenarioSnapshot.minRightInset)
+      ? scenarioSnapshot.minRightInset
+      : 0;
     assertEqual(
       scenarioLeftEdgeDelta <= FILTER_ROW_EDGE_TOLERANCE_PX,
       true,
@@ -1370,6 +1411,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       scenarioBottomInsetValue >= FILTER_VERTICAL_INSET_MIN_PX,
       true,
       `Filter rail should keep bottom padding at ${scenario.description} (inset=${scenarioBottomInsetValue.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioLeftInsetValue >= FILTER_HORIZONTAL_INSET_MIN_PX,
+      true,
+      `Filter rail should keep left padding at ${scenario.description} (inset=${scenarioLeftInsetValue.toFixed(2)}px)`
+    );
+    assertEqual(
+      scenarioRightInsetValue >= FILTER_HORIZONTAL_INSET_MIN_PX,
+      true,
+      `Filter rail should keep right padding at ${scenario.description} (inset=${scenarioRightInsetValue.toFixed(2)}px)`
     );
   });
   const desktopLayout = filterLayoutResults.find((entry) => entry.description === "desktop width")?.snapshot;

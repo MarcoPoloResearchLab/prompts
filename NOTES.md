@@ -146,6 +146,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - [X] [PB-33] The bubble floats within the card, so if the card is partially hidden byt he filtering row/header, the bubble goes underneath them. It's as if the card was a window into some world where there are bubbles, but the bubbles can't eascape the borders of the cards.
     - [X] [PB-34] The filtering buttons must be evenly spread across the width of the viewport. 
     - [X] [PB-35] The filtering buttons must not touch the top or the bottom border of the row they are in
+    - [ ] Make the Built By marko Polo Research Lab open the dropdown UP and not down. Write the tesst verifying the visiblility of the dropdown after it has been clicked on
 
 ### Maintenance
 

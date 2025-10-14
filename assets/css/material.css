@@ -287,6 +287,7 @@ body {
   align-items: stretch;
   justify-items: stretch;
   padding-block: calc(var(--chip-padding-block, 0.4rem) + 0.35rem);
+  padding-inline: calc(var(--chip-padding-inline, 0.85rem) + 0.75rem);
 }
 
 .privacy-article {
