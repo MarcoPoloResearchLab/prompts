@@ -210,7 +210,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     2. The footer and the header are always visible on all pages. Refactor the code so that The footer and the header are visible on the Privacy page.
     3. There is no search prompt when the footer is on the privacy page
     4. There is no filtering badges row when the footer is on the Privacy page
-- [ ] [PB-32] Refactor the footer
+- [X] [PB-32] Refactor the footer
     1. "Privacy • Terms" in the footer font is 3 -- it is very, very small.
     2. "Privacy • Terms" in the footer is aligned to the left.
     3. Built By Marco Polo Research Lab is aligned to the right.

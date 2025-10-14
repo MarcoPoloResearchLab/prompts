@@ -48,8 +48,7 @@ const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
 const BRAND_TAGLINE_TEXT = "Built for instant prompt workflows.";
 const FOOTER_SHORTCUT_TEXT = "Press / to search • Enter to copy the focused card";
-const FOOTER_PREFIX_TEXT = "Built by";
-const FOOTER_MENU_LABEL = "Marco Polo Research Lab";
+const FOOTER_MENU_LABEL = "Built By Marco Polo Research Lab";
 const FOOTER_MENU_TOGGLE_ARIA_LABEL = "Browse Marco Polo Research Lab projects";
 const FOOTER_PROJECT_LINKS = Object.freeze([
   { label: "Marco Polo Research Lab", url: "https://mprlab.com" },
@@ -821,8 +820,8 @@ const captureFilterLayoutSnapshot = (page) =>
   }, ".app-filter-bar", "#chipBar", CHIP_SELECTOR);
 const captureFooterMenuSnapshot = (page) =>
   page.evaluate(
-    (prefixSelector, toggleSelector, menuSelector, itemSelector) => {
-      const prefixElement = document.querySelector(prefixSelector);
+    (toggleSelector, menuSelector, itemSelector) => {
+      const container = document.querySelector("[data-role='footer-projects']");
       const toggleElement = document.querySelector(toggleSelector);
       const menuElement = document.querySelector(menuSelector);
       const itemElements = Array.from(document.querySelectorAll(itemSelector));
@@ -838,7 +837,7 @@ const captureFooterMenuSnapshot = (page) =>
             })()
           : false;
       return {
-        prefixText: prefixElement?.textContent?.trim() ?? "",
+        containerClasses: container?.className ?? "",
         toggleLabel: toggleElement?.textContent?.trim() ?? "",
         toggleId: toggleElement?.id ?? "",
         toggleAriaExpanded: toggleElement?.getAttribute("aria-expanded") ?? "",
@@ -858,11 +857,28 @@ const captureFooterMenuSnapshot = (page) =>
         }))
       };
     },
-    FOOTER_PREFIX_SELECTOR,
     FOOTER_PROJECTS_TOGGLE_SELECTOR,
     FOOTER_PROJECTS_MENU_SELECTOR,
     FOOTER_PROJECT_ITEM_SELECTOR
   );
+
+const captureFooterLayoutSnapshot = (page) =>
+  page.evaluate(() => {
+    const container = document.querySelector("nav.navbar.fixed-bottom .container-fluid");
+    if (!(container instanceof HTMLElement)) {
+      return [];
+    }
+    return Array.from(container.querySelectorAll("[data-role]")).map((element) => {
+      const rect = element.getBoundingClientRect();
+      const styles = getComputedStyle(element);
+      return {
+        role: element.getAttribute("data-role") ?? "",
+        left: rect.left,
+        fontSize: styles.getPropertyValue("font-size"),
+        flexGrow: styles.getPropertyValue("flex-grow")
+      };
+    });
+  });
 
 const createScenarioRunner = (reportScenario) => {
   const hasReporter = reportScenario && typeof reportScenario.start === "function";
@@ -1135,8 +1151,8 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   );
   assertEqual(
     layoutChecks.privacyLinkIsSmall,
-    true,
-    "Privacy link should use the small text treatment"
+    false,
+    "Privacy link should use the standard footer type size"
   );
   assertEqual(
     layoutChecks.privacyLinkHref.endsWith("/privacy/") || layoutChecks.privacyLinkHref.endsWith("/privacy"),
@@ -1250,8 +1266,37 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   if (reportScenario && typeof reportScenario.pass === "function") {
     reportScenario.pass("Initial layout validations");
   }
+  const footerLayoutSnapshot = await captureFooterLayoutSnapshot(page);
+  const orderedFooterRoles = footerLayoutSnapshot
+    .filter((entry) => ["privacy-link", "footer-theme-toggle", "footer-shortcuts", "footer-projects"].includes(entry.role))
+    .sort((left, right) => left.left - right.left)
+    .map((entry) => entry.role);
+  assertDeepEqual(
+    orderedFooterRoles,
+    ["privacy-link", "footer-theme-toggle", "footer-shortcuts", "footer-projects"],
+    "Footer elements should follow the specified left-to-right order"
+  );
+  const privacyFooterEntry = footerLayoutSnapshot.find((entry) => entry.role === "privacy-link");
+  if (!privacyFooterEntry) {
+    throw new Error("Privacy link entry missing from footer layout snapshot");
+  }
+  assertEqual(
+    Number.parseFloat(privacyFooterEntry.fontSize) >= 14,
+    true,
+    "Privacy link should use a readable font size"
+  );
+  const spacerEntry = footerLayoutSnapshot.find((entry) => entry.role === "footer-spacer");
+  assertEqual(
+    spacerEntry !== undefined && Number.parseFloat(spacerEntry.flexGrow) > 0,
+    true,
+    "Footer spacer should expand to separate the theme toggle from the shortcut hint"
+  );
   const footerMenuInitial = await captureFooterMenuSnapshot(page);
-  assertEqual(footerMenuInitial.prefixText, FOOTER_PREFIX_TEXT, "Footer should credit the lab before the dropdown");
+  assertEqual(
+    footerMenuInitial.containerClasses.includes("dropup"),
+    true,
+    "Footer projects container should render as a drop-up"
+  );
   assertEqual(footerMenuInitial.toggleLabel, FOOTER_MENU_LABEL, "Footer dropdown toggle should display the lab name");
   assertEqual(
     footerMenuInitial.toggleAriaLabel,
