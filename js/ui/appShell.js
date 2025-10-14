@@ -1,6 +1,6 @@
 // @ts-check
 
-import { EVENTS, FOOTER_PROJECTS, ICONS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
+import { EVENTS, FOOTER_PROJECTS, ICONS, PATHS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
 import { createPlaceholderFragment, resolvePlaceholderText } from "../core/placeholders.js";
 import { createLogger } from "../utils/logging.js";
 import { escapeIdentifier } from "../utils/dom.js";
@@ -90,6 +90,7 @@ export function AppShell(dependencies) {
 
   return {
     strings: STRINGS,
+    paths: PATHS,
     isLoading: true,
     hasError: false,
     prompts: /** @type {Prompt[]} */ ([]),
@@ -97,6 +98,7 @@ export function AppShell(dependencies) {
     tags: /** @type {string[]} */ ([]),
     filters: /** @type {PromptFilters} */ ({ ...DEFAULT_FILTERS }),
     searchHasText: false,
+    pageMode: "gallery",
     footerMenuOpen: false,
     footerMenuId: FOOTER_MENU_ID,
     footerMenuToggleId: FOOTER_TOGGLE_ID,
@@ -109,6 +111,8 @@ export function AppShell(dependencies) {
     init() {
       this.restoreFilters();
       this.restoreLikes();
+      const rootMode = this.$root.getAttribute("data-page-mode");
+      this.pageMode = rootMode === "privacy" ? "privacy" : "gallery";
       this.$watch("tags", () => {
         this.$nextTick(() => {
           this.updateNavHeight();

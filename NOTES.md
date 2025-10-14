@@ -205,7 +205,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     All tests passed
     ```
 - [X] [PB-30] The badges filtering is inconscpicious -- it doesnt have a border, it doesnt have a horizontal or a vertical scroller. It's an alwyas present sticky row with badges, and all badges are always visible in one row. No matter how small the page, the badges just proportianlly decrease. If the page is very wide, the bagdes spread out. It's a sticky row of constant number of badges, always visible. They dont become larger than current size, but then get very very small if the page is narrow in order to fit in the row. The filtering row is a second row attached to the header. there is no space between them.
-- [ ] [PB-31] Bug: Theme doesn't fully switch the colors of the privacy page. 
+- [X] [PB-31] Bug: Theme doesn't fully switch the colors of the privacy page.
     1. Clicking on Prompt Bubble in the fotter returns the user to the top of the Prompt Bubble page with cards
     2. The footer and the header are always visible on all pages. Refactor the code so that The footer and the header are visible on the Privacy page.
     3. There is no search prompt when the footer is on the privacy page

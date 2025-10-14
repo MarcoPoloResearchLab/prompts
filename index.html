@@ -26,7 +26,14 @@
 </head>
 
 <body>
-  <div class="app-shell d-flex flex-column min-vh-100" x-data="AppShell()" x-init="init()" x-on:toast-show="forwardToast($event.detail)" x-cloak>
+  <div
+    class="app-shell d-flex flex-column min-vh-100"
+    x-data="AppShell()"
+    x-init="init()"
+    x-on:toast-show="forwardToast($event.detail)"
+    data-page-mode="gallery"
+    x-cloak
+  >
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top shadow-sm">
       <div class="container-fluid gap-3 align-items-center">
         <a class="navbar-brand fw-semibold d-flex flex-column gap-1 lh-sm" href="#top">
@@ -310,7 +317,7 @@
         <a
           class="small text-muted text-decoration-none ms-3"
           data-role="privacy-link"
-          href="./privacy/"
+          x-bind:href="paths.privacy"
           x-bind:aria-label="strings.privacyLinkAriaLabel"
           x-bind:title="strings.privacyLinkAriaLabel"
         >

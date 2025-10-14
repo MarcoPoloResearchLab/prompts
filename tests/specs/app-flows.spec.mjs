@@ -13,6 +13,7 @@ const FILTER_BAR_SELECTOR = "#chipBar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
 const PRIVACY_LINK_SELECTOR = "[data-role='privacy-link']";
+const PRIVACY_ARTICLE_SELECTOR = "[data-role='privacy-article']";
 const FOOTER_PREFIX_SELECTOR = "[data-role='footer-prefix']";
 const FOOTER_PROJECTS_TOGGLE_SELECTOR = "[data-role='footer-projects-toggle']";
 const FOOTER_PROJECTS_MENU_SELECTOR = "[data-role='footer-projects-menu']";
@@ -1352,16 +1353,46 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     page.waitForNavigation({ waitUntil: "networkidle0" }),
     page.click(PRIVACY_LINK_SELECTOR)
   ]);
-  const privacyPageSnapshot = await page.evaluate(() => {
-    const heading = document.querySelector("h1");
-    const robotsMeta = document.querySelector('meta[name="robots"]');
-    const mailLink = document.querySelector('a[href^="mailto:"]');
-    return {
-      heading: heading?.textContent?.trim() ?? "",
-      robots: robotsMeta?.getAttribute("content") ?? "",
-      hasMailLink: Boolean(mailLink)
-    };
-  });
+  const initialPrivacyTheme = await page.evaluate(
+    () => document.documentElement.getAttribute("data-bs-theme") ?? "light"
+  );
+  await page.waitForSelector(PRIVACY_ARTICLE_SELECTOR);
+  await page.waitForSelector(CHIP_SELECTOR);
+  const privacyPageSnapshot = await page.evaluate(
+    (selectors) => {
+      const heading = document.querySelector("h1");
+      const robotsMeta = document.querySelector('meta[name="robots"]');
+      const mailLink = document.querySelector('a[href^="mailto:"]');
+      const nav = document.querySelector("nav.navbar.fixed-top");
+      const footer = document.querySelector("nav.navbar.fixed-bottom");
+      const navStyles = nav ? getComputedStyle(nav) : null;
+      const footerStyles = footer ? getComputedStyle(footer) : null;
+      const searchInput = document.querySelector(selectors.searchInput);
+      const chips = Array.from(document.querySelectorAll(selectors.chipSelector));
+      const article = document.querySelector(selectors.articleSelector);
+      const articleStyles = article ? getComputedStyle(article) : null;
+      const isElementVisible = (styles) =>
+        Boolean(styles) &&
+        styles.getPropertyValue("display") !== "none" &&
+        styles.getPropertyValue("visibility") !== "hidden";
+      return {
+        heading: heading?.textContent?.trim() ?? "",
+        robots: robotsMeta?.getAttribute("content") ?? "",
+        hasMailLink: Boolean(mailLink),
+        navVisible: isElementVisible(navStyles),
+        footerVisible: isElementVisible(footerStyles),
+        hasSearch: Boolean(searchInput),
+        chipCount: chips.length,
+        articleBackground: articleStyles?.getPropertyValue("background-color") ?? "",
+        articleColor: articleStyles?.getPropertyValue("color") ?? ""
+      };
+    },
+    {
+      searchInput: SEARCH_INPUT_SELECTOR,
+      chipSelector: CHIP_SELECTOR,
+      articleSelector: PRIVACY_ARTICLE_SELECTOR
+    }
+  );
   assertEqual(
     privacyPageSnapshot.heading,
     PRIVACY_HEADING_TEXT,
@@ -1377,6 +1408,52 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     true,
     "Privacy policy page should expose a contact email link"
   );
+  assertEqual(privacyPageSnapshot.navVisible, true, "Privacy policy should reuse the global header");
+  assertEqual(privacyPageSnapshot.footerVisible, true, "Privacy policy should reuse the global footer");
+  assertEqual(
+    privacyPageSnapshot.hasSearch,
+    true,
+    "Privacy policy should expose the global search control within the header"
+  );
+  assertEqual(
+    privacyPageSnapshot.chipCount > 0,
+    true,
+    "Privacy policy should render the tag filter rail"
+  );
+  const toggledPrivacyTheme = initialPrivacyTheme === "dark" ? "light" : "dark";
+  await page.click(THEME_TOGGLE_SELECTOR);
+  await waitForThemeMode(page, toggledPrivacyTheme);
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const privacyThemeSnapshot = await page.evaluate((articleSelector) => {
+    const article = document.querySelector(articleSelector);
+    const articleStyles = article ? getComputedStyle(article) : null;
+    return {
+      theme: document.documentElement.getAttribute("data-bs-theme") ?? "",
+      articleBackground: articleStyles?.getPropertyValue("background-color") ?? "",
+      articleColor: articleStyles?.getPropertyValue("color") ?? ""
+    };
+  }, PRIVACY_ARTICLE_SELECTOR);
+  assertEqual(
+    privacyThemeSnapshot.theme,
+    toggledPrivacyTheme,
+    "Privacy policy should respect theme toggles"
+  );
+  assertEqual(
+    colorsAreClose(
+      privacyThemeSnapshot.articleBackground.trim(),
+      privacyPageSnapshot.articleBackground.trim()
+    ),
+    false,
+    "Privacy policy surface background should respond to theme toggles"
+  );
+  assertEqual(
+    colorsAreClose(privacyThemeSnapshot.articleColor.trim(), privacyPageSnapshot.articleColor.trim()),
+    false,
+    "Privacy policy typography should respond to theme toggles"
+  );
+  await page.click(THEME_TOGGLE_SELECTOR);
+  await waitForThemeMode(page, initialPrivacyTheme);
+  await delay(WAIT_AFTER_INTERACTION_MS);
   await page.goBack({ waitUntil: "networkidle0" });
   await waitForCardCount(page, initialCardIds.length);
   await delay(WAIT_AFTER_INTERACTION_MS);
