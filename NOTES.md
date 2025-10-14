@@ -129,6 +129,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - [X] [PB-29] Change the bubbles to only float when a bubble icon is pressed
     - [X] [PB-30] Review the theme as allpied to all elemnts on the page. The share button still poorly styled for both dark and light themes: it gets light highlighting in the darm mode and is poorly visible in light mode. Use the same styling as the copy button
     - [X] [PB-38] Add GitHub Action to run tests when a PR is opened against master. Ensure we only run tests when the code is changing
+    - [ ] [PB-40] The bubble floats up when the bubble button is pressed, and it floats down back into the button from the tom of the card when the button is depressed. It is that clicking the bubble card gives a bubble, and unclicking it takes the bubble away. The bubble can also gro as it flats up from the size of the button to the current size of a quater width of the card. When the bubble button is untoggled, the bubble travels in reversre and starts with a larger size and gets back to the smaller size.
 
 ### BugFixes
 
@@ -149,6 +150,8 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - [X] [PB-35] The filtering buttons must not touch the top or the bottom border of the row they are in
     - [X] [PB-36] The ALL filter button must render with a leading star and uppercase label while remaining selectable
     - [X] [PB-37] Make the Built By marko Polo Research Lab open the dropdown UP and not down. Write the tesst verifying the visiblility of the dropdown after it has been clicked on
+    - [ ] [PB-39] PB-33 is not fixed. Ensure that the bubble is only visible withint the confinements of the card and is flaoting under the top border of the card or any obstrructing element, and can not be seein outside the card.
+        
 
 ### Maintenance
 
