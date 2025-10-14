@@ -38,7 +38,10 @@ const SHARE_ICON_DARK_COLOR = "rgb(217, 230, 255)";
 const COLOR_COMPONENT_TOLERANCE = 1;
 const STICKY_DELTA_TOLERANCE_PX = 2;
 const FILTER_CHIP_MAX_RADIUS_PX = 12;
-const FILTER_CONTAINER_SCROLL_VALUES = Object.freeze(["auto", "scroll", "overlay"]);
+const FILTER_NAV_GAP_TOLERANCE_PX = 1;
+const FILTER_OVERFLOW_TOLERANCE_PX = 0.75;
+const FILTER_FONT_MAX_PX = 13.6;
+const FILTER_FONT_DELTA_TOLERANCE_PX = 0.65;
 const LIKE_ICON_TEXT = "bubble_chart";
 const LIKE_LABEL_PREFIX = "Toggle like for";
 const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
@@ -760,33 +763,61 @@ const captureGridRowLengths = (page) =>
     return rows.map((row) => row.count);
   }, CARD_SELECTOR);
 const captureFilterLayoutSnapshot = (page) =>
-  page.evaluate((containerSelector, chipSelector) => {
-    const container = document.querySelector(containerSelector);
+  page.evaluate((wrapperSelector, chipContainerSelector, chipSelector) => {
+    const nav = document.querySelector("nav.navbar.fixed-top");
+    const wrapper = document.querySelector(wrapperSelector);
+    const chipContainer = document.querySelector(chipContainerSelector);
     const chips = Array.from(document.querySelectorAll(chipSelector));
-    const topPositions = new Set();
+    if (!(nav instanceof HTMLElement) || !(wrapper instanceof HTMLElement) || !(chipContainer instanceof HTMLElement)) {
+      throw new Error("Filter layout prerequisites missing");
+    }
+    const navRect = nav.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const containerStyles = window.getComputedStyle(chipContainer);
+    const chipRects = chips.map((chip) => chip.getBoundingClientRect());
+    const topPositions = new Set(chipRects.map((rect) => rect.top.toFixed(2)));
     let maxBorderRadius = 0;
     let usesButtonClass = false;
+    let minFontPx = Number.POSITIVE_INFINITY;
+    let maxFontPx = 0;
     for (const chip of chips) {
-      const rect = chip.getBoundingClientRect();
-      topPositions.add(rect.top.toFixed(2));
       if (chip.classList.contains("btn") || chip.classList.contains("btn-outline-primary")) {
         usesButtonClass = true;
       }
-      const chipStyles = getComputedStyle(chip);
+      const chipStyles = window.getComputedStyle(chip);
       const radius = Number.parseFloat(chipStyles.getPropertyValue("border-radius"));
       if (Number.isFinite(radius) && radius > maxBorderRadius) {
         maxBorderRadius = radius;
       }
+      const fontSize = Number.parseFloat(chipStyles.getPropertyValue("font-size"));
+      if (Number.isFinite(fontSize)) {
+        if (fontSize < minFontPx) {
+          minFontPx = fontSize;
+        }
+        if (fontSize > maxFontPx) {
+          maxFontPx = fontSize;
+        }
+      }
     }
-    const containerStyles = container ? getComputedStyle(container) : null;
+    if (!Number.isFinite(minFontPx)) {
+      minFontPx = 0;
+    }
+    if (!Number.isFinite(maxFontPx)) {
+      maxFontPx = 0;
+    }
     return {
       rowCount: topPositions.size,
-      flexWrap: containerStyles?.getPropertyValue("flex-wrap")?.trim().toLowerCase() ?? "",
-      overflowX: containerStyles?.getPropertyValue("overflow-x")?.trim().toLowerCase() ?? "",
+      navGap: wrapperRect.top - navRect.bottom,
+      navHeight: navRect.height,
+      overflowDelta: Math.max(0, chipContainer.scrollWidth - chipContainer.clientWidth),
+      display: containerStyles.getPropertyValue("display"),
+      gridTemplateColumns: containerStyles.getPropertyValue("grid-template-columns"),
+      minFontPx,
+      maxFontPx,
       maxBorderRadius,
       usesButtonClass
     };
-  }, FILTER_BAR_SELECTOR, CHIP_SELECTOR);
+  }, ".app-filter-bar", "#chipBar", CHIP_SELECTOR);
 const captureFooterMenuSnapshot = (page) =>
   page.evaluate(
     (prefixSelector, toggleSelector, menuSelector, itemSelector) => {
@@ -1114,14 +1145,25 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   const filterLayoutSnapshot = await captureFilterLayoutSnapshot(page);
   assertEqual(filterLayoutSnapshot.rowCount, 1, "Filter chips should render on a single row");
   assertEqual(
-    filterLayoutSnapshot.flexWrap,
-    "nowrap",
-    "Filter chip container should disable wrapping to preserve a single row"
+    Math.abs(filterLayoutSnapshot.navGap) <= FILTER_NAV_GAP_TOLERANCE_PX,
+    true,
+    "Filter chip rail should sit flush beneath the navbar without extra spacing"
   );
   assertEqual(
-    FILTER_CONTAINER_SCROLL_VALUES.includes(filterLayoutSnapshot.overflowX),
+    filterLayoutSnapshot.overflowDelta <= FILTER_OVERFLOW_TOLERANCE_PX,
     true,
-    "Filter chip container should allow horizontal scrolling when content overflows"
+    "Filter chip rail should avoid horizontal overflow so chips stay visible"
+  );
+  const filterDisplay = String(filterLayoutSnapshot.display ?? "").toLowerCase();
+  assertEqual(
+    filterDisplay.includes("grid"),
+    true,
+    "Filter chip container should use a grid layout for proportional sizing"
+  );
+  assertEqual(
+    String(filterLayoutSnapshot.gridTemplateColumns ?? "").trim().length > 0,
+    true,
+    "Filter chip container should declare explicit grid columns"
   );
   assertEqual(
     filterLayoutSnapshot.usesButtonClass,
@@ -1133,6 +1175,77 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     true,
     `Filter chips should avoid pill styling (radius ≤ ${FILTER_CHIP_MAX_RADIUS_PX}px)`
   );
+  assertEqual(
+    filterLayoutSnapshot.maxFontPx <= FILTER_FONT_MAX_PX + FILTER_FONT_DELTA_TOLERANCE_PX,
+    true,
+    "Filter chip typography should cap at the desktop font size"
+  );
+  const filterLayoutScenarios = [
+    {
+      description: "desktop width",
+      viewport: { width: 1280, height: 900 },
+      maxNavGapPx: FILTER_NAV_GAP_TOLERANCE_PX
+    },
+    {
+      description: "narrow width",
+      viewport: { width: 480, height: 900 },
+      maxNavGapPx: FILTER_NAV_GAP_TOLERANCE_PX
+    }
+  ];
+  const filterLayoutResults = [];
+  await scenarioRunner.runTable("Filter row layout", filterLayoutScenarios, async (scenario) => {
+    await page.setViewport({
+      width: scenario.viewport.width,
+      height: scenario.viewport.height,
+      deviceScaleFactor: 1
+    });
+    await reloadApp(page, baseUrl);
+    const scenarioSnapshot = await captureFilterLayoutSnapshot(page);
+    filterLayoutResults.push({ description: scenario.description, snapshot: scenarioSnapshot });
+    assertEqual(
+      scenarioSnapshot.rowCount,
+      1,
+      `Filter chips should remain a single row at ${scenario.description}`
+    );
+    assertEqual(
+      Math.abs(scenarioSnapshot.navGap) <= scenario.maxNavGapPx,
+      true,
+      `Filter rail should stay attached to the navbar at ${scenario.description}`
+    );
+    assertEqual(
+      scenarioSnapshot.overflowDelta <= FILTER_OVERFLOW_TOLERANCE_PX,
+      true,
+      `Filter rail should avoid horizontal overflow at ${scenario.description}`
+    );
+    const scenarioDisplay = String(scenarioSnapshot.display ?? "").toLowerCase();
+    assertEqual(
+      scenarioDisplay.includes("grid"),
+      true,
+      `Filter chip container should rely on grid layout at ${scenario.description}`
+    );
+    assertEqual(
+      scenarioSnapshot.maxFontPx <= FILTER_FONT_MAX_PX + FILTER_FONT_DELTA_TOLERANCE_PX,
+      true,
+      `Filter chip typography should stay capped at ${scenario.description}`
+    );
+  });
+  const desktopLayout = filterLayoutResults.find((entry) => entry.description === "desktop width")?.snapshot;
+  const narrowLayout = filterLayoutResults.find((entry) => entry.description === "narrow width")?.snapshot;
+  if (desktopLayout && narrowLayout) {
+    assertEqual(
+      narrowLayout.maxFontPx <= desktopLayout.maxFontPx + FILTER_FONT_DELTA_TOLERANCE_PX,
+      true,
+      "Filter chips should shrink or match the desktop font size on narrow viewports"
+    );
+    assertEqual(
+      narrowLayout.minFontPx <= desktopLayout.minFontPx + FILTER_FONT_DELTA_TOLERANCE_PX,
+      true,
+      "Filter chips should never grow when the viewport narrows"
+    );
+  }
+  await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
+  await reloadApp(page, baseUrl);
+  await page.waitForSelector(BUBBLE_LAYER_SELECTOR);
   if (reportScenario && typeof reportScenario.pass === "function") {
     reportScenario.pass("Initial layout validations");
   }

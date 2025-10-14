@@ -23,6 +23,12 @@ const CARD_FEEDBACK_VARIANTS = Object.freeze({
 
 const FOOTER_MENU_ID = "footerProjectsMenu";
 const FOOTER_TOGGLE_ID = "footerProjectsToggle";
+const CHIP_FONT_RANGE_PX = Object.freeze({ min: 8, max: 13.6 });
+const CHIP_CHARACTER_WIDTH_ESTIMATE = 0.56;
+const CHIP_PADDING_INLINE_RANGE_REM = Object.freeze({ min: 0.65, max: 1 });
+const CHIP_PADDING_BLOCK_RANGE_REM = Object.freeze({ min: 0.28, max: 0.45 });
+const CHIP_CONTAINER_MIN_WIDTH_PX = 320;
+const CHIP_TEXT_BUFFER_PX = 4;
 
 /**
  * @returns {PromptLikeCounts}
@@ -95,12 +101,36 @@ export function AppShell(dependencies) {
     footerMenuId: FOOTER_MENU_ID,
     footerMenuToggleId: FOOTER_TOGGLE_ID,
     footerLinks: FOOTER_PROJECTS,
+    chipStyles: "",
+    chipResizeHandler: null,
     likeCountsById: createLikeCountMap(),
     cardFeedbackById: Object.create(null),
     cardFeedbackTimers: Object.create(null),
     init() {
       this.restoreFilters();
       this.restoreLikes();
+      this.$watch("tags", () => {
+        this.$nextTick(() => {
+          this.updateNavHeight();
+          this.updateChipStyles();
+        });
+      });
+      const resizeHandler = () => {
+        window.requestAnimationFrame(() => {
+          this.updateNavHeight();
+          this.updateChipStyles();
+        });
+      };
+      window.addEventListener("resize", resizeHandler, { passive: true });
+      this.chipResizeHandler = resizeHandler;
+      if (this.$root instanceof HTMLElement) {
+        this.$root.addEventListener("alpine:destroy", () => {
+          if (typeof this.chipResizeHandler === "function") {
+            window.removeEventListener("resize", this.chipResizeHandler);
+            this.chipResizeHandler = null;
+          }
+        });
+      }
       this.$watch("filters.searchText", (value) => {
         this.searchHasText = typeof value === "string" && value.trim().length > 0;
         this.persistFilters();
@@ -115,6 +145,10 @@ export function AppShell(dependencies) {
       });
       window.addEventListener("keydown", (event) => {
         this.handleGlobalKeydown(event);
+      });
+      this.$nextTick(() => {
+        this.updateNavHeight();
+        this.updateChipStyles();
       });
       this.loadPrompts();
     },
@@ -135,6 +169,10 @@ export function AppShell(dependencies) {
       try {
         this.prompts = await promptsRepository.loadAll();
         this.tags = promptsRepository.collectTags(this.prompts);
+        this.$nextTick(() => {
+          this.updateNavHeight();
+          this.updateChipStyles();
+        });
         this.pruneStoredLikes();
         this.applyFilters();
       } catch (error) {
@@ -432,6 +470,134 @@ export function AppShell(dependencies) {
      */
     chipLabel(tag) {
       return tag;
+    },
+    updateNavHeight() {
+      if (typeof document === "undefined") {
+        return;
+      }
+      const navElement = this.$root.querySelector("nav.navbar.fixed-top");
+      if (!(navElement instanceof HTMLElement)) {
+        return;
+      }
+      const navRect = navElement.getBoundingClientRect();
+      if (!Number.isFinite(navRect.height) || navRect.height <= 0) {
+        return;
+      }
+      document.documentElement.style.setProperty("--app-top-nav-height", `${navRect.height}px`);
+    },
+    updateChipStyles() {
+      if (typeof window === "undefined") {
+        return;
+      }
+      window.requestAnimationFrame(() => {
+        this.chipStyles = this.computeChipStyles();
+      });
+    },
+    /**
+     * @returns {string}
+     */
+    computeChipStyles() {
+      const chipCount = Math.max(1, this.tags.length);
+      const containerWidth = Math.max(
+        this.measureChipContainerWidth(),
+        typeof window !== "undefined" && Number.isFinite(window.innerWidth) ? window.innerWidth : CHIP_CONTAINER_MIN_WIDTH_PX,
+        CHIP_CONTAINER_MIN_WIDTH_PX
+      );
+      const columnWidth = containerWidth / chipCount;
+      let allowableFontPx = CHIP_FONT_RANGE_PX.max;
+      for (const tag of this.tags) {
+        const candidateFontPx = this.fontPxForLabel(tag, columnWidth);
+        if (Number.isFinite(candidateFontPx)) {
+          allowableFontPx = Math.min(allowableFontPx, candidateFontPx);
+        }
+      }
+      const constrainedFontPx = this.constrainValue(
+        allowableFontPx,
+        CHIP_FONT_RANGE_PX.min,
+        CHIP_FONT_RANGE_PX.max
+      );
+      const fontRem = constrainedFontPx / 16;
+      const minFontRem = CHIP_FONT_RANGE_PX.min / 16;
+      const maxFontRem = CHIP_FONT_RANGE_PX.max / 16;
+      const interpolationRange = maxFontRem - minFontRem;
+      const normalizedScale =
+        interpolationRange === 0 ? 1 : (fontRem - minFontRem) / interpolationRange;
+      const paddedScale = this.constrainValue(normalizedScale, 0, 1);
+      const inlinePaddingRem = this.mixRange(
+        CHIP_PADDING_INLINE_RANGE_REM.min,
+        CHIP_PADDING_INLINE_RANGE_REM.max,
+        paddedScale
+      );
+      const blockPaddingRem = this.mixRange(
+        CHIP_PADDING_BLOCK_RANGE_REM.min,
+        CHIP_PADDING_BLOCK_RANGE_REM.max,
+        paddedScale
+      );
+      return [
+        `--chip-count:${chipCount}`,
+        `--chip-font-size:${fontRem.toFixed(3)}rem`,
+        `--chip-padding-inline:${inlinePaddingRem.toFixed(3)}rem`,
+        `--chip-padding-block:${blockPaddingRem.toFixed(3)}rem`
+      ].join(";");
+    },
+    /**
+     * @returns {number}
+     */
+    measureChipContainerWidth() {
+      if (this.$refs.chipBar instanceof HTMLElement) {
+        return Math.max(this.$refs.chipBar.clientWidth, CHIP_CONTAINER_MIN_WIDTH_PX);
+      }
+      const fallbackContainer = this.$root.querySelector("#chipBar");
+      if (fallbackContainer instanceof HTMLElement) {
+        return Math.max(fallbackContainer.clientWidth, CHIP_CONTAINER_MIN_WIDTH_PX);
+      }
+      if (this.$root instanceof HTMLElement) {
+        return Math.max(this.$root.clientWidth, CHIP_CONTAINER_MIN_WIDTH_PX);
+      }
+      return CHIP_CONTAINER_MIN_WIDTH_PX;
+    },
+    /**
+     * @param {string} label
+     * @param {number} columnWidth
+     * @returns {number}
+     */
+    fontPxForLabel(label, columnWidth) {
+      const normalizedLabel = typeof label === "string" ? label.trim() : "";
+      if (normalizedLabel.length === 0) {
+        return CHIP_FONT_RANGE_PX.max;
+      }
+      const availableWidth = Math.max(columnWidth - this.estimatedPaddingPx(), CHIP_TEXT_BUFFER_PX);
+      if (availableWidth <= CHIP_TEXT_BUFFER_PX) {
+        return CHIP_FONT_RANGE_PX.min;
+      }
+      return availableWidth / (normalizedLabel.length * CHIP_CHARACTER_WIDTH_ESTIMATE);
+    },
+    /**
+     * @returns {number}
+     */
+    estimatedPaddingPx() {
+      const minimumInlinePaddingPx = CHIP_PADDING_INLINE_RANGE_REM.min * 2 * 16;
+      return minimumInlinePaddingPx + CHIP_TEXT_BUFFER_PX;
+    },
+    /**
+     * @param {number} value
+     * @param {number} minimum
+     * @param {number} maximum
+     * @returns {number}
+     */
+    constrainValue(value, minimum, maximum) {
+      const numericValue = Number.isFinite(value) ? value : minimum;
+      return Math.min(Math.max(numericValue, minimum), maximum);
+    },
+    /**
+     * @param {number} minimum
+     * @param {number} maximum
+     * @param {number} ratio
+     * @returns {number}
+     */
+    mixRange(minimum, maximum, ratio) {
+      const clampedRatio = this.constrainValue(ratio, 0, 1);
+      return minimum + (maximum - minimum) * clampedRatio;
     },
     cardFeedbackClass(cardId) {
       const feedback = this.cardFeedbackById[cardId];
