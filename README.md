@@ -36,6 +36,10 @@ npm test
 
 `npm test` starts a static server, launches Puppeteer, and exercises the end-to-end flows (search, filtering, copy/share, like toggles, hash highlighting, and persisted filters). The runner prints each spec name (`Running specs/app-flows.spec.mjs`, `✓ specs/app-flows.spec.mjs`), reports scenario metadata through `globalThis.__PROMPT_BUBBLES_TEST_PROGRESS`, and emits a coverage summary highlighting total, JS, and CSS execution (e.g., `Coverage summary: Total 82.41% (JS 88.10%, CSS 74.90%)`).
 
+## Continuous Integration
+
+Pull requests targeting `master` trigger a GitHub Actions workflow (`.github/workflows/tests.yml`) that runs `npm ci` and `npm test` whenever application code, assets, or test files change. Keep the browser suite green locally before submitting a PR to avoid CI failures.
+
 ## Project Layout
 
 ```
