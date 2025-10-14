@@ -71,7 +71,8 @@ const BUBBLE_SIZE_TOLERANCE = 0.06;
 const BUBBLE_LIFETIME_MS = 1700;
 const BUBBLE_REMOVAL_GRACE_MS = 220;
 const BUBBLE_RISE_DISTANCE_TOLERANCE_PX = 4;
-const BUBBLE_FINAL_ALIGNMENT_TOLERANCE_PX = 1.5;
+const BUBBLE_VIEWPORT_MARGIN_PX = 8;
+const BUBBLE_VIEWPORT_TARGET_TOLERANCE_PX = 6;
 const BUBBLE_LINEAR_EXPECTED_KEYFRAMES = 2;
 const EMPTY_STATE_LIGHT_BACKGROUND = "rgb(232, 240, 255)";
 const EMPTY_STATE_LIGHT_TEXT = "rgb(13, 34, 71)";
@@ -552,7 +553,7 @@ const triggerLikeBubble = async (page, cardId) => {
 
 const snapshotBubble = (page, cardId) =>
   page.evaluate(
-    async (bubbleSelector, cardSelector, id) => {
+    async (bubbleSelector, cardSelector, id, viewportMargin) => {
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
           resolve();
@@ -614,7 +615,7 @@ const snapshotBubble = (page, cardId) =>
         const bubbleTopValue = Number.parseFloat(bubbleStyle.top ?? "");
         initialBubbleTop = Number.isFinite(bubbleTopValue) ? bubbleTopValue : bubbleRect.top;
       }
-      const expectedRiseDistance = Math.max(0, initialBubbleTop - cardRect.top);
+      const expectedRiseDistance = Math.max(0, initialBubbleTop - viewportMargin);
       return {
         theme: bubble.getAttribute("data-theme") ?? "",
         borderColor: bubbleStyle.borderTopColor,
@@ -626,7 +627,8 @@ const snapshotBubble = (page, cardId) =>
     },
     BUBBLE_SELECTOR,
     CARD_SELECTOR,
-    cardId
+    cardId,
+    BUBBLE_VIEWPORT_MARGIN_PX
   );
 
 const captureBubbleAnimationMetadata = (page) =>
@@ -1958,7 +1960,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   assertEqual(
     initialRiseDelta <= BUBBLE_RISE_DISTANCE_TOLERANCE_PX,
     true,
-    `Bubble should rise until it reaches the originating card's top edge (expected ${formatNumber(
+    `Bubble should rise toward the viewport header target (expected ${formatNumber(
       initialBubbleSnapshot.expectedRiseDistance
     )}px, got ${formatNumber(initialBubbleSnapshot.computedRiseDistance)}px)`
   );
@@ -1970,12 +1972,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     typeof initialBubbleState.y === "number" && typeof initialBubbleState.size === "number"
       ? initialBubbleState.y - initialBubbleState.size / 2 - initialBubbleState.riseDistance
       : Number.NaN;
-  const initialCardTop = typeof initialBubbleState.cardTop === "number" ? initialBubbleState.cardTop : Number.NaN;
-  const initialFinalDelta = Math.abs(initialFinalTop - initialCardTop);
   assertEqual(
-    Number.isFinite(initialFinalDelta) && initialFinalDelta <= BUBBLE_FINAL_ALIGNMENT_TOLERANCE_PX,
+    Number.isFinite(initialFinalTop) && initialFinalTop >= 0,
     true,
-    `Bubble final position should align with the card top edge (delta ${formatNumber(initialFinalDelta)}px)`
+    "Bubble final position should remain within the visible viewport"
+  );
+  assertEqual(
+    Number.isFinite(initialFinalTop) &&
+      initialFinalTop <= BUBBLE_VIEWPORT_MARGIN_PX + BUBBLE_VIEWPORT_TARGET_TOLERANCE_PX,
+    true,
+    `Bubble final position should reach the header band (top ${formatNumber(initialFinalTop)}px)`
   );
   await delay(BUBBLE_LIFETIME_MS + BUBBLE_REMOVAL_GRACE_MS);
   await waitForBubbleRemoval(page);
@@ -2101,7 +2107,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   assertEqual(
     toggledRiseDelta <= BUBBLE_RISE_DISTANCE_TOLERANCE_PX,
     true,
-    `Bubble should continue to rise to the card's top edge after switching theme (expected ${formatNumber(
+    `Bubble should continue to rise toward the viewport header band after switching theme (expected ${formatNumber(
       toggledBubbleSnapshot.expectedRiseDistance
     )}px, got ${formatNumber(toggledBubbleSnapshot.computedRiseDistance)}px)`
   );
@@ -2113,14 +2119,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     typeof toggledBubbleState.y === "number" && typeof toggledBubbleState.size === "number"
       ? toggledBubbleState.y - toggledBubbleState.size / 2 - toggledBubbleState.riseDistance
       : Number.NaN;
-  const toggledCardTop = typeof toggledBubbleState.cardTop === "number" ? toggledBubbleState.cardTop : Number.NaN;
-  const toggledFinalDelta = Math.abs(toggledFinalTop - toggledCardTop);
   assertEqual(
-    Number.isFinite(toggledFinalDelta) && toggledFinalDelta <= BUBBLE_FINAL_ALIGNMENT_TOLERANCE_PX,
+    Number.isFinite(toggledFinalTop) && toggledFinalTop >= 0,
     true,
-    `Bubble final position should align with the card top edge after switching theme (delta ${formatNumber(
-      toggledFinalDelta
-    )}px)`
+    "Bubble final position should remain within the visible viewport after switching theme"
+  );
+  assertEqual(
+    Number.isFinite(toggledFinalTop) &&
+      toggledFinalTop <= BUBBLE_VIEWPORT_MARGIN_PX + BUBBLE_VIEWPORT_TARGET_TOLERANCE_PX,
+    true,
+    `Bubble final position should reach the header band after switching theme (top ${formatNumber(toggledFinalTop)}px)`
   );
   await delay(BUBBLE_LIFETIME_MS + BUBBLE_REMOVAL_GRACE_MS);
   await waitForBubbleRemoval(page);

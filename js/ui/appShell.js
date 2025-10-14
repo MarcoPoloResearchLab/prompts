@@ -29,6 +29,7 @@ const CHIP_PADDING_INLINE_RANGE_REM = Object.freeze({ min: 0.65, max: 1 });
 const CHIP_PADDING_BLOCK_RANGE_REM = Object.freeze({ min: 0.28, max: 0.45 });
 const CHIP_CONTAINER_MIN_WIDTH_PX = 320;
 const CHIP_TEXT_BUFFER_PX = 4;
+const BUBBLE_VIEWPORT_MARGIN_PX = 8;
 
 /**
  * @returns {PromptLikeCounts}
@@ -642,7 +643,8 @@ export function AppShell(dependencies) {
       }
       const bubbleSize = rect.width * 0.25;
       const bubbleRadius = bubbleSize / 2;
-      const targetCenterY = rect.top + bubbleRadius;
+      const targetTop = Math.max(0, BUBBLE_VIEWPORT_MARGIN_PX);
+      const targetCenterY = targetTop + bubbleRadius;
       const currentCenterY = clientY;
       const riseDistance = Math.max(0, currentCenterY - targetCenterY);
       const themeAttribute = document.documentElement.getAttribute("data-bs-theme");
