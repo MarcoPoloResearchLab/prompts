@@ -2294,6 +2294,17 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     true,
     "Bubble final position should be measurable within the card"
   );
+  const forwardInitialDiameter = initialBubbleSnapshot.bubbleWidth;
+  const forwardFinalDiameter = Number.isFinite(initialBubbleSnapshot.finalBubbleDiameter)
+    ? initialBubbleSnapshot.finalBubbleDiameter
+    : forwardInitialDiameter;
+  assertEqual(
+    Number.isFinite(forwardFinalDiameter) && Number.isFinite(forwardInitialDiameter)
+      ? forwardFinalDiameter >= forwardInitialDiameter - BUBBLE_CARD_BOUNDARY_TOLERANCE_PX
+      : false,
+    true,
+    "Forward bubble should grow beyond the button diameter"
+  );
   assertEqual(
     Math.abs(
       initialBubbleSnapshot.finalBubbleTop -
@@ -2302,9 +2313,6 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     true,
     "Bubble should settle just beneath the card top when floating upward"
   );
-  const forwardFinalDiameter = Number.isFinite(initialBubbleSnapshot.finalBubbleDiameter)
-    ? initialBubbleSnapshot.finalBubbleDiameter
-    : initialBubbleSnapshot.bubbleWidth;
   assertEqual(
     initialBubbleSnapshot.finalBubbleTop + forwardFinalDiameter <=
       initialBubbleSnapshot.cardBottom + BUBBLE_CARD_BOUNDARY_TOLERANCE_PX,
@@ -2485,6 +2493,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       toggledBubbleSnapshot.cardBottom + BUBBLE_CARD_BOUNDARY_TOLERANCE_PX,
     true,
     "Reverse bubble final frame should remain contained within the card"
+  );
+  const reverseButtonDiameter = Number.isFinite(toggledBubbleSnapshot.buttonDiameter)
+    ? toggledBubbleSnapshot.buttonDiameter
+    : reverseFinalDiameter;
+  assertEqual(
+    Number.isFinite(reverseFinalDiameter) && Number.isFinite(reverseButtonDiameter)
+      ? Math.abs(reverseFinalDiameter - reverseButtonDiameter) <= BUBBLE_RETURN_TOLERANCE_PX
+      : false,
+    true,
+    "Reverse bubble should shrink back to match the like button diameter"
   );
   await delay(BUBBLE_LIFETIME_MS + BUBBLE_REMOVAL_GRACE_MS);
   await waitForBubbleRemoval(page);
