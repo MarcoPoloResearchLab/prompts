@@ -128,6 +128,8 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - [X] [PB-28] The second sticky row with the filters/banges must be inconspcious -- it is currently in some oval elemnts, that should go away. The row with filters must fit in a single row, so there will be no two rows of badges.
     - [X] [PB-29] Change the bubbles to only float when a bubble icon is pressed
     - [X] [PB-30] Review the theme as allpied to all elemnts on the page. The share button still poorly styled for both dark and light themes: it gets light highlighting in the darm mode and is poorly visible in light mode. Use the same styling as the copy button
+    - [X] [PB-38] Add GitHub Action to run tests when a PR is opened against master. Ensure we only run tests when the code is changing
+    - [ ] [PB-40] The bubble floats up when the bubble button is pressed, and it floats down back into the button from the tom of the card when the button is depressed. It is that clicking the bubble card gives a bubble, and unclicking it takes the bubble away. The bubble can also gro as it flats up from the size of the button to the current size of a quater width of the card. When the bubble button is untoggled, the bubble travels in reversre and starts with a larger size and gets back to the smaller size.
 
 ### BugFixes
 
