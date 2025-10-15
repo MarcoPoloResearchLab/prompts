@@ -29,7 +29,9 @@ const CHIP_PADDING_INLINE_RANGE_REM = Object.freeze({ min: 0.65, max: 1 });
 const CHIP_PADDING_BLOCK_RANGE_REM = Object.freeze({ min: 0.28, max: 0.45 });
 const CHIP_CONTAINER_MIN_WIDTH_PX = 320;
 const CHIP_TEXT_BUFFER_PX = 4;
-const BUBBLE_VIEWPORT_MARGIN_PX = 8;
+const MINIMUM_BUBBLE_SIZE = 24;
+const BUBBLE_CARD_PADDING_PX = 2;
+const BUBBLE_MIN_TRAVEL_PX = 12;
 
 /**
  * @returns {PromptLikeCounts}
@@ -352,7 +354,7 @@ export function AppShell(dependencies) {
         logger.error("Bubble requested without card context");
         return;
       }
-      const bubbleDetail = this.createBubbleDetail(cardElement, event);
+      const bubbleDetail = this.createBubbleDetail(cardElement);
       if (!bubbleDetail) {
         logger.error("Bubble detail missing coordinates");
         return;
@@ -622,42 +624,77 @@ export function AppShell(dependencies) {
      * @param {Event} event
      * @returns {{ x: number; y: number; size: number; theme: "light" | "dark"; riseDistance: number } | null}
      */
-    createBubbleDetail(cardElement, event) {
-      const rect = cardElement.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) {
+    createBubbleDetail(cardElement) {
+      const cardRect = cardElement.getBoundingClientRect();
+      if (cardRect.width === 0 || cardRect.height === 0) {
         return null;
       }
-      const defaultX = rect.left + rect.width / 2;
-      const defaultY = rect.top + rect.height / 2;
-      const hasPointerEvent = typeof PointerEvent !== "undefined";
-      const isPointerEvent = hasPointerEvent && event instanceof PointerEvent;
-      const isMouseEvent = event instanceof MouseEvent;
-      const hasPointerCoordinates = isPointerEvent || isMouseEvent;
-      let clientX = hasPointerCoordinates ? event.clientX : defaultX;
-      let clientY = hasPointerCoordinates ? event.clientY : defaultY;
-      const syntheticPointer =
-        hasPointerCoordinates &&
-        (!Number.isFinite(clientX) ||
-          !Number.isFinite(clientY) ||
-          (event instanceof MouseEvent && event.detail === 0));
-      if (syntheticPointer || (clientX === 0 && clientY === 0)) {
-        clientX = defaultX;
-        clientY = defaultY;
+      const likeButton = cardElement.querySelector("[data-test='like-button']");
+      if (!(likeButton instanceof HTMLElement)) {
+        return null;
       }
-      const bubbleSize = rect.width * 0.25;
-      const bubbleRadius = bubbleSize / 2;
-      const targetTop = Math.max(0, BUBBLE_VIEWPORT_MARGIN_PX);
-      const targetCenterY = targetTop + bubbleRadius;
-      const currentCenterY = clientY;
-      const riseDistance = Math.max(0, currentCenterY - targetCenterY);
+      const buttonRect = likeButton.getBoundingClientRect();
+      if (buttonRect.width === 0 || buttonRect.height === 0) {
+        return null;
+      }
+      const cardId = typeof cardElement.id === "string" ? cardElement.id : "";
+      const isNowLiked = cardId.length > 0 ? this.isCardLiked(cardId) : false;
+      const buttonDiameter = Math.max(MINIMUM_BUBBLE_SIZE, Math.max(buttonRect.width, buttonRect.height));
+      const buttonRadius = buttonDiameter / 2;
+      const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+      const buttonCenterY = buttonRect.top + buttonRect.height / 2;
+      const maxBubbleSize = Math.max(MINIMUM_BUBBLE_SIZE, cardRect.width * 0.25);
+      const maxBubbleRadius = maxBubbleSize / 2;
+      const cardTop = cardRect.top;
+      const cardBottom = cardRect.bottom;
+      const cardLeft = cardRect.left;
+      const cardRight = cardRect.right;
+      let originX = buttonCenterX;
+      let originY;
+      let originSize;
+      let targetY;
+      let targetSize;
+
+      if (isNowLiked) {
+        originY = buttonCenterY;
+        originSize = buttonDiameter;
+        targetSize = maxBubbleSize;
+        const desiredTargetCenterY = cardTop + maxBubbleRadius + BUBBLE_CARD_PADDING_PX;
+        const minimumTargetCenterY = originY - BUBBLE_MIN_TRAVEL_PX;
+        targetY = Math.min(desiredTargetCenterY, minimumTargetCenterY);
+        const upperBound = cardTop + maxBubbleRadius + BUBBLE_CARD_PADDING_PX;
+        targetY = Math.max(upperBound, targetY);
+      } else {
+        originY = cardTop + maxBubbleRadius + BUBBLE_CARD_PADDING_PX;
+        originSize = maxBubbleSize;
+        targetSize = buttonDiameter;
+        const desiredTargetCenterY = buttonCenterY;
+        const minimumTargetCenterY = originY + BUBBLE_MIN_TRAVEL_PX;
+        const lowerBound = cardBottom - buttonRadius - BUBBLE_CARD_PADDING_PX;
+        targetY = Math.max(desiredTargetCenterY, minimumTargetCenterY);
+        targetY = Math.min(targetY, lowerBound);
+      }
+
+      if (isNowLiked && targetY >= originY - BUBBLE_CARD_PADDING_PX) {
+        targetY = Math.max(cardTop + maxBubbleRadius + BUBBLE_CARD_PADDING_PX, originY - BUBBLE_MIN_TRAVEL_PX);
+      }
+      if (!isNowLiked && targetY <= originY + BUBBLE_CARD_PADDING_PX) {
+        targetY = Math.min(cardBottom - buttonRadius - BUBBLE_CARD_PADDING_PX, originY + BUBBLE_MIN_TRAVEL_PX);
+      }
+
       const themeAttribute = document.documentElement.getAttribute("data-bs-theme");
       return {
-        x: clientX,
-        y: clientY,
-        size: bubbleSize,
-        riseDistance,
-        cardTop: rect.top,
-        theme: themeAttribute === "dark" ? "dark" : "light"
+        originX,
+        originY,
+        targetY,
+        originSize,
+        targetSize,
+        theme: themeAttribute === "dark" ? "dark" : "light",
+        direction: isNowLiked ? "forward" : "reverse",
+        cardTop,
+        cardBottom,
+        cardLeft,
+        cardRight
       };
     }
   };

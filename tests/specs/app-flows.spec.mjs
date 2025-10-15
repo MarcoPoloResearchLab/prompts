@@ -10,6 +10,7 @@ const COPY_BUTTON_LABEL_SELECTOR = "[data-test='copy-button'] span:last-of-type"
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
 const SHARE_BUTTON_LABEL_SELECTOR = "[data-test='share-button'] span:last-of-type";
 const FILTER_BAR_SELECTOR = "#chipBar";
+const FILTER_BAR_CONTAINER_SELECTOR = ".app-filter-bar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
 const PRIVACY_LINK_SELECTOR = "[data-role='privacy-link']";
@@ -68,6 +69,8 @@ const FOOTER_PROJECT_LINKS = Object.freeze([
   { label: "Prompt Bubbles", url: "https://prompts.mprlab.com" },
   { label: "Wallpapers", url: "https://wallpapers.mprlab.com" }
 ]);
+const TOP_NAV_SELECTOR = "nav.navbar.fixed-top";
+const BOTTOM_NAV_SELECTOR = "nav.navbar.fixed-bottom";
 const BUBBLE_LAYER_SELECTOR = "[data-role='bubble-layer']";
 const BUBBLE_SELECTOR = "[data-role='bubble']";
 const BUBBLE_BORDER_LIGHT = "rgba(25, 118, 210, 0.35)";
@@ -77,9 +80,11 @@ const BUBBLE_SIZE_TOLERANCE = 0.06;
 const BUBBLE_LIFETIME_MS = 1700;
 const BUBBLE_REMOVAL_GRACE_MS = 220;
 const BUBBLE_RISE_DISTANCE_TOLERANCE_PX = 4;
-const BUBBLE_VIEWPORT_MARGIN_PX = 8;
-const BUBBLE_VIEWPORT_TARGET_TOLERANCE_PX = 6;
 const BUBBLE_LINEAR_EXPECTED_KEYFRAMES = 2;
+const BUBBLE_CARD_BOUNDARY_TOLERANCE_PX = 2;
+const BUBBLE_RETURN_TOLERANCE_PX = 12;
+const BUBBLE_MIN_TRAVEL_PX = 12;
+const BUBBLE_FORWARD_FINAL_TOLERANCE_PX = 12;
 const EMPTY_STATE_LIGHT_BACKGROUND = "rgb(232, 240, 255)";
 const EMPTY_STATE_LIGHT_TEXT = "rgb(13, 34, 71)";
 const EMPTY_STATE_DARK_BACKGROUND = "rgb(26, 44, 92)";
@@ -87,6 +92,14 @@ const EMPTY_STATE_DARK_TEXT = "rgb(217, 230, 255)";
 const PLACEHOLDER_OVERFLOW_TOLERANCE_PX = 1.5;
 const FOOTER_MENU_VERTICAL_GAP_TOLERANCE_PX = 4;
 const FOOTER_MENU_VIEWPORT_PADDING_PX = 4;
+const parseTranslateY = (transform) => {
+  const match = /translate3d\(\s*0[^,]*,\s*([\-\d.]+)px/i.exec(transform);
+  if (!match) {
+    return Number.NaN;
+  }
+  const value = Number.parseFloat(match[1]);
+  return Number.isFinite(value) ? value : Number.NaN;
+};
 const calculateUsedBytes = (sourceLength, ranges) => {
   if (!Array.isArray(ranges) || ranges.length === 0) {
     return 0;
@@ -576,7 +589,7 @@ const triggerLikeBubble = async (page, cardId) => {
 
 const snapshotBubble = (page, cardId) =>
   page.evaluate(
-    async (bubbleSelector, cardSelector, id, viewportMargin) => {
+    async (bubbleSelector, cardSelector, id) => {
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
           resolve();
@@ -589,6 +602,7 @@ const snapshotBubble = (page, cardId) =>
       });
       const bubble = document.querySelector(bubbleSelector);
       const card = document.querySelector(`${cardSelector}#${CSS.escape(id)}`);
+      const likeButton = card?.querySelector("[data-test='like-button']");
       if (!bubble || !card) {
         return null;
       }
@@ -596,25 +610,19 @@ const snapshotBubble = (page, cardId) =>
       const cardRect = card.getBoundingClientRect();
       let computedRiseDistance = Number.NaN;
       const bubbleState = window.__lastBubbleState;
-      if (bubbleState && typeof bubbleState.riseDistance === "number") {
-        computedRiseDistance = bubbleState.riseDistance;
+      let bubbleDirection = "forward";
+      if (bubbleState && typeof bubbleState.distance === "number") {
+        computedRiseDistance = bubbleState.distance;
+      }
+      if (bubbleState && typeof bubbleState.direction === "string") {
+        bubbleDirection = bubbleState.direction === "reverse" ? "reverse" : "forward";
       }
       for (let attempt = 0; attempt < 6 && !Number.isFinite(computedRiseDistance); attempt += 1) {
-        const attributeValue = bubble.getAttribute("data-rise-distance");
-        if (attributeValue && attributeValue.trim().length > 0) {
-          const parsedAttributeValue = Number.parseFloat(attributeValue);
-          if (Number.isFinite(parsedAttributeValue)) {
-            computedRiseDistance = parsedAttributeValue;
-            break;
-          }
-        }
-        const styleValue = getComputedStyle(bubble).getPropertyValue("--app-bubble-rise-distance") ?? "";
+        const styleValue = getComputedStyle(bubble).getPropertyValue("--app-bubble-translate-y") ?? "";
         const parsedStyleValue = Number.parseFloat(styleValue);
         if (Number.isFinite(parsedStyleValue)) {
-          computedRiseDistance = parsedStyleValue;
-          if (parsedStyleValue > 0) {
-            break;
-          }
+          computedRiseDistance = Math.abs(parsedStyleValue);
+          break;
         }
         await new Promise((resolve) => {
           requestAnimationFrame(() => {
@@ -626,6 +634,7 @@ const snapshotBubble = (page, cardId) =>
         computedRiseDistance = 0;
       }
       const bubbleRect = bubble.getBoundingClientRect();
+      const buttonRect = likeButton instanceof HTMLElement ? likeButton.getBoundingClientRect() : null;
       let initialBubbleTop = Number.NaN;
       if (
         bubbleState &&
@@ -638,20 +647,39 @@ const snapshotBubble = (page, cardId) =>
         const bubbleTopValue = Number.parseFloat(bubbleStyle.top ?? "");
         initialBubbleTop = Number.isFinite(bubbleTopValue) ? bubbleTopValue : bubbleRect.top;
       }
-      const expectedRiseDistance = Math.max(0, initialBubbleTop - viewportMargin);
+      const expectedRiseDistance = Math.max(0, initialBubbleTop - cardRect.top);
+      const finalBubbleTop =
+        bubbleDirection === "reverse"
+          ? initialBubbleTop + computedRiseDistance
+          : initialBubbleTop - computedRiseDistance;
+      const finalBubbleDiameter =
+        bubbleState && typeof bubbleState.targetSize === "number"
+          ? bubbleState.targetSize
+          : Number.parseFloat(bubbleStyle.width);
       return {
         theme: bubble.getAttribute("data-theme") ?? "",
         borderColor: bubbleStyle.borderTopColor,
         bubbleWidth: Number.parseFloat(bubbleStyle.width),
         cardWidth: cardRect.width,
         expectedRiseDistance,
-        computedRiseDistance
+        computedRiseDistance,
+        cardTop: cardRect.top,
+        cardBottom: cardRect.bottom,
+        bubbleTop: bubbleRect.top,
+        bubbleBottom: bubbleRect.bottom,
+        initialBubbleTop,
+        finalBubbleTop,
+        finalBubbleDiameter,
+        direction: bubbleDirection,
+        buttonTop: buttonRect?.top ?? Number.NaN,
+        buttonBottom: buttonRect?.bottom ?? Number.NaN,
+        buttonCenterY: buttonRect ? buttonRect.top + buttonRect.height / 2 : Number.NaN,
+        buttonDiameter: buttonRect ? Math.max(buttonRect.width, buttonRect.height) : Number.NaN
       };
     },
     BUBBLE_SELECTOR,
     CARD_SELECTOR,
-    cardId,
-    BUBBLE_VIEWPORT_MARGIN_PX
+    cardId
   );
 
 const captureBubbleAnimationMetadata = (page) =>
@@ -675,11 +703,50 @@ const captureBubbleAnimationMetadata = (page) =>
         : typeof computed.easing === "string" && computed.easing.trim().length > 0
           ? computed.easing
           : "linear";
+    const firstKeyframe = keyframes[0] ?? {};
+    const lastKeyframe = keyframes[keyframes.length - 1] ?? {};
     return {
       keyframeCount: keyframes.length,
-      easing: easingValue
+      easing: easingValue,
+      firstTransform: String(firstKeyframe.transform ?? ""),
+      lastTransform: String(lastKeyframe.transform ?? "")
     };
   }, BUBBLE_SELECTOR);
+
+const captureBubbleLayerStackingSnapshot = (page) =>
+  page.evaluate(
+    (layerSelector, filterSelector, topSelector, bottomSelector) => {
+      const parseZIndex = (value) => {
+        if (typeof value !== "string") {
+          return Number.NaN;
+        }
+        const trimmed = value.trim().toLowerCase();
+        if (trimmed.length === 0 || trimmed === "auto") {
+          return Number.NaN;
+        }
+        const parsed = Number.parseInt(trimmed, 10);
+        return Number.isFinite(parsed) ? parsed : Number.NaN;
+      };
+      const readZIndex = (selector) => {
+        const element = document.querySelector(selector);
+        if (!(element instanceof HTMLElement)) {
+          return Number.NaN;
+        }
+        const styles = getComputedStyle(element);
+        return parseZIndex(styles.zIndex);
+      };
+      return {
+        layerZIndex: readZIndex(layerSelector),
+        filterZIndex: readZIndex(filterSelector),
+        topNavZIndex: readZIndex(topSelector),
+        bottomNavZIndex: readZIndex(bottomSelector)
+      };
+    },
+    BUBBLE_LAYER_SELECTOR,
+    FILTER_BAR_CONTAINER_SELECTOR,
+    TOP_NAV_SELECTOR,
+    BOTTOM_NAV_SELECTOR
+  );
 
 const waitForBubbleRemoval = (page) =>
   page.waitForFunction(
@@ -2132,6 +2199,47 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
 
   const initialThemeMode = await page.evaluate(() => document.documentElement.getAttribute("data-bs-theme") ?? "light");
   const initialThemeSnapshot = await captureThemeSnapshot(page);
+  const bubbleStackingSnapshot = await captureBubbleLayerStackingSnapshot(page);
+  assertEqual(
+    Number.isFinite(bubbleStackingSnapshot.layerZIndex),
+    true,
+    "Bubble layer should expose a numeric z-index value"
+  );
+  assertEqual(
+    bubbleStackingSnapshot.layerZIndex > 0,
+    true,
+    "Bubble layer should sit above the prompt cards"
+  );
+  assertEqual(
+    Number.isFinite(bubbleStackingSnapshot.filterZIndex),
+    true,
+    "Filter row should expose a numeric z-index value"
+  );
+  assertEqual(
+    bubbleStackingSnapshot.layerZIndex < bubbleStackingSnapshot.filterZIndex,
+    true,
+    "Bubble layer must remain beneath the filter row"
+  );
+  assertEqual(
+    Number.isFinite(bubbleStackingSnapshot.topNavZIndex),
+    true,
+    "Top navigation should expose a numeric z-index value"
+  );
+  assertEqual(
+    bubbleStackingSnapshot.layerZIndex < bubbleStackingSnapshot.topNavZIndex,
+    true,
+    "Bubble layer must remain beneath the top navigation"
+  );
+  assertEqual(
+    Number.isFinite(bubbleStackingSnapshot.bottomNavZIndex),
+    true,
+    "Footer should expose a numeric z-index value"
+  );
+  assertEqual(
+    bubbleStackingSnapshot.layerZIndex < bubbleStackingSnapshot.bottomNavZIndex,
+    true,
+    "Bubble layer must remain beneath the footer"
+  );
   const expectedInitialShareIconColor =
     initialThemeMode === "dark" ? SHARE_ICON_DARK_COLOR : SHARE_ICON_LIGHT_COLOR;
   assertEqual(
@@ -2224,38 +2332,71 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     `Bubble diameter should be about ${BUBBLE_SIZE_RATIO * 100}% of the card width`
   );
   assertEqual(
-    Number.isFinite(initialBubbleSnapshot.expectedRiseDistance),
+    Number.isFinite(initialBubbleSnapshot.computedRiseDistance),
     true,
-    "Bubble rise distance should be measurable when the bubble spawns"
+    "Bubble travel distance should be measurable when the animation starts"
   );
-  const initialRiseDelta = Math.abs(
-    (initialBubbleSnapshot.computedRiseDistance ?? Number.NaN) - initialBubbleSnapshot.expectedRiseDistance
+  const initialTranslateY = parseTranslateY(initialAnimationMetadata.lastTransform ?? "");
+  assertEqual(
+    Number.isFinite(initialTranslateY) && initialTranslateY <= 0,
+    true,
+    "Forward bubble animation should travel upward within the card"
   );
   assertEqual(
-    initialRiseDelta <= BUBBLE_RISE_DISTANCE_TOLERANCE_PX,
+    Number.isFinite(initialTranslateY)
+      ? Math.abs(initialTranslateY) >= BUBBLE_MIN_TRAVEL_PX
+      : false,
     true,
-    `Bubble should rise toward the viewport header target (expected ${formatNumber(
-      initialBubbleSnapshot.expectedRiseDistance
-    )}px, got ${formatNumber(initialBubbleSnapshot.computedRiseDistance)}px)`
-  );
-  const initialBubbleState = await page.evaluate(() => window.__lastBubbleState ?? null);
-  if (!initialBubbleState) {
-    throw new Error("Initial bubble state missing");
-  }
-  const initialFinalTop =
-    typeof initialBubbleState.y === "number" && typeof initialBubbleState.size === "number"
-      ? initialBubbleState.y - initialBubbleState.size / 2 - initialBubbleState.riseDistance
-      : Number.NaN;
-  assertEqual(
-    Number.isFinite(initialFinalTop) && initialFinalTop >= 0,
-    true,
-    "Bubble final position should remain within the visible viewport"
+    "Forward bubble animation should move a noticeable distance"
   );
   assertEqual(
-    Number.isFinite(initialFinalTop) &&
-      initialFinalTop <= BUBBLE_VIEWPORT_MARGIN_PX + BUBBLE_VIEWPORT_TARGET_TOLERANCE_PX,
+    Number.isFinite(initialBubbleSnapshot.computedRiseDistance)
+      ? initialBubbleSnapshot.computedRiseDistance >= BUBBLE_MIN_TRAVEL_PX
+      : false,
     true,
-    `Bubble final position should reach the header band (top ${formatNumber(initialFinalTop)}px)`
+    "Measured bubble travel should exceed the minimum motion threshold"
+  );
+  assertEqual(
+    initialBubbleSnapshot.bubbleTop >=
+      initialBubbleSnapshot.cardTop - BUBBLE_CARD_BOUNDARY_TOLERANCE_PX,
+    true,
+    "Bubble should render at or below the card's top edge"
+  );
+  assertEqual(
+    initialBubbleSnapshot.bubbleBottom <=
+      initialBubbleSnapshot.cardBottom + BUBBLE_CARD_BOUNDARY_TOLERANCE_PX,
+    true,
+    "Bubble should stay above the card's bottom edge"
+  );
+  assertEqual(
+    Number.isFinite(initialBubbleSnapshot.finalBubbleTop),
+    true,
+    "Bubble final position should be measurable within the card"
+  );
+  const forwardInitialDiameter = initialBubbleSnapshot.bubbleWidth;
+  const forwardFinalDiameter = Number.isFinite(initialBubbleSnapshot.finalBubbleDiameter)
+    ? initialBubbleSnapshot.finalBubbleDiameter
+    : forwardInitialDiameter;
+  assertEqual(
+    Number.isFinite(forwardFinalDiameter) && Number.isFinite(forwardInitialDiameter)
+      ? forwardFinalDiameter >= forwardInitialDiameter - BUBBLE_CARD_BOUNDARY_TOLERANCE_PX
+      : false,
+    true,
+    "Forward bubble should grow beyond the button diameter"
+  );
+  assertEqual(
+    Math.abs(
+      initialBubbleSnapshot.finalBubbleTop -
+        (initialBubbleSnapshot.cardTop + BUBBLE_CARD_BOUNDARY_TOLERANCE_PX)
+    ) <= BUBBLE_FORWARD_FINAL_TOLERANCE_PX,
+    true,
+    "Bubble should settle just beneath the card top when floating upward"
+  );
+  assertEqual(
+    initialBubbleSnapshot.finalBubbleTop + forwardFinalDiameter <=
+      initialBubbleSnapshot.cardBottom + BUBBLE_CARD_BOUNDARY_TOLERANCE_PX,
+    true,
+    "Bubble final frame should remain inside the card area"
   );
   await delay(BUBBLE_LIFETIME_MS + BUBBLE_REMOVAL_GRACE_MS);
   await waitForBubbleRemoval(page);
@@ -2371,38 +2512,76 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     `Bubble diameter should stay near ${BUBBLE_SIZE_RATIO * 100}% of the card width`
   );
   assertEqual(
-    Number.isFinite(toggledBubbleSnapshot.expectedRiseDistance),
+    Number.isFinite(toggledBubbleSnapshot.computedRiseDistance),
     true,
-    "Bubble rise distance should remain measurable after toggling theme"
+    "Bubble return distance should remain measurable after toggling theme"
   );
-  const toggledRiseDelta = Math.abs(
-    (toggledBubbleSnapshot.computedRiseDistance ?? Number.NaN) - toggledBubbleSnapshot.expectedRiseDistance
+  const toggledTranslateY = parseTranslateY(toggledAnimationMetadata.lastTransform ?? "");
+  assertEqual(
+    Number.isFinite(toggledTranslateY) && toggledTranslateY >= 0,
+    true,
+    "Reverse bubble animation should translate downward"
   );
   assertEqual(
-    toggledRiseDelta <= BUBBLE_RISE_DISTANCE_TOLERANCE_PX,
+    Number.isFinite(toggledTranslateY)
+      ? Math.abs(toggledTranslateY) >= BUBBLE_MIN_TRAVEL_PX
+      : false,
     true,
-    `Bubble should continue to rise toward the viewport header band after switching theme (expected ${formatNumber(
-      toggledBubbleSnapshot.expectedRiseDistance
-    )}px, got ${formatNumber(toggledBubbleSnapshot.computedRiseDistance)}px)`
+    "Reverse bubble animation should cover a noticeable distance"
   );
-  const toggledBubbleState = await page.evaluate(() => window.__lastBubbleState ?? null);
-  if (!toggledBubbleState) {
-    throw new Error("Toggled bubble state missing");
-  }
-  const toggledFinalTop =
-    typeof toggledBubbleState.y === "number" && typeof toggledBubbleState.size === "number"
-      ? toggledBubbleState.y - toggledBubbleState.size / 2 - toggledBubbleState.riseDistance
+  assertEqual(
+    Number.isFinite(toggledBubbleSnapshot.computedRiseDistance)
+      ? toggledBubbleSnapshot.computedRiseDistance >= BUBBLE_MIN_TRAVEL_PX
+      : false,
+    true,
+    "Measured reverse bubble distance should exceed the minimum motion threshold"
+  );
+  assertEqual(
+    toggledBubbleSnapshot.bubbleTop >=
+      toggledBubbleSnapshot.cardTop - BUBBLE_CARD_BOUNDARY_TOLERANCE_PX,
+    true,
+    "Reverse bubble should remain within the card's top boundary"
+  );
+  assertEqual(
+    toggledBubbleSnapshot.bubbleBottom <=
+      toggledBubbleSnapshot.cardBottom + BUBBLE_CARD_BOUNDARY_TOLERANCE_PX,
+    true,
+    "Reverse bubble should remain within the card's bottom boundary"
+  );
+  assertEqual(
+    Number.isFinite(toggledBubbleSnapshot.finalBubbleTop),
+    true,
+    "Reverse bubble final position should be measurable"
+  );
+  const expectedReturnTop =
+    Number.isFinite(toggledBubbleSnapshot.buttonCenterY) &&
+    Number.isFinite(toggledBubbleSnapshot.finalBubbleDiameter)
+      ? toggledBubbleSnapshot.buttonCenterY - toggledBubbleSnapshot.finalBubbleDiameter / 2
       : Number.NaN;
+  const finalReturnDelta = Math.abs(toggledBubbleSnapshot.finalBubbleTop - expectedReturnTop);
   assertEqual(
-    Number.isFinite(toggledFinalTop) && toggledFinalTop >= 0,
+    Number.isFinite(expectedReturnTop) && finalReturnDelta <= BUBBLE_RETURN_TOLERANCE_PX,
     true,
-    "Bubble final position should remain within the visible viewport after switching theme"
+    "Reverse bubble should settle back over the like button"
   );
+  const reverseFinalDiameter = Number.isFinite(toggledBubbleSnapshot.finalBubbleDiameter)
+    ? toggledBubbleSnapshot.finalBubbleDiameter
+    : toggledBubbleSnapshot.bubbleWidth;
   assertEqual(
-    Number.isFinite(toggledFinalTop) &&
-      toggledFinalTop <= BUBBLE_VIEWPORT_MARGIN_PX + BUBBLE_VIEWPORT_TARGET_TOLERANCE_PX,
+    toggledBubbleSnapshot.finalBubbleTop + reverseFinalDiameter <=
+      toggledBubbleSnapshot.cardBottom + BUBBLE_CARD_BOUNDARY_TOLERANCE_PX,
     true,
-    `Bubble final position should reach the header band after switching theme (top ${formatNumber(toggledFinalTop)}px)`
+    "Reverse bubble final frame should remain contained within the card"
+  );
+  const reverseButtonDiameter = Number.isFinite(toggledBubbleSnapshot.buttonDiameter)
+    ? toggledBubbleSnapshot.buttonDiameter
+    : reverseFinalDiameter;
+  assertEqual(
+    Number.isFinite(reverseFinalDiameter) && Number.isFinite(reverseButtonDiameter)
+      ? Math.abs(reverseFinalDiameter - reverseButtonDiameter) <= BUBBLE_RETURN_TOLERANCE_PX
+      : false,
+    true,
+    "Reverse bubble should shrink back to match the like button diameter"
   );
   await delay(BUBBLE_LIFETIME_MS + BUBBLE_REMOVAL_GRACE_MS);
   await waitForBubbleRemoval(page);
