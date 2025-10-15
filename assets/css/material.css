@@ -565,7 +565,7 @@ button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 1110;
+  z-index: 1000;
   overflow: visible;
 }
 

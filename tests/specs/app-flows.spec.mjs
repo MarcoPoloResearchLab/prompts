@@ -10,6 +10,7 @@ const COPY_BUTTON_LABEL_SELECTOR = "[data-test='copy-button'] span:last-of-type"
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
 const SHARE_BUTTON_LABEL_SELECTOR = "[data-test='share-button'] span:last-of-type";
 const FILTER_BAR_SELECTOR = "#chipBar";
+const FILTER_BAR_CONTAINER_SELECTOR = ".app-filter-bar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
 const PRIVACY_LINK_SELECTOR = "[data-role='privacy-link']";
@@ -68,6 +69,8 @@ const FOOTER_PROJECT_LINKS = Object.freeze([
   { label: "Prompt Bubbles", url: "https://prompts.mprlab.com" },
   { label: "Wallpapers", url: "https://wallpapers.mprlab.com" }
 ]);
+const TOP_NAV_SELECTOR = "nav.navbar.fixed-top";
+const BOTTOM_NAV_SELECTOR = "nav.navbar.fixed-bottom";
 const BUBBLE_LAYER_SELECTOR = "[data-role='bubble-layer']";
 const BUBBLE_SELECTOR = "[data-role='bubble']";
 const BUBBLE_BORDER_LIGHT = "rgba(25, 118, 210, 0.35)";
@@ -709,6 +712,41 @@ const captureBubbleAnimationMetadata = (page) =>
       lastTransform: String(lastKeyframe.transform ?? "")
     };
   }, BUBBLE_SELECTOR);
+
+const captureBubbleLayerStackingSnapshot = (page) =>
+  page.evaluate(
+    (layerSelector, filterSelector, topSelector, bottomSelector) => {
+      const parseZIndex = (value) => {
+        if (typeof value !== "string") {
+          return Number.NaN;
+        }
+        const trimmed = value.trim().toLowerCase();
+        if (trimmed.length === 0 || trimmed === "auto") {
+          return Number.NaN;
+        }
+        const parsed = Number.parseInt(trimmed, 10);
+        return Number.isFinite(parsed) ? parsed : Number.NaN;
+      };
+      const readZIndex = (selector) => {
+        const element = document.querySelector(selector);
+        if (!(element instanceof HTMLElement)) {
+          return Number.NaN;
+        }
+        const styles = getComputedStyle(element);
+        return parseZIndex(styles.zIndex);
+      };
+      return {
+        layerZIndex: readZIndex(layerSelector),
+        filterZIndex: readZIndex(filterSelector),
+        topNavZIndex: readZIndex(topSelector),
+        bottomNavZIndex: readZIndex(bottomSelector)
+      };
+    },
+    BUBBLE_LAYER_SELECTOR,
+    FILTER_BAR_CONTAINER_SELECTOR,
+    TOP_NAV_SELECTOR,
+    BOTTOM_NAV_SELECTOR
+  );
 
 const waitForBubbleRemoval = (page) =>
   page.waitForFunction(
@@ -2161,6 +2199,47 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
 
   const initialThemeMode = await page.evaluate(() => document.documentElement.getAttribute("data-bs-theme") ?? "light");
   const initialThemeSnapshot = await captureThemeSnapshot(page);
+  const bubbleStackingSnapshot = await captureBubbleLayerStackingSnapshot(page);
+  assertEqual(
+    Number.isFinite(bubbleStackingSnapshot.layerZIndex),
+    true,
+    "Bubble layer should expose a numeric z-index value"
+  );
+  assertEqual(
+    bubbleStackingSnapshot.layerZIndex > 0,
+    true,
+    "Bubble layer should sit above the prompt cards"
+  );
+  assertEqual(
+    Number.isFinite(bubbleStackingSnapshot.filterZIndex),
+    true,
+    "Filter row should expose a numeric z-index value"
+  );
+  assertEqual(
+    bubbleStackingSnapshot.layerZIndex < bubbleStackingSnapshot.filterZIndex,
+    true,
+    "Bubble layer must remain beneath the filter row"
+  );
+  assertEqual(
+    Number.isFinite(bubbleStackingSnapshot.topNavZIndex),
+    true,
+    "Top navigation should expose a numeric z-index value"
+  );
+  assertEqual(
+    bubbleStackingSnapshot.layerZIndex < bubbleStackingSnapshot.topNavZIndex,
+    true,
+    "Bubble layer must remain beneath the top navigation"
+  );
+  assertEqual(
+    Number.isFinite(bubbleStackingSnapshot.bottomNavZIndex),
+    true,
+    "Footer should expose a numeric z-index value"
+  );
+  assertEqual(
+    bubbleStackingSnapshot.layerZIndex < bubbleStackingSnapshot.bottomNavZIndex,
+    true,
+    "Bubble layer must remain beneath the footer"
+  );
   const expectedInitialShareIconColor =
     initialThemeMode === "dark" ? SHARE_ICON_DARK_COLOR : SHARE_ICON_LIGHT_COLOR;
   assertEqual(
