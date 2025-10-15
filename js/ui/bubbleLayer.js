@@ -63,9 +63,9 @@ export function BubbleLayer(dependencies = {}) {
       const cardBottom = Number.isFinite(detail.cardBottom) ? detail.cardBottom : detail.originY + startRadius;
       const cardLeft = Number.isFinite(detail.cardLeft) ? detail.cardLeft : detail.originX - startRadius;
       const cardRight = Number.isFinite(detail.cardRight) ? detail.cardRight : detail.originX + startRadius;
-      const clampX = (value) => {
-        const minimum = cardLeft + startRadius + CARD_BOUNDARY_PADDING_PX;
-        const maximum = cardRight - startRadius - CARD_BOUNDARY_PADDING_PX;
+      const clampX = (value, radius) => {
+        const minimum = cardLeft + radius + CARD_BOUNDARY_PADDING_PX;
+        const maximum = cardRight - radius - CARD_BOUNDARY_PADDING_PX;
         return Math.min(Math.max(value, minimum), maximum);
       };
       const clampY = (value, radius) => {
@@ -73,7 +73,8 @@ export function BubbleLayer(dependencies = {}) {
         const maximum = cardBottom - radius - CARD_BOUNDARY_PADDING_PX;
         return Math.min(Math.max(value, minimum), maximum);
       };
-      const clampedOriginX = clampX(detail.originX);
+      const largestRadius = Math.max(startRadius, targetRadius);
+      const clampedOriginX = clampX(detail.originX, largestRadius);
       const clampedOriginY = clampY(detail.originY, startRadius);
       const clampedTargetY = clampY(detail.targetY, targetRadius);
       let translateY = clampedTargetY - clampedOriginY;
