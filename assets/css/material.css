@@ -565,7 +565,7 @@ button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 1110;
+  z-index: 1000;
   overflow: visible;
 }
 
@@ -581,23 +581,24 @@ button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined
   mix-blend-mode: screen;
   opacity: 0;
   transform: translate3d(0, 0, 0) scale(0.85);
-  animation-name: app-bubble-rise;
+  animation-name: app-bubble-motion;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
+  transform-origin: center;
 }
 
 .bubble-layer__bubble[data-theme="dark"] {
   mix-blend-mode: lighten;
 }
 
-@keyframes app-bubble-rise {
+@keyframes app-bubble-motion {
   0% {
     opacity: 0.75;
-    transform: translate3d(0, 0, 0) scale(0.85);
+    transform: translate3d(0, 0, 0) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translate3d(0, calc(-1 * var(--app-bubble-rise-distance, 60px)), 0) scale(1.12);
+    transform: translate3d(0, var(--app-bubble-translate-y, -120px), 0) scale(var(--app-bubble-scale-end, 1.12));
   }
 }
 

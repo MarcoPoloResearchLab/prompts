@@ -6,6 +6,8 @@ import { createLogger } from "../utils/logging.js";
 const MAX_ACTIVE_BUBBLES = 6;
 const DEFAULT_THEME = "light";
 const MINIMUM_BUBBLE_SIZE = 24;
+const CARD_BOUNDARY_PADDING_PX = 2;
+const MIN_TRAVEL_DISTANCE_PX = 12;
 
 /**
  * @typedef {{
@@ -14,8 +16,13 @@ const MINIMUM_BUBBLE_SIZE = 24;
  *   y: number;
  *   size: number;
  *   theme: "light" | "dark";
- *   riseDistance: number;
+ *   translateY: number;
+ *   scaleEnd: number;
+ *   direction: "forward" | "reverse";
  *   cardTop: number;
+ *   cardBottom: number;
+ *   finalY: number;
+ *   targetSize: number;
  * }} Bubble
  */
 
@@ -29,16 +36,16 @@ export function BubbleLayer(dependencies = {}) {
     /** @type {Bubble[]} */
     bubbles: [],
     /**
-     * @param {{ x?: number; y?: number; size?: number; theme?: string; riseDistance?: number; cardTop?: number }} detail
+     * @param {{ originX?: number; originY?: number; targetY?: number; originSize?: number; targetSize?: number; theme?: string; direction?: string; cardTop?: number; cardBottom?: number; cardLeft?: number; cardRight?: number }} detail
      */
     spawn(detail) {
       if (
         !detail ||
-        typeof detail.x !== "number" ||
-        typeof detail.y !== "number" ||
-        typeof detail.size !== "number" ||
-        typeof detail.riseDistance !== "number" ||
-        typeof detail.cardTop !== "number"
+        typeof detail.originX !== "number" ||
+        typeof detail.originY !== "number" ||
+        typeof detail.targetY !== "number" ||
+        typeof detail.originSize !== "number" ||
+        typeof detail.targetSize !== "number"
       ) {
         logger.error("Bubble detail missing required coordinates", detail);
         return;
@@ -48,17 +55,60 @@ export function BubbleLayer(dependencies = {}) {
         typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const startSize = Math.max(MINIMUM_BUBBLE_SIZE, detail.originSize);
+      const targetSize = Math.max(MINIMUM_BUBBLE_SIZE, detail.targetSize);
+      const startRadius = startSize / 2;
+      const targetRadius = targetSize / 2;
+      const cardTop = Number.isFinite(detail.cardTop) ? detail.cardTop : detail.originY - startRadius;
+      const cardBottom = Number.isFinite(detail.cardBottom) ? detail.cardBottom : detail.originY + startRadius;
+      const cardLeft = Number.isFinite(detail.cardLeft) ? detail.cardLeft : detail.originX - startRadius;
+      const cardRight = Number.isFinite(detail.cardRight) ? detail.cardRight : detail.originX + startRadius;
+      const clampX = (value, radius) => {
+        const minimum = cardLeft + radius + CARD_BOUNDARY_PADDING_PX;
+        const maximum = cardRight - radius - CARD_BOUNDARY_PADDING_PX;
+        return Math.min(Math.max(value, minimum), maximum);
+      };
+      const clampY = (value, radius) => {
+        const minimum = cardTop + radius + CARD_BOUNDARY_PADDING_PX;
+        const maximum = cardBottom - radius - CARD_BOUNDARY_PADDING_PX;
+        return Math.min(Math.max(value, minimum), maximum);
+      };
+      const largestRadius = Math.max(startRadius, targetRadius);
+      const clampedOriginX = clampX(detail.originX, largestRadius);
+      const clampedOriginY = clampY(detail.originY, startRadius);
+      const clampedTargetY = clampY(detail.targetY, targetRadius);
+      let translateY = clampedTargetY - clampedOriginY;
+      if (Math.abs(translateY) < MIN_TRAVEL_DISTANCE_PX) {
+        const travelSign = translateY >= 0 ? 1 : -1;
+        translateY = travelSign * MIN_TRAVEL_DISTANCE_PX;
+      }
+      const finalY = clampedOriginY + translateY;
+      const scaleEnd = targetSize / startSize;
+      const direction = detail.direction === "reverse" ? "reverse" : "forward";
       const bubble = {
         id: identifier,
-        x: detail.x,
-        y: detail.y,
-        size: Math.max(MINIMUM_BUBBLE_SIZE, detail.size),
-        riseDistance: Math.max(0, detail.riseDistance),
-        cardTop: detail.cardTop,
+        x: clampedOriginX,
+        y: clampedOriginY,
+        size: startSize,
+        translateY,
+        scaleEnd,
+        direction,
+        cardTop,
+        cardBottom,
+        finalY,
+        targetSize,
         theme
       };
       if (window.__PROMPT_BUBBLES_TESTING__ === true) {
-        window.__lastBubbleState = bubble;
+        window.__lastBubbleState = {
+          distance: Math.abs(translateY),
+          translateY,
+          direction,
+          originY: clampedOriginY,
+          finalY,
+          originSize: startSize,
+          targetSize
+        };
       }
       const trimmedBubbles =
         this.bubbles.length >= MAX_ACTIVE_BUBBLES
@@ -89,7 +139,8 @@ export function BubbleLayer(dependencies = {}) {
         `width:${bubble.size}px`,
         `height:${bubble.size}px`,
         `animation-duration:${TIMINGS.bubbleLifetimeMs}ms`,
-        `--app-bubble-rise-distance:${bubble.riseDistance}px`
+        `--app-bubble-translate-y:${bubble.translateY}px`,
+        `--app-bubble-scale-end:${bubble.scaleEnd}`
       ].join(";");
     }
   };

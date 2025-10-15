@@ -150,8 +150,9 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - [X] [PB-35] The filtering buttons must not touch the top or the bottom border of the row they are in
     - [X] [PB-36] The ALL filter button must render with a leading star and uppercase label while remaining selectable
     - [X] [PB-37] Make the Built By marko Polo Research Lab open the dropdown UP and not down. Write the tesst verifying the visiblility of the dropdown after it has been clicked on
-    - [ ] [PB-39] PB-33 is not fixed. Ensure that the bubble is only visible withint the confinements of the card and is flaoting under the top border of the card or any obstrructing element, and can not be seein outside the card.
-        
+    - [X] [PB-39] PB-33 is not fixed. Ensure that the bubble is only visible within the confinements of the card and is flaoting under the top border of the card or any obstrructing element, and can not be seein outside the card.
+    - [X] [PB-40] The bubble floats up when the bubble button is pressed, and it floats down back into the button when the button is depressed so the animation reverses when unliking.
+    - [X] [PB-41] Bubble animations must render beneath the filter row and footer so they can never appear outside the card even when those elements cover the card.
 
 ### Maintenance
 
