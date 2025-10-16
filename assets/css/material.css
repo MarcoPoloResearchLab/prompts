@@ -624,5 +624,5 @@ button.btn.btn-outline-primary[data-test="share-button"] [data-role="share-icon"
 }
 [data-role="share-icon"] {
   color: var(--app-share-icon-color);
-  transition: color 0.2s ease;
+  transition: color 0.12s ease-out;
 }
