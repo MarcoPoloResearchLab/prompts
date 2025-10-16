@@ -108,6 +108,7 @@ export function AppShell(dependencies) {
     footerLinks: FOOTER_PROJECTS,
     chipStyles: "",
     chipResizeHandler: null,
+    linkedCardDismissCleanup: null,
     likeCountsById: createLikeCountMap(),
     cardFeedbackById: Object.create(null),
     cardFeedbackTimers: Object.create(null),
@@ -136,6 +137,7 @@ export function AppShell(dependencies) {
             window.removeEventListener("resize", this.chipResizeHandler);
             this.chipResizeHandler = null;
           }
+          this.teardownLinkedCardDismissal();
         });
       }
       this.$watch("filters.searchText", (value) => {
@@ -443,19 +445,56 @@ export function AppShell(dependencies) {
     highlightLinkedCard() {
       const gridElement = this.$refs.grid;
       if (!(gridElement instanceof HTMLElement)) {
+        this.teardownLinkedCardDismissal();
         return;
       }
-      gridElement.querySelectorAll("[data-linked-card='true']").forEach((element) => {
-        element.removeAttribute("data-linked-card");
-      });
+      this.clearLinkedCardHighlight(gridElement);
       const hashValue = window.location.hash.slice(1);
       if (!hashValue) {
+        this.teardownLinkedCardDismissal();
         return;
       }
       const targetCard = gridElement.querySelector(`#${escapeIdentifier(hashValue)}`);
       if (targetCard instanceof HTMLElement) {
         targetCard.setAttribute("data-linked-card", "true");
         targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+        this.prepareLinkedCardDismissal();
+        return;
+      }
+      this.teardownLinkedCardDismissal();
+    },
+    clearLinkedCardHighlight(gridElement) {
+      const resolvedGrid = gridElement ?? this.$refs.grid;
+      if (!(resolvedGrid instanceof HTMLElement)) {
+        return;
+      }
+      resolvedGrid.querySelectorAll("[data-linked-card='true']").forEach((element) => {
+        element.removeAttribute("data-linked-card");
+      });
+    },
+    prepareLinkedCardDismissal() {
+      this.teardownLinkedCardDismissal();
+      const handleUserInteraction = () => {
+        this.clearLinkedCardHighlight();
+        this.teardownLinkedCardDismissal();
+      };
+      const handlePointerInteraction = () => {
+        handleUserInteraction();
+      };
+      const handleKeyboardInteraction = () => {
+        handleUserInteraction();
+      };
+      window.addEventListener("pointerdown", handlePointerInteraction);
+      window.addEventListener("keydown", handleKeyboardInteraction);
+      this.linkedCardDismissCleanup = () => {
+        window.removeEventListener("pointerdown", handlePointerInteraction);
+        window.removeEventListener("keydown", handleKeyboardInteraction);
+        this.linkedCardDismissCleanup = null;
+      };
+    },
+    teardownLinkedCardDismissal() {
+      if (typeof this.linkedCardDismissCleanup === "function") {
+        this.linkedCardDismissCleanup();
       }
     },
     /**

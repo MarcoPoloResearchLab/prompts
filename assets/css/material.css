@@ -29,6 +29,7 @@
   --app-copy-button-border: rgba(25, 118, 210, 0.32);
   --app-copy-button-hover-bg: rgba(25, 118, 210, 0.12);
   --app-copy-button-focus-ring: 0 0 0 0.3rem rgba(25, 118, 210, 0.28);
+  --app-linked-card-border: rgba(25, 118, 210, 0.7);
   --app-bubble-border: rgba(25, 118, 210, 0.35);
   --app-bubble-highlight: rgba(255, 255, 255, 0.55);
   --app-bubble-shadow: rgba(25, 118, 210, 0.24);
@@ -76,6 +77,7 @@
   --app-copy-button-border: rgba(217, 230, 255, 0.38);
   --app-copy-button-hover-bg: rgba(64, 123, 255, 0.32);
   --app-copy-button-focus-ring: 0 0 0 0.3rem rgba(111, 174, 255, 0.28);
+  --app-linked-card-border: rgba(111, 174, 255, 0.85);
   --app-bubble-border: rgba(217, 230, 255, 0.45);
   --app-bubble-highlight: rgba(111, 174, 255, 0.4);
   --app-bubble-shadow: rgba(0, 12, 36, 0.42);
@@ -508,7 +510,7 @@ button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined
 }
 
 [data-test="prompt-card"] {
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, border-width 0.18s ease;
 }
 
 [data-test="prompt-card"]:hover {
@@ -521,6 +523,8 @@ button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined
 }
 
 [data-linked-card="true"] {
+  border-color: var(--app-linked-card-border);
+  border-width: 2px;
   box-shadow: var(--app-card-focus-ring);
 }
 
