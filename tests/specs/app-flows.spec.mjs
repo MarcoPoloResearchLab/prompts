@@ -1,4 +1,5 @@
 // @ts-check
+import { readFile } from "node:fs/promises";
 import { assertDeepEqual, assertEqual } from "../assert.js";
 
 const WAIT_AFTER_INTERACTION_MS = 180;
@@ -9,6 +10,7 @@ const COPY_BUTTON_SELECTOR = "[data-test='copy-button']";
 const COPY_BUTTON_LABEL_SELECTOR = "[data-test='copy-button'] span:last-of-type";
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
 const SHARE_BUTTON_LABEL_SELECTOR = "[data-test='share-button'] span:last-of-type";
+const SHARE_ICON_SELECTOR = "[data-role='share-icon']";
 const FILTER_BAR_SELECTOR = "#chipBar";
 const FILTER_BAR_CONTAINER_SELECTOR = ".app-filter-bar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
@@ -1102,6 +1104,60 @@ const createScenarioRunner = (reportScenario) => {
 
 export const run = async ({ browser, baseUrl, announceProgress, reportScenario, logs: _logs }) => {
   const page = await browser.newPage();
+  const alpineModuleSource = await readFile(
+    new URL("../../node_modules/alpinejs/dist/module.esm.js", import.meta.url),
+    "utf8"
+  );
+  const bootswatchStylesheet = await readFile(
+    new URL("../../node_modules/bootswatch/dist/materia/bootstrap.min.css", import.meta.url),
+    "utf8"
+  );
+  await page.setRequestInterception(true);
+  page.on("request", async (request) => {
+    const requestUrl = request.url();
+    if (requestUrl === "https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/module.esm.js") {
+      await request.respond({
+        status: 200,
+        contentType: "application/javascript; charset=utf-8",
+        headers: { "access-control-allow-origin": "*" },
+        body: alpineModuleSource
+      });
+      return;
+    }
+    if (requestUrl === "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css") {
+      await request.respond({
+        status: 200,
+        contentType: "text/css; charset=utf-8",
+        headers: { "access-control-allow-origin": "*" },
+        body: bootswatchStylesheet
+      });
+      return;
+    }
+    if (/^https:\/\/fonts\.(?:googleapis|gstatic)\.com\//i.test(requestUrl)) {
+      const isStylesheet = requestUrl.includes("fonts.googleapis.com");
+      await request.respond({
+        status: 200,
+        contentType: isStylesheet ? "text/css; charset=utf-8" : "application/octet-stream",
+        headers: { "access-control-allow-origin": "*" },
+        body: ""
+      });
+      return;
+    }
+    if (/^https:\/\/www\.googletagmanager\.com\/gtag\/js/i.test(requestUrl)) {
+      await request.respond({
+        status: 200,
+        contentType: "application/javascript; charset=utf-8",
+        headers: { "access-control-allow-origin": "*" },
+        body: ""
+      });
+      return;
+    }
+    if (/^https:\/\/loopaware\.mprlab\.com\/widget\.js/i.test(requestUrl)) {
+      await request.respond({ status: 204, headers: { "access-control-allow-origin": "*" }, body: "" });
+      return;
+    }
+    await request.continue();
+  });
   await Promise.all([
     page.coverage.startJSCoverage({ resetOnNavigation: false }),
     page.coverage.startCSSCoverage({ resetOnNavigation: false })
@@ -2404,6 +2460,34 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   const toggledThemeMode = initialThemeMode === "dark" ? "light" : "dark";
   await waitForThemeMode(page, toggledThemeMode);
   await delay(WAIT_AFTER_INTERACTION_MS);
+  const expectedToggledShareIconColor =
+    toggledThemeMode === "dark" ? SHARE_ICON_DARK_COLOR : SHARE_ICON_LIGHT_COLOR;
+  await page.waitForFunction(
+    (selector, previousColor) => {
+      const target = document.querySelector(selector);
+      if (!target) {
+        return false;
+      }
+      const currentColor = getComputedStyle(target).getPropertyValue("background-color").trim();
+      return currentColor !== previousColor.trim();
+    },
+    {},
+    TOP_NAV_SELECTOR,
+    initialThemeSnapshot.topNavBackgroundColor
+  );
+  await page.waitForFunction(
+    (selector, expectedColor) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return false;
+      }
+      const currentColor = getComputedStyle(element).getPropertyValue("color").trim();
+      return currentColor === expectedColor.trim();
+    },
+    {},
+    SHARE_ICON_SELECTOR,
+    expectedToggledShareIconColor
+  );
   const toggledThemeSnapshot = await captureThemeSnapshot(page);
   assertEqual(
     toggledThemeSnapshot.bodyBackgroundImage === initialThemeSnapshot.bodyBackgroundImage,
@@ -2440,8 +2524,6 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     false,
     "Theme switch should update search addon icon color"
   );
-  const expectedToggledShareIconColor =
-    toggledThemeMode === "dark" ? SHARE_ICON_DARK_COLOR : SHARE_ICON_LIGHT_COLOR;
   assertEqual(
     colorsAreClose(toggledThemeSnapshot.shareIconColor.trim(), expectedToggledShareIconColor),
     true,
