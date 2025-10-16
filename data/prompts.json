@@ -919,7 +919,7 @@
   {
     "id": "p108",
     "title": "NATO Name Speller",
-    "text": "Spell <placeholder: my name> in NATO phonetic alphabet.",
+    "text": "Spell {NAME_TO_SPELL} in the NATO phonetic alphabet.",
     "tags": [
       "education",
       "fun"
