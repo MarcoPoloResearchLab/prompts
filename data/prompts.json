@@ -915,5 +915,14 @@
       "creative",
       "fun"
     ]
+  },
+  {
+    "id": "p108",
+    "title": "NATO Name Speller",
+    "text": "Spell <placeholder: my name> in NATO phonetic alphabet.",
+    "tags": [
+      "education",
+      "fun"
+    ]
   }
 ]
