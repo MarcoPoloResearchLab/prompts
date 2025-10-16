@@ -527,6 +527,12 @@ button.btn.btn-outline-primary[data-test="share-button"] [data-role="share-icon"
 
 [data-linked-card="true"] {
   box-shadow: var(--app-card-focus-ring);
+  border-style: solid;
+  border-width: var(--app-linked-card-border-width);
+  border-color: var(--bs-card-border-color);
+}
+
+[data-linked-card="true"] [data-role="prompt-text"] {
   border-width: var(--app-linked-card-border-width);
 }
 
