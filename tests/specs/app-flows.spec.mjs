@@ -230,8 +230,22 @@ const waitForActiveChip = (page, label) =>
 const waitForLinkedCard = (page, cardId) =>
   page.waitForFunction(
     (selector, id) => {
-      const card = document.querySelector(`${selector}#${id}`);
+      const card = document.querySelector(`${selector}#${CSS.escape(id)}`);
       return card?.getAttribute("data-linked-card") === "true";
+    },
+    {},
+    CARD_SELECTOR,
+    cardId
+  );
+
+const waitForLinkedCardRemoval = (page, cardId) =>
+  page.waitForFunction(
+    (selector, id) => {
+      const card = document.querySelector(`${selector}#${CSS.escape(id)}`);
+      if (!card) {
+        return false;
+      }
+      return card.getAttribute("data-linked-card") !== "true";
     },
     {},
     CARD_SELECTOR,
@@ -2679,6 +2693,42 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
 
   await page.goto(`${baseUrl}#p05`, { waitUntil: "networkidle0" });
   await waitForLinkedCard(page, "p05");
+
+  const linkedCardStyles = await page.$eval(
+    `${CARD_SELECTOR}#p05`,
+    (element) => {
+      const computedStyle = window.getComputedStyle(element);
+      return {
+        borderColor: computedStyle.borderColor,
+        borderWidth: computedStyle.borderWidth,
+        boxShadow: computedStyle.boxShadow
+      };
+    }
+  );
+  const linkedCardBorderToken = await page.evaluate(() => {
+    const rootStyles = getComputedStyle(document.documentElement);
+    return rootStyles.getPropertyValue("--app-linked-card-border");
+  });
+  const normalizedLinkedBorderColor = normalizeToRgb(linkedCardStyles.borderColor);
+  const normalizedBorderToken = normalizeToRgb(linkedCardBorderToken);
+  assertEqual(
+    normalizedLinkedBorderColor,
+    normalizedBorderToken,
+    "Linked card border should follow the theme token"
+  );
+  assertEqual(
+    linkedCardStyles.borderWidth.trim(),
+    "2px",
+    "Linked card highlight should increase the border width"
+  );
+  assertEqual(
+    linkedCardStyles.boxShadow.trim() === "none",
+    false,
+    "Linked card highlight should apply the focus glow"
+  );
+
+  await page.click(SEARCH_INPUT_SELECTOR);
+  await waitForLinkedCardRemoval(page, "p05");
 
   await reloadApp(page, baseUrl);
   await clearSearch(page);
