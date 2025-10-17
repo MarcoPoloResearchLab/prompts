@@ -225,8 +225,4 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
         3. Built By Marco Polo Research Lab is aligned to the right.
         4. The order of labels in the footer from left to right: "Privacy • Terms", Theme toggle, spacer, "Press / to search • Enter to copy the focused card", Built By Marco Polo Research Lab
         5. Built By Marco Polo Research Lab is a drop up, so to speak -- it shows the menu of the sites above itself
-
-- [ ] Prepare a docker compose file for development that starts both the back-end and the front-end.
-    1. Add a GitHub actions pipeline that generates docker image
-    1. Use temirov/ghttp image for the front end
-    1. Load local .env for the backend
+        
