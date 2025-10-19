@@ -9,6 +9,8 @@
     "test": "node tests/run-tests.mjs"
   },
   "devDependencies": {
+    "alpinejs": "^3.13.5",
+    "bootswatch": "^5.3.3",
     "puppeteer": "^22.8.1"
   }
 }
