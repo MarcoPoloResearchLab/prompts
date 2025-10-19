@@ -78,7 +78,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 ### Features
 
     - [X] [PB-22] Add an ability to like a prompt on a card: add a bubble button with a counter. A single user can like a card once. liking it twice removes the like, so it works as a toggle. The icon is the bubble. The button is in the middle of the card bottom, between Copy and Share buttons. The icon shows the number of likes starting from 1.
-    - [ ] [PB-43] Extract footer into a common library, mpr-ui.js. Follow the suggestiosn on the approach from here: [text](mpr-ui.md). Place it in a local folder for now under js, and prepare instructions of moving it to an independent repo.
+    - [X] [PB-43] Extract footer into a common library, mpr-ui.js. Follow the suggestiosn on the approach from here: [text](mpr-ui.md). Place it in a local folder for now under js, and prepare instructions of moving it to an independent repo.
 
 ### Improvements
 
@@ -131,7 +131,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - [X] [PB-30] Review the theme as allpied to all elemnts on the page. The share button still poorly styled for both dark and light themes: it gets light highlighting in the darm mode and is poorly visible in light mode. Use the same styling as the copy button
     - [X] [PB-38] Add GitHub Action to run tests when a PR is opened against master. Ensure we only run tests when the code is changing
     - [x] [PB-40] The bubble floats up when the bubble button is pressed, and it floats down back into the button from the top of the card when the button is depressed. It is that clicking the bubble card gives a bubble, and unclicking it takes the bubble away. The bubble can also gro as it flats up from the size of the button to the current size of a quater width of the card. When the bubble button is untoggled, the bubble travels in reversre and starts with a larger size and gets back to the smaller size.
-    - [ ] [PB-42] Swap the placement of the dark/light theme switch and the helping message. Privacy Terms -> Help hint -> spacer -> theme toggle -> Built by Marco Polo Research Lab 
+    - [X] [PB-42] Swap the placement of the dark/light theme switch and the helping message. Privacy Terms -> Help hint -> spacer -> theme toggle -> Built by Marco Polo Research Lab 
 
 ### BugFixes
 
@@ -155,6 +155,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - [X] [PB-39] PB-33 is not fixed. Ensure that the bubble is only visible within the confinements of the card and is flaoting under the top border of the card or any obstrructing element, and can not be seein outside the card.
     - [X] [PB-40] The bubble floats up when the bubble button is pressed, and it floats down back into the button when the button is depressed so the animation reverses when unliking.
     - [X] [PB-41] Bubble animations must render beneath the filter row and footer so they can never appear outside the card even when those elements cover the card.
+    - [X] [PB-44] The linked-card highlight renders an opaque black border instead of the theme token color after navigating to a card hash. Update the styles so `[data-linked-card="true"]` uses the active theme border token and retains the focus glow, with coverage in the integration suite.
 
 ### Maintenance
 

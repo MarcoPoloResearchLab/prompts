@@ -1,7 +1,11 @@
 // @ts-check
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { assertDeepEqual, assertEqual } from "../assert.js";
 
-const WAIT_AFTER_INTERACTION_MS = 180;
+const require = createRequire(import.meta.url);
+
+const WAIT_AFTER_INTERACTION_MS = 600;
 const SEARCH_INPUT_SELECTOR = "[data-test='search-input']";
 const CHIP_SELECTOR = "[data-test='tag-chip']";
 const CARD_SELECTOR = "[data-test='prompt-card']";
@@ -23,6 +27,10 @@ const PRIVACY_LINK_TEXT = "Privacy • Terms";
 const PRIVACY_HEADING_TEXT = "Privacy Policy — Prompt Bubbles";
 const PRIVACY_ROBOTS_META = "noindex,nofollow";
 const APP_FLOWS_SPEC_IDENTIFIER = "specs/app-flows.spec.mjs";
+const ALPINE_CDN_URL = "https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/module.esm.js";
+const ALPINE_MODULE_PATH = require.resolve("alpinejs/dist/module.esm.js");
+const BOOTSWATCH_CDN_URL = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css";
+const BOOTSWATCH_CSS_PATH = require.resolve("bootswatch/dist/materia/bootstrap.min.css");
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
 const CLEAR_BUTTON_SELECTOR = "[data-test='clear-search']";
@@ -1116,6 +1124,41 @@ const createScenarioRunner = (reportScenario) => {
 
 export const run = async ({ browser, baseUrl, announceProgress, reportScenario, logs: _logs }) => {
   const page = await browser.newPage();
+  const [alpineModuleSource, bootswatchStylesheet] = await Promise.all([
+    readFile(ALPINE_MODULE_PATH),
+    readFile(BOOTSWATCH_CSS_PATH)
+  ]);
+  await page.setRequestInterception(true);
+  const alpineRequestHandler = async (request) => {
+    if (request.url() === ALPINE_CDN_URL) {
+      await request.respond({
+        status: 200,
+        headers: {
+          "content-type": "application/javascript; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: alpineModuleSource
+      });
+      return;
+    }
+    if (request.url() === BOOTSWATCH_CDN_URL) {
+      await request.respond({
+        status: 200,
+        headers: {
+          "content-type": "text/css; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: bootswatchStylesheet
+      });
+      return;
+    }
+    try {
+      await request.continue();
+    } catch {
+      await request.abort();
+    }
+  };
+  page.on("request", alpineRequestHandler);
   await Promise.all([
     page.coverage.startJSCoverage({ resetOnNavigation: false }),
     page.coverage.startCSSCoverage({ resetOnNavigation: false })
@@ -1608,8 +1651,30 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     .map((entry) => entry.role);
   assertDeepEqual(
     orderedFooterRoles,
-    ["privacy-link", "footer-theme-toggle", "footer-shortcuts", "footer-projects"],
-    "Footer elements should follow the specified left-to-right order"
+    ["privacy-link", "footer-shortcuts", "footer-theme-toggle", "footer-projects"],
+    "Footer elements should render the hint message before the theme toggle"
+  );
+  const footerLibrarySnapshot = await page.evaluate(() => {
+    const namespace = window.MPRUI ?? null;
+    const footerElement = document.querySelector("nav.navbar.fixed-bottom");
+    return {
+      hasNamespace: !!namespace && typeof namespace === "object",
+      hasRenderFooter: typeof namespace?.renderFooter === "function",
+      hasFooterFactory: typeof namespace?.factories?.footer === "function",
+      componentAttr: footerElement?.getAttribute("data-component") ?? "",
+      libraryAttr: footerElement?.getAttribute("data-library") ?? "",
+      dataRoleCount: footerElement ? footerElement.querySelectorAll("[data-role]").length : 0
+    };
+  });
+  assertEqual(footerLibrarySnapshot.hasNamespace, true, "MPRUI namespace should exist on window");
+  assertEqual(footerLibrarySnapshot.hasRenderFooter, true, "MPRUI should expose renderFooter()");
+  assertEqual(footerLibrarySnapshot.hasFooterFactory, true, "MPRUI should register an Alpine footer factory");
+  assertEqual(footerLibrarySnapshot.componentAttr, "mpr-footer", "Footer root should declare the mpr-footer component");
+  assertEqual(footerLibrarySnapshot.libraryAttr, "mpr-ui", "Footer root should attribute markup to mpr-ui");
+  assertEqual(
+    footerLibrarySnapshot.dataRoleCount > 0,
+    true,
+    "Library-rendered footer should preserve instrumentation roles"
   );
   const privacyFooterEntry = footerLayoutSnapshot.find((entry) => entry.role === "privacy-link");
   if (!privacyFooterEntry) {
@@ -2693,6 +2758,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
 
   await page.goto(`${baseUrl}#p05`, { waitUntil: "networkidle0" });
   await waitForLinkedCard(page, "p05");
+  await delay(WAIT_AFTER_INTERACTION_MS);
 
   const linkedCardStyles = await page.$eval(
     `${CARD_SELECTOR}#p05`,
@@ -2746,6 +2812,8 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     page.coverage.stopJSCoverage(),
     page.coverage.stopCSSCoverage()
   ]);
+  page.off("request", alpineRequestHandler);
+  await page.setRequestInterception(false);
   await page.close();
   return {
     coverage: {

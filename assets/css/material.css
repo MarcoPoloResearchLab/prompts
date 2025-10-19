@@ -383,13 +383,18 @@ button.btn.btn-outline-primary[data-test="share-button"]:active {
 }
 
 button.btn.btn-outline-primary[data-test="copy-button"] span,
-button.btn.btn-outline-primary[data-test="share-button"] span {
+button.btn.btn-outline-primary[data-test="share-button"] span:not([data-role="share-icon"]) {
   color: var(--app-copy-button-color) !important;
   transition: color 0.2s ease;
 }
 
 button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined {
   color: var(--app-copy-button-color) !important;
+}
+
+button.btn.btn-outline-primary[data-test="share-button"] [data-role="share-icon"] {
+  color: var(--app-share-icon-color) !important;
+  transition: color 0.2s ease;
 }
 
 [data-role="search-addon"] {
@@ -510,7 +515,7 @@ button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined
 }
 
 [data-test="prompt-card"] {
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, border-width 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 [data-test="prompt-card"]:hover {
@@ -523,9 +528,10 @@ button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined
 }
 
 [data-linked-card="true"] {
-  border-color: var(--app-linked-card-border);
-  border-width: 2px;
-  box-shadow: var(--app-card-focus-ring);
+  border-width: 2px !important;
+  border-style: solid !important;
+  border-color: var(--app-linked-card-border) !important;
+  box-shadow: var(--app-card-focus-ring) !important;
 }
 
 .prompt-text {

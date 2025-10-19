@@ -28,6 +28,8 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 - Modules live under `js/`: shared constants, utilities (clipboard, storage, logging, theming), pure core logic, and Alpine factories (`ui/`).
 - Data fetches now target `./data/prompts.json`; the repository validates structure before exposing prompts and tags.
 - Footer dropdown destinations reside in `FOOTER_PROJECTS` (`js/constants.js`); adjust that array to update the lab projects list.
+- The footer markup renders through `js/vendor/mpr-ui/mpr-ui.js`, which registers the `mprFooter` Alpine factory and an imperative `window.MPRUI.renderFooter` helper; host pages pass localized strings, privacy paths, and project links via the options object.
+- When promoting the footer into the standalone library described in `mpr-ui.md`, move the `js/vendor/mpr-ui/` folder into the new repository, copy its README guidance, and switch site imports to the CDN-delivered `mpr-ui.js`.
 - Like state persists through `localStorage` using the `prompt-bubbles-likes` key; `AppShell` owns helpers for toggling, persistence, and accessibility labels.
 - Copy button styles rely on the new `--app-copy-button-*` tokens injected in `assets/css/material.css`; update those variables when adjusting action colors.
 - Sticky filter styling is driven by `--app-filter-bar-*` and `--app-filter-chip-*` tokens across `.app-filter-bar` and `[data-role="filter-chip"]`; keep offsets aligned with the fixed top navbar height.
