@@ -383,13 +383,18 @@ button.btn.btn-outline-primary[data-test="share-button"]:active {
 }
 
 button.btn.btn-outline-primary[data-test="copy-button"] span,
-button.btn.btn-outline-primary[data-test="share-button"] span {
+button.btn.btn-outline-primary[data-test="share-button"] span:not([data-role="share-icon"]) {
   color: var(--app-copy-button-color) !important;
   transition: color 0.2s ease;
 }
 
 button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined {
   color: var(--app-copy-button-color) !important;
+}
+
+button.btn.btn-outline-primary[data-test="share-button"] [data-role="share-icon"] {
+  color: var(--app-share-icon-color) !important;
+  transition: color 0.2s ease;
 }
 
 [data-role="search-addon"] {
