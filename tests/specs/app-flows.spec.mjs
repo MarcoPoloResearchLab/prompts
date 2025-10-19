@@ -1611,6 +1611,28 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     ["privacy-link", "footer-theme-toggle", "footer-shortcuts", "footer-projects"],
     "Footer elements should follow the specified left-to-right order"
   );
+  const footerLibrarySnapshot = await page.evaluate(() => {
+    const namespace = window.MPRUI ?? null;
+    const footerElement = document.querySelector("nav.navbar.fixed-bottom");
+    return {
+      hasNamespace: !!namespace && typeof namespace === "object",
+      hasRenderFooter: typeof namespace?.renderFooter === "function",
+      hasFooterFactory: typeof namespace?.factories?.footer === "function",
+      componentAttr: footerElement?.getAttribute("data-component") ?? "",
+      libraryAttr: footerElement?.getAttribute("data-library") ?? "",
+      dataRoleCount: footerElement ? footerElement.querySelectorAll("[data-role]").length : 0
+    };
+  });
+  assertEqual(footerLibrarySnapshot.hasNamespace, true, "MPRUI namespace should exist on window");
+  assertEqual(footerLibrarySnapshot.hasRenderFooter, true, "MPRUI should expose renderFooter()");
+  assertEqual(footerLibrarySnapshot.hasFooterFactory, true, "MPRUI should register an Alpine footer factory");
+  assertEqual(footerLibrarySnapshot.componentAttr, "mpr-footer", "Footer root should declare the mpr-footer component");
+  assertEqual(footerLibrarySnapshot.libraryAttr, "mpr-ui", "Footer root should attribute markup to mpr-ui");
+  assertEqual(
+    footerLibrarySnapshot.dataRoleCount > 0,
+    true,
+    "Library-rendered footer should preserve instrumentation roles"
+  );
   const privacyFooterEntry = footerLayoutSnapshot.find((entry) => entry.role === "privacy-link");
   if (!privacyFooterEntry) {
     throw new Error("Privacy link entry missing from footer layout snapshot");

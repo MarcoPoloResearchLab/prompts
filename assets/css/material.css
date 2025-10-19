@@ -523,7 +523,9 @@ button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined
 }
 
 [data-linked-card="true"] {
-  border: 2px solid var(--app-linked-card-border) !important;
+  border-width: 2px !important;
+  border-style: solid !important;
+  border-color: var(--app-linked-card-border) !important;
   box-shadow: var(--app-card-focus-ring) !important;
 }
 

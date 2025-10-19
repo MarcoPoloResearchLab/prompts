@@ -78,7 +78,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
 ### Features
 
     - [X] [PB-22] Add an ability to like a prompt on a card: add a bubble button with a counter. A single user can like a card once. liking it twice removes the like, so it works as a toggle. The icon is the bubble. The button is in the middle of the card bottom, between Copy and Share buttons. The icon shows the number of likes starting from 1.
-    - [ ] [PB-43] Extract footer into a common library, mpr-ui.js. Follow the suggestiosn on the approach from here: [text](mpr-ui.md). Place it in a local folder for now under js, and prepare instructions of moving it to an independent repo.
+    - [X] [PB-43] Extract footer into a common library, mpr-ui.js. Follow the suggestiosn on the approach from here: [text](mpr-ui.md). Place it in a local folder for now under js, and prepare instructions of moving it to an independent repo.
 
 ### Improvements
 

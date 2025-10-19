@@ -7,6 +7,7 @@ import { AppShell } from "./ui/appShell.js";
 import { BubbleLayer } from "./ui/bubbleLayer.js";
 import { ToastRegion } from "./ui/toast.js";
 import { ThemeToggle } from "./ui/themeToggle.js";
+import "./vendor/mpr-ui/mpr-ui.js";
 import { createLogger } from "./utils/logging.js";
 
 const logger = createLogger();

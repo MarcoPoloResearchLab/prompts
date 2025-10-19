@@ -21,8 +21,6 @@ const CARD_FEEDBACK_VARIANTS = Object.freeze({
   share: "text-info"
 });
 
-const FOOTER_MENU_ID = "footerProjectsMenu";
-const FOOTER_TOGGLE_ID = "footerProjectsToggle";
 const CHIP_FONT_RANGE_PX = Object.freeze({ min: 8, max: 13.6 });
 const CHIP_CHARACTER_WIDTH_ESTIMATE = 0.56;
 const CHIP_PADDING_INLINE_RANGE_REM = Object.freeze({ min: 0.65, max: 1 });
@@ -102,9 +100,6 @@ export function AppShell(dependencies) {
     filters: /** @type {PromptFilters} */ ({ ...DEFAULT_FILTERS }),
     searchHasText: false,
     pageMode: "gallery",
-    footerMenuOpen: false,
-    footerMenuId: FOOTER_MENU_ID,
-    footerMenuToggleId: FOOTER_TOGGLE_ID,
     footerLinks: FOOTER_PROJECTS,
     chipStyles: "",
     chipResizeHandler: null,
@@ -231,29 +226,6 @@ export function AppShell(dependencies) {
       this.searchHasText = false;
       if (this.$refs.searchInput instanceof HTMLInputElement) {
         this.$refs.searchInput.focus();
-      }
-    },
-    toggleFooterMenu(event) {
-      if (event instanceof Event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      this.footerMenuOpen = !this.footerMenuOpen;
-    },
-    closeFooterMenu() {
-      if (this.footerMenuOpen) {
-        this.footerMenuOpen = false;
-      }
-    },
-    handleFooterMenuFocusOut(event) {
-      const relatedTarget = event?.relatedTarget;
-      const container = this.$refs.footerProjectsContainer;
-      if (!(container instanceof HTMLElement)) {
-        this.closeFooterMenu();
-        return;
-      }
-      if (!(relatedTarget instanceof HTMLElement) || !container.contains(relatedTarget)) {
-        this.closeFooterMenu();
       }
     },
     applyFilters() {
