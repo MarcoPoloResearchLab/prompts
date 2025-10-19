@@ -155,6 +155,7 @@ Leave Features, BugFixes, Improvements, Maintenance sections empty when all fixe
     - [X] [PB-39] PB-33 is not fixed. Ensure that the bubble is only visible within the confinements of the card and is flaoting under the top border of the card or any obstrructing element, and can not be seein outside the card.
     - [X] [PB-40] The bubble floats up when the bubble button is pressed, and it floats down back into the button when the button is depressed so the animation reverses when unliking.
     - [X] [PB-41] Bubble animations must render beneath the filter row and footer so they can never appear outside the card even when those elements cover the card.
+    - [X] [PB-44] The linked-card highlight renders an opaque black border instead of the theme token color after navigating to a card hash. Update the styles so `[data-linked-card="true"]` uses the active theme border token and retains the focus glow, with coverage in the integration suite.
 
 ### Maintenance
 
