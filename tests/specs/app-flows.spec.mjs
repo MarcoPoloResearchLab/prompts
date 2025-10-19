@@ -1,4 +1,5 @@
 // @ts-check
+import { readFile } from "node:fs/promises";
 import { assertDeepEqual, assertEqual } from "../assert.js";
 
 const WAIT_AFTER_INTERACTION_MS = 180;
@@ -9,6 +10,7 @@ const COPY_BUTTON_SELECTOR = "[data-test='copy-button']";
 const COPY_BUTTON_LABEL_SELECTOR = "[data-test='copy-button'] span:last-of-type";
 const SHARE_BUTTON_SELECTOR = "[data-test='share-button']";
 const SHARE_BUTTON_LABEL_SELECTOR = "[data-test='share-button'] span:last-of-type";
+const SHARE_ICON_SELECTOR = "[data-role='share-icon']";
 const FILTER_BAR_SELECTOR = "#chipBar";
 const FILTER_BAR_CONTAINER_SELECTOR = ".app-filter-bar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
@@ -29,6 +31,7 @@ const CLEAR_BUTTON_SELECTOR = "[data-test='clear-search']";
 const CLEAR_BUTTON_LABEL = "Clear search";
 const BRAND_ACCENT_COLOR = "#1976d2";
 const CARD_FEEDBACK_SELECTOR = "[data-test='card-feedback']";
+const PROMPT_TEXT_SELECTOR = "[data-role='prompt-text']";
 const COPY_FEEDBACK_MESSAGE = "Prompt copied \u2713";
 const SHARE_FEEDBACK_MESSAGE = "Link copied \u2713";
 const THEME_TOGGLE_SELECTOR = "#themeToggle";
@@ -92,6 +95,13 @@ const EMPTY_STATE_DARK_TEXT = "rgb(217, 230, 255)";
 const PLACEHOLDER_OVERFLOW_TOLERANCE_PX = 1.5;
 const FOOTER_MENU_VERTICAL_GAP_TOLERANCE_PX = 4;
 const FOOTER_MENU_VIEWPORT_PADDING_PX = 4;
+const LINKED_CARD_HIGHLIGHT_BORDER_WIDTH_PX = 2;
+const LINKED_CARD_BORDER_WIDTH_ASSERTION = "Linked card highlight should increase the border width";
+const LINKED_CARD_BORDER_COLOR_ASSERTION = "Linked card border should follow the theme token";
+const LINKED_PROMPT_BORDER_WIDTH_ASSERTION = "Linked prompt text should reuse the highlight border width";
+const LINKED_PROMPT_BORDER_COLOR_ASSERTION = "Linked prompt text border should reuse the highlight color";
+const LINKED_CARD_SNAPSHOT_ASSERTION = "Linked card highlight snapshot should be captured";
+const LINKED_CARD_SNAPSHOT_ERROR = "Linked card highlight snapshot missing";
 const parseTranslateY = (transform) => {
   const match = /translate3d\(\s*0[^,]*,\s*([\-\d.]+)px/i.exec(transform);
   if (!match) {
@@ -167,9 +177,18 @@ const normalizeToRgb = (value) => {
   if (typeof value !== "string") {
     return String(value ?? "");
   }
-  const match = value.match(/rgba?\(([^)]+)\)/i);
+  const trimmed = value.trim();
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
+    const hexBody = trimmed.slice(1);
+    const expanded = hexBody.length === 3 ? hexBody.split("").map((digit) => digit.repeat(2)).join("") : hexBody;
+    const red = Number.parseInt(expanded.slice(0, 2), 16);
+    const green = Number.parseInt(expanded.slice(2, 4), 16);
+    const blue = Number.parseInt(expanded.slice(4, 6), 16);
+    return `rgb(${red}, ${green}, ${blue})`;
+  }
+  const match = trimmed.match(/rgba?\(([^)]+)\)/i);
   if (!match) {
-    return value.trim();
+    return trimmed;
   }
   const components = match[1]
     .split(",")
@@ -309,6 +328,28 @@ const captureThemeSnapshot = (page) =>
       copyButtonBorderColor: copyButton ? getComputedStyle(copyButton).getPropertyValue("border-color") : ""
     };
   });
+
+const captureLinkedCardHighlightSnapshot = (page, cardId) =>
+  page.evaluate(
+    (cardSelector, promptSelector, id) => {
+      const cardElement = document.querySelector(`${cardSelector}#${CSS.escape(id)}`);
+      if (!(cardElement instanceof HTMLElement)) {
+        return null;
+      }
+      const cardStyles = getComputedStyle(cardElement);
+      const promptElement = cardElement.querySelector(promptSelector);
+      const promptStyles = promptElement instanceof HTMLElement ? getComputedStyle(promptElement) : null;
+      return {
+        cardBorderWidth: cardStyles.getPropertyValue("border-top-width"),
+        cardBorderColor: cardStyles.getPropertyValue("border-top-color"),
+        promptBorderWidth: promptStyles ? promptStyles.getPropertyValue("border-top-width") : "",
+        promptBorderColor: promptStyles ? promptStyles.getPropertyValue("border-top-color") : ""
+      };
+    },
+    CARD_SELECTOR,
+    PROMPT_TEXT_SELECTOR,
+    cardId
+  );
 const parsePixels = (value) => Number.parseFloat(String(value).replace("px", "")) || 0;
 const parseRgbComponents = (value) =>
   String(value)
@@ -1116,6 +1157,60 @@ const createScenarioRunner = (reportScenario) => {
 
 export const run = async ({ browser, baseUrl, announceProgress, reportScenario, logs: _logs }) => {
   const page = await browser.newPage();
+  const alpineModuleSource = await readFile(
+    new URL("../../node_modules/alpinejs/dist/module.esm.js", import.meta.url),
+    "utf8"
+  );
+  const bootswatchStylesheet = await readFile(
+    new URL("../../node_modules/bootswatch/dist/materia/bootstrap.min.css", import.meta.url),
+    "utf8"
+  );
+  await page.setRequestInterception(true);
+  page.on("request", async (request) => {
+    const requestUrl = request.url();
+    if (requestUrl === "https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/module.esm.js") {
+      await request.respond({
+        status: 200,
+        contentType: "application/javascript; charset=utf-8",
+        headers: { "access-control-allow-origin": "*" },
+        body: alpineModuleSource
+      });
+      return;
+    }
+    if (requestUrl === "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css") {
+      await request.respond({
+        status: 200,
+        contentType: "text/css; charset=utf-8",
+        headers: { "access-control-allow-origin": "*" },
+        body: bootswatchStylesheet
+      });
+      return;
+    }
+    if (/^https:\/\/fonts\.(?:googleapis|gstatic)\.com\//i.test(requestUrl)) {
+      const isStylesheet = requestUrl.includes("fonts.googleapis.com");
+      await request.respond({
+        status: 200,
+        contentType: isStylesheet ? "text/css; charset=utf-8" : "application/octet-stream",
+        headers: { "access-control-allow-origin": "*" },
+        body: ""
+      });
+      return;
+    }
+    if (/^https:\/\/www\.googletagmanager\.com\/gtag\/js/i.test(requestUrl)) {
+      await request.respond({
+        status: 200,
+        contentType: "application/javascript; charset=utf-8",
+        headers: { "access-control-allow-origin": "*" },
+        body: ""
+      });
+      return;
+    }
+    if (/^https:\/\/loopaware\.mprlab\.com\/widget\.js/i.test(requestUrl)) {
+      await request.respond({ status: 204, headers: { "access-control-allow-origin": "*" }, body: "" });
+      return;
+    }
+    await request.continue();
+  });
   await Promise.all([
     page.coverage.startJSCoverage({ resetOnNavigation: false }),
     page.coverage.startCSSCoverage({ resetOnNavigation: false })
@@ -2418,6 +2513,34 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   const toggledThemeMode = initialThemeMode === "dark" ? "light" : "dark";
   await waitForThemeMode(page, toggledThemeMode);
   await delay(WAIT_AFTER_INTERACTION_MS);
+  const expectedToggledShareIconColor =
+    toggledThemeMode === "dark" ? SHARE_ICON_DARK_COLOR : SHARE_ICON_LIGHT_COLOR;
+  await page.waitForFunction(
+    (selector, previousColor) => {
+      const target = document.querySelector(selector);
+      if (!target) {
+        return false;
+      }
+      const currentColor = getComputedStyle(target).getPropertyValue("background-color").trim();
+      return currentColor !== previousColor.trim();
+    },
+    {},
+    TOP_NAV_SELECTOR,
+    initialThemeSnapshot.topNavBackgroundColor
+  );
+  await page.waitForFunction(
+    (selector, expectedColor) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return false;
+      }
+      const currentColor = getComputedStyle(element).getPropertyValue("color").trim();
+      return currentColor === expectedColor.trim();
+    },
+    {},
+    SHARE_ICON_SELECTOR,
+    expectedToggledShareIconColor
+  );
   const toggledThemeSnapshot = await captureThemeSnapshot(page);
   assertEqual(
     toggledThemeSnapshot.bodyBackgroundImage === initialThemeSnapshot.bodyBackgroundImage,
@@ -2454,8 +2577,6 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     false,
     "Theme switch should update search addon icon color"
   );
-  const expectedToggledShareIconColor =
-    toggledThemeMode === "dark" ? SHARE_ICON_DARK_COLOR : SHARE_ICON_LIGHT_COLOR;
   assertEqual(
     colorsAreClose(toggledThemeSnapshot.shareIconColor.trim(), expectedToggledShareIconColor),
     true,
@@ -2693,6 +2814,35 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
 
   await page.goto(`${baseUrl}#p05`, { waitUntil: "networkidle0" });
   await waitForLinkedCard(page, "p05");
+  const linkedCardSnapshot = await captureLinkedCardHighlightSnapshot(page, "p05");
+  assertEqual(linkedCardSnapshot !== null, true, LINKED_CARD_SNAPSHOT_ASSERTION);
+  if (!linkedCardSnapshot) {
+    throw new Error(LINKED_CARD_SNAPSHOT_ERROR);
+  }
+  const expectedLinkedBorderWidth = `${LINKED_CARD_HIGHLIGHT_BORDER_WIDTH_PX}px`;
+  assertEqual(
+    linkedCardSnapshot.cardBorderWidth.trim(),
+    expectedLinkedBorderWidth,
+    LINKED_CARD_BORDER_WIDTH_ASSERTION
+  );
+  const expectedLinkedBorderColor = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue("--app-linked-card-border-color")
+  );
+  assertEqual(
+    normalizeToRgb(linkedCardSnapshot.cardBorderColor.trim()),
+    normalizeToRgb(expectedLinkedBorderColor.trim()),
+    LINKED_CARD_BORDER_COLOR_ASSERTION
+  );
+  assertEqual(
+    linkedCardSnapshot.promptBorderWidth.trim(),
+    expectedLinkedBorderWidth,
+    LINKED_PROMPT_BORDER_WIDTH_ASSERTION
+  );
+  assertEqual(
+    normalizeToRgb(linkedCardSnapshot.promptBorderColor.trim()),
+    normalizeToRgb(expectedLinkedBorderColor.trim()),
+    LINKED_PROMPT_BORDER_COLOR_ASSERTION
+  );
 
   const linkedCardStyles = await page.$eval(
     `${CARD_SELECTOR}#p05`,

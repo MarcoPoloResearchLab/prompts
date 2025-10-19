@@ -1,5 +1,11 @@
 :root {
   --app-card-focus-ring: 0 0 0 0.3rem rgba(13, 110, 253, 0.4);
+  --app-card-border-base-width: 1px;
+  --app-linked-card-border-width: calc(
+    var(--app-card-border-base-width) + var(--app-card-border-base-width)
+  );
+  --bs-border-width: var(--app-card-border-base-width);
+  --app-linked-card-border-color: #1976d2;
   --app-body-background: radial-gradient(circle at top, rgba(118, 200, 255, 0.22), rgba(240, 248, 255, 0.92) 60%),
     linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(235, 244, 255, 0.94));
   --app-top-nav-background: rgba(29, 82, 168, 0.94);
@@ -83,6 +89,7 @@
   --app-bubble-shadow: rgba(0, 12, 36, 0.42);
   --app-bubble-base: rgba(15, 26, 50, 0.35);
   --app-bubble-ambient: rgba(0, 0, 0, 0.45);
+  --app-linked-card-border-color: #d9e6ff;
   --app-filter-bar-background: rgba(9, 15, 30, 0.92);
   --app-filter-bar-shadow: 0 18px 32px -20px rgba(0, 0, 0, 0.55);
   --app-filter-chip-color: #d9e6ff;
@@ -383,13 +390,17 @@ button.btn.btn-outline-primary[data-test="share-button"]:active {
 }
 
 button.btn.btn-outline-primary[data-test="copy-button"] span,
-button.btn.btn-outline-primary[data-test="share-button"] span {
+button.btn.btn-outline-primary[data-test="share-button"] span:not([data-role="share-icon"]) {
   color: var(--app-copy-button-color) !important;
   transition: color 0.2s ease;
 }
 
 button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined {
   color: var(--app-copy-button-color) !important;
+}
+
+button.btn.btn-outline-primary[data-test="share-button"] [data-role="share-icon"] {
+  color: var(--app-share-icon-color) !important;
 }
 
 [data-role="search-addon"] {
@@ -526,6 +537,17 @@ button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined
   border-color: var(--app-linked-card-border);
   border-width: 2px;
   box-shadow: var(--app-card-focus-ring);
+  --bs-border-width: var(--app-linked-card-border-width);
+  --bs-border-color: var(--app-linked-card-border-color);
+  --bs-card-border-width: var(--app-linked-card-border-width);
+  --bs-card-border-color: var(--app-linked-card-border-color);
+  border: var(--app-linked-card-border-width) solid var(--app-linked-card-border-color) !important;
+}
+
+[data-linked-card="true"] [data-role="prompt-text"] {
+  --bs-border-width: var(--app-linked-card-border-width);
+  --bs-border-color: var(--app-linked-card-border-color);
+  border: var(--app-linked-card-border-width) solid var(--app-linked-card-border-color) !important;
 }
 
 .prompt-text {
@@ -624,5 +646,5 @@ button.btn.btn-outline-primary[data-test="copy-button"] .material-icons-outlined
 }
 [data-role="share-icon"] {
   color: var(--app-share-icon-color);
-  transition: color 0.2s ease;
+  transition: color 0.12s ease-out;
 }
