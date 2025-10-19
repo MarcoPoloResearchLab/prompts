@@ -1608,8 +1608,8 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     .map((entry) => entry.role);
   assertDeepEqual(
     orderedFooterRoles,
-    ["privacy-link", "footer-theme-toggle", "footer-shortcuts", "footer-projects"],
-    "Footer elements should follow the specified left-to-right order"
+    ["privacy-link", "footer-shortcuts", "footer-theme-toggle", "footer-projects"],
+    "Footer elements should render the hint message before the theme toggle"
   );
   const footerLibrarySnapshot = await page.evaluate(() => {
     const namespace = window.MPRUI ?? null;

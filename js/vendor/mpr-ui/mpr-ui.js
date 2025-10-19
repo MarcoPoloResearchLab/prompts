@@ -236,6 +236,8 @@ function createFooterMarkup(options, identifiers) {
       >
         <span class="fw-medium">${escapeHtml(options.privacy.label)}</span>
       </a>
+      <span class="small text-muted" data-role="footer-shortcuts">${escapeHtml(options.hintText)}</span>
+      <div class="flex-grow-1" data-role="footer-spacer"></div>
       <div
         class="form-check form-switch mb-0 d-flex align-items-center gap-2 flex-shrink-0 ms-3"
         data-role="footer-theme-toggle"
@@ -255,8 +257,6 @@ function createFooterMarkup(options, identifiers) {
           options.themeToggleLabel
         )}</label>
       </div>
-      <div class="flex-grow-1" data-role="footer-spacer"></div>
-      <span class="small text-muted" data-role="footer-shortcuts">${escapeHtml(options.hintText)}</span>
       <div
         class="dropup"
         data-role="footer-projects"
