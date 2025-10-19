@@ -251,7 +251,7 @@ function createFooterMarkup(options, identifiers) {
           id="${identifiers.themeToggleId}"
           x-on:change="toggle()"
           x-bind:checked="mode === 'dark'"
-          x-bind:aria-label="options.themeToggleLabel"
+          x-bind:aria-label="$root.options.themeToggleLabel"
         />
         <label class="form-check-label" for="${identifiers.themeToggleId}">${escapeHtml(
           options.themeToggleLabel
