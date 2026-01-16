@@ -1,0 +1,44 @@
+# Docker Compose for Prompt Bubbles Development with TAuth Authentication
+#
+# Usage:
+#   1. Copy .env.tauth.example to .env.tauth and configure
+#   2. Run: docker compose up
+#   3. Visit http://localhost:8000
+#
+# Services:
+#   - frontend: Static file server on port 8000
+#   - tauth: Authentication service on port 8080
+
+services:
+  frontend:
+    image: ghcr.io/tyemirov/ghttp:latest
+    pull_policy: always
+    depends_on:
+      - tauth
+    ports:
+      - "8000:8000"
+    command: ["--port", "8000", "--app-dir", "/app"]
+    volumes:
+      - ./index.html:/app/index.html:ro
+      - ./js:/app/js:ro
+      - ./data:/app/data:ro
+      - ./assets:/app/assets:ro
+      - ./privacy:/app/privacy:ro
+    restart: unless-stopped
+
+  tauth:
+    image: ghcr.io/tyemirov/tauth:latest
+    pull_policy: always
+    env_file:
+      - ./.env.tauth
+    ports:
+      - "8080:8080"
+    volumes:
+      - tauth_data:/data
+      - ./tauth-config.yaml:/config/tauth-config.yaml:ro
+    command: ["--config", "/config/tauth-config.yaml"]
+    restart: unless-stopped
+
+volumes:
+  tauth_data:
+    name: prompt-bubbles-tauth-data

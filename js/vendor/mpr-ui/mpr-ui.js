@@ -1,7 +1,8 @@
 // @ts-check
-/*! mpr-ui local preview */
+/*! mpr-ui local preview - with authentication support */
 
-const COMPONENT_NAME = "mpr-footer";
+const FOOTER_COMPONENT_NAME = "mpr-footer";
+const AUTH_COMPONENT_NAME = "mpr-auth";
 const LIBRARY_NAME = "mpr-ui";
 const SAFE_URL_PATTERN = /^(https?:)?\/\//i;
 let footerInstanceCounter = 0;
@@ -388,7 +389,7 @@ function renderFooter(element, rawOptions = {}) {
   }
   const options = sanitizeFooterOptions(rawOptions, element);
   const identifiers = assignFooterIdentifiers(extractExplicitIdentifiers(rawOptions));
-  element.setAttribute("data-component", COMPONENT_NAME);
+  element.setAttribute("data-component", FOOTER_COMPONENT_NAME);
   element.setAttribute("data-library", LIBRARY_NAME);
   element.innerHTML = createFooterMarkup(options, identifiers);
   const cleanup = attachImperativeFooterBehavior(element);
@@ -554,17 +555,170 @@ function createFooterFactory(rawOptions = {}) {
   };
 }
 
+/**
+ * Creates authentication header markup
+ * @param {{ userName: string; userEmail: string; userAvatar: string; isAuthenticated: boolean; signInLabel: string; signOutLabel: string; profileLabel: string }} options
+ * @returns {string}
+ */
+function createAuthHeaderMarkup(options) {
+  if (options.isAuthenticated) {
+    return `
+      <div class="dropdown" data-role="auth-user-menu">
+        <button
+          type="button"
+          class="btn btn-link text-white d-flex align-items-center gap-2 text-decoration-none dropdown-toggle"
+          data-bs-toggle="dropdown"
+          data-role="auth-menu-toggle"
+          aria-expanded="false"
+          aria-haspopup="true"
+        >
+          ${options.userAvatar ? `<img src="${escapeHtml(options.userAvatar)}" alt="" class="rounded-circle" width="28" height="28" referrerpolicy="no-referrer" />` : `<span class="material-icons-outlined">account_circle</span>`}
+          <span class="d-none d-md-inline" data-role="auth-user-name">${escapeHtml(options.userName || options.userEmail)}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow" data-role="auth-dropdown">
+          <li class="dropdown-item-text small text-muted" data-role="auth-email">${escapeHtml(options.userEmail)}</li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <button type="button" class="dropdown-item" data-role="auth-signout" x-on:click="signOut()">
+              <span class="material-icons-outlined me-2" style="font-size: 1.1em; vertical-align: middle;">logout</span>
+              ${escapeHtml(options.signOutLabel)}
+            </button>
+          </li>
+        </ul>
+      </div>
+    `;
+  }
+
+  return `
+    <div data-role="auth-signin-container">
+      <button
+        type="button"
+        class="btn btn-outline-light btn-sm d-flex align-items-center gap-2"
+        data-role="auth-signin-btn"
+        x-on:click="signIn()"
+      >
+        <span class="material-icons-outlined" style="font-size: 1.1em;">login</span>
+        <span>${escapeHtml(options.signInLabel)}</span>
+      </button>
+    </div>
+  `;
+}
+
+/**
+ * Creates an authentication header Alpine factory
+ * @param {Object} rawOptions - Auth options
+ * @returns {Object} Alpine component factory
+ */
+function createAuthHeaderFactory(rawOptions = {}) {
+  const options = {
+    signInLabel: sanitizeText(rawOptions.signInLabel) || "Sign in",
+    signOutLabel: sanitizeText(rawOptions.signOutLabel) || "Sign out",
+    profileLabel: sanitizeText(rawOptions.profileLabel) || "Profile",
+    tauthUrl: sanitizeText(rawOptions.tauthUrl) || "http://localhost:8080",
+    googleClientId: sanitizeText(rawOptions.googleClientId) || "",
+    tenantId: sanitizeText(rawOptions.tenantId) || "prompt-bubbles"
+  };
+
+  return {
+    options,
+    status: "initializing",
+    profile: null,
+    error: null,
+    dropdownOpen: false,
+
+    async init() {
+      this.$el.setAttribute("data-component", AUTH_COMPONENT_NAME);
+      this.$el.setAttribute("data-library", LIBRARY_NAME);
+
+      // Listen for auth state changes from the global auth controller
+      document.addEventListener("auth-state-change", (event) => {
+        const detail = event.detail ?? {};
+        this.status = detail.status ?? "unauthenticated";
+        this.profile = detail.profile ?? null;
+        this.error = detail.error ?? null;
+        this.render();
+      });
+
+      // If there's a global auth store, sync with it
+      if (window.Alpine?.store?.("auth")) {
+        const authStore = window.Alpine.store("auth");
+        this.status = authStore.status;
+        this.profile = authStore.profile;
+      }
+
+      this.render();
+    },
+
+    get isAuthenticated() {
+      return this.status === "authenticated" && this.profile !== null;
+    },
+
+    get isLoading() {
+      return this.status === "initializing";
+    },
+
+    get userName() {
+      return this.profile?.display || this.profile?.user_email || "";
+    },
+
+    get userEmail() {
+      return this.profile?.user_email || "";
+    },
+
+    get userAvatar() {
+      return this.profile?.avatar_url || "";
+    },
+
+    render() {
+      const markup = createAuthHeaderMarkup({
+        userName: this.userName,
+        userEmail: this.userEmail,
+        userAvatar: this.userAvatar,
+        isAuthenticated: this.isAuthenticated,
+        signInLabel: this.options.signInLabel,
+        signOutLabel: this.options.signOutLabel,
+        profileLabel: this.options.profileLabel
+      });
+
+      this.$el.innerHTML = markup;
+
+      // Re-initialize Alpine for dynamically added content
+      if (window.Alpine && typeof window.Alpine.initTree === "function") {
+        Array.from(this.$el.children).forEach((child) => {
+          window.Alpine.initTree(child);
+        });
+      }
+    },
+
+    async signIn() {
+      // Dispatch event for the main app to handle sign-in
+      this.$dispatch("auth-signin-request");
+    },
+
+    async signOut() {
+      // Dispatch event for the main app to handle sign-out
+      this.$dispatch("auth-signout-request");
+    },
+
+    toggleDropdown() {
+      this.dropdownOpen = !this.dropdownOpen;
+    }
+  };
+}
+
 document.addEventListener("alpine:init", () => {
   const Alpine = window.Alpine ?? null;
   if (!Alpine || typeof Alpine.data !== "function") {
     return;
   }
   Alpine.data("mprFooter", (options = {}) => createFooterFactory(options));
+  Alpine.data("mprAuthHeader", (options = {}) => createAuthHeaderFactory(options));
 });
 
 const namespace = window.MPRUI && typeof window.MPRUI === "object" ? window.MPRUI : {};
 namespace.renderFooter = renderFooter;
 namespace.factories = Object.assign({}, namespace.factories, {
-  footer: (options = {}) => createFooterFactory(options)
+  footer: (options = {}) => createFooterFactory(options),
+  authHeader: (options = {}) => createAuthHeaderFactory(options)
 });
 window.MPRUI = namespace;

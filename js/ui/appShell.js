@@ -1,7 +1,8 @@
 // @ts-check
 
-import { EVENTS, FOOTER_PROJECTS, ICONS, PATHS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
+import { AUTH_CONFIG, EVENTS, FOOTER_PROJECTS, ICONS, PATHS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
 import { createPlaceholderFragment, resolvePlaceholderText } from "../core/placeholders.js";
+import { createAuthController } from "../core/auth.js";
 import { createLogger } from "../utils/logging.js";
 import { escapeIdentifier } from "../utils/dom.js";
 import { loadJson, saveJson } from "../utils/storage.js";
@@ -88,10 +89,12 @@ function pruneLikeCounts(likeCounts, allowedIds) {
 export function AppShell(dependencies) {
   const promptsRepository = dependencies.promptsRepository;
   const logger = dependencies.logger ?? createLogger();
+  const authController = createAuthController(AUTH_CONFIG);
 
   return {
     strings: STRINGS,
     paths: PATHS,
+    authConfig: AUTH_CONFIG,
     isLoading: true,
     hasError: false,
     prompts: /** @type {Prompt[]} */ ([]),
@@ -107,6 +110,9 @@ export function AppShell(dependencies) {
     likeCountsById: createLikeCountMap(),
     cardFeedbackById: Object.create(null),
     cardFeedbackTimers: Object.create(null),
+    authStatus: "initializing",
+    authProfile: null,
+    authError: null,
     init() {
       this.restoreFilters();
       this.restoreLikes();
@@ -155,6 +161,28 @@ export function AppShell(dependencies) {
         this.updateChipStyles();
       });
       this.loadPrompts();
+      this.initializeAuth();
+    },
+    async initializeAuth() {
+      authController.subscribe((state) => {
+        this.authStatus = state.status;
+        this.authProfile = state.profile;
+        this.authError = state.error;
+        if (state.status === "authenticated" && state.profile) {
+          this.$dispatch(EVENTS.toastShow, { message: `${STRINGS.signInToast}` });
+        }
+      });
+      await authController.initialize();
+    },
+    get isAuthenticated() {
+      return this.authStatus === "authenticated" && this.authProfile !== null;
+    },
+    async handleSignIn() {
+      await authController.promptSignIn();
+    },
+    async handleSignOut() {
+      await authController.signOut();
+      this.$dispatch(EVENTS.toastShow, { message: STRINGS.signOutToast });
     },
     handleGlobalKeydown(event) {
       if (!(event instanceof KeyboardEvent)) {

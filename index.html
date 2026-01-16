@@ -24,6 +24,8 @@
     gtag("config", "G-R6J165F21E");
   </script>
   <script defer src="https://loopaware.mprlab.com/widget.js?site_id=efad9dff-1777-4710-b6b1-3218ee8c5cbb"></script>
+  <!-- Google Identity Services for authentication -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
@@ -32,6 +34,8 @@
     x-data="AppShell()"
     x-init="init()"
     x-on:toast-show="forwardToast($event.detail)"
+    x-on:auth-signin-request.window="handleSignIn()"
+    x-on:auth-signout-request.window="handleSignOut()"
     data-page-mode="gallery"
     x-cloak
   >
@@ -76,6 +80,19 @@
             </button>
           </div>
         </form>
+        <div
+          class="ms-auto"
+          data-role="auth-header"
+          data-test="auth-header"
+          x-data="mprAuthHeader({
+            signInLabel: strings.signInLabel,
+            signOutLabel: strings.signOutLabel,
+            tauthUrl: authConfig.tauthUrl,
+            googleClientId: authConfig.googleClientId,
+            tenantId: authConfig.tenantId
+          })"
+          x-init="init()"
+        ></div>
       </div>
     </nav>
 

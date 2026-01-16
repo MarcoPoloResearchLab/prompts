@@ -632,3 +632,99 @@ button.btn.btn-outline-primary[data-test="share-button"] [data-role="share-icon"
   color: var(--app-share-icon-color);
   transition: color 0.2s ease;
 }
+
+/* Authentication Header Styles */
+[data-role="auth-header"] {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+[data-role="auth-signin-btn"] {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+[data-role="auth-signin-btn"] .material-icons-outlined {
+  font-size: 1.125rem;
+}
+
+[data-role="auth-user-menu"] {
+  position: relative;
+}
+
+[data-role="auth-menu-toggle"] {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+[data-role="auth-menu-toggle"]:hover,
+[data-role="auth-menu-toggle"]:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+
+[data-role="auth-menu-toggle"]::after {
+  margin-left: 0.375rem;
+  vertical-align: middle;
+}
+
+[data-role="auth-user-name"] {
+  font-size: 0.875rem;
+  font-weight: 500;
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-role="auth-dropdown"] {
+  min-width: 12rem;
+  padding: 0.5rem 0;
+  background: var(--app-footer-menu-background);
+  border: 1px solid var(--app-footer-menu-border);
+  box-shadow: var(--app-footer-menu-shadow);
+}
+
+[data-role="auth-dropdown"] .dropdown-item {
+  font-size: 0.875rem;
+  color: var(--app-footer-menu-link);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+[data-role="auth-dropdown"] .dropdown-item:hover,
+[data-role="auth-dropdown"] .dropdown-item:focus-visible {
+  background: var(--app-footer-menu-link-hover);
+  color: var(--app-footer-menu-link);
+}
+
+[data-role="auth-email"] {
+  font-size: 0.8125rem;
+  padding-inline: 1rem;
+}
+
+[data-role="auth-signout"] {
+  display: flex;
+  align-items: center;
+}
+
+[data-role="auth-signout"] .material-icons-outlined {
+  font-size: 1.125rem;
+  opacity: 0.75;
+}
+
+/* Responsive auth header */
+@media (max-width: 575.98px) {
+  [data-role="auth-header"] {
+    margin-left: auto;
+    margin-top: 0.5rem;
+    width: auto;
+  }
+
+  [data-role="auth-user-name"] {
+    display: none !important;
+  }
+}

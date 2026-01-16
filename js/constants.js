@@ -13,7 +13,8 @@ export const TAGS = Object.freeze({
 export const STORAGE_KEYS = Object.freeze({
   filters: "prompt-bubbles-filters",
   theme: "prompt-bubbles-theme",
-  likes: "prompt-bubbles-likes"
+  likes: "prompt-bubbles-likes",
+  authState: "prompt-bubbles-auth-state"
 });
 
 export const EVENTS = Object.freeze({
@@ -21,7 +22,10 @@ export const EVENTS = Object.freeze({
   tagSelected: "filters-tag-selected",
   toastShow: "toast-show",
   themeToggle: "theme-toggle",
-  cardBubble: "card-bubble"
+  cardBubble: "card-bubble",
+  authStateChange: "auth-state-change",
+  authSignInRequest: "auth-signin-request",
+  authSignOutRequest: "auth-signout-request"
 });
 
 export const FOOTER_PROJECTS = Object.freeze([
@@ -67,7 +71,28 @@ export const STRINGS = Object.freeze({
   searchIconLabel: "Search icon",
   errorLoading: "Unable to load prompt catalog. Please refresh the page.",
   privacyLinkLabel: "Privacy • Terms",
-  privacyLinkAriaLabel: "View privacy policy and terms"
+  privacyLinkAriaLabel: "View privacy policy and terms",
+  signInLabel: "Sign in",
+  signOutLabel: "Sign out",
+  signInToast: "Welcome back!",
+  signOutToast: "You have been signed out.",
+  authErrorToast: "Sign in failed. Please try again.",
+  signInToLikeMessage: "Sign in to save your likes across devices."
+});
+
+/**
+ * Authentication configuration
+ * Override via environment or runtime configuration
+ */
+export const AUTH_CONFIG = Object.freeze({
+  tauthUrl: "http://localhost:8080",
+  googleClientId: "",
+  tenantId: "prompt-bubbles",
+  noncePath: "/auth/nonce",
+  loginPath: "/auth/google",
+  logoutPath: "/auth/logout",
+  refreshPath: "/auth/refresh",
+  profilePath: "/me"
 });
 
 export const TIMINGS = Object.freeze({
