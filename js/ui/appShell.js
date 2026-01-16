@@ -631,6 +631,25 @@ export function AppShell(dependencies) {
       return STRINGS.noMatches;
     },
     /**
+     * Returns the prompt count text (e.g., "Showing 5 of 100 prompts")
+     * @returns {string}
+     */
+    promptCountText() {
+      const shown = this.filteredPrompts.length;
+      const total = this.prompts.length;
+      const template = total === 1 ? STRINGS.promptCountSingular : STRINGS.promptCountTemplate;
+      return template.replace("{shown}", String(shown)).replace("{total}", String(total));
+    },
+    /**
+     * Returns true if filtering is active (search text or non-all tag selected)
+     * @returns {boolean}
+     */
+    isFiltering() {
+      const hasSearchText = typeof this.filters.searchText === "string" && this.filters.searchText.trim().length > 0;
+      const hasTagFilter = this.filters.tag !== TAGS.all;
+      return hasSearchText || hasTagFilter;
+    },
+    /**
      * @param {HTMLElement} cardElement
      * @param {Event} event
      * @returns {{ x: number; y: number; size: number; theme: "light" | "dark"; riseDistance: number } | null}
