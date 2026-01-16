@@ -5,7 +5,9 @@
  * @module core/auth
  */
 
-import { log, warn, error as logError } from "../utils/logging.js";
+import { createLogger } from "../utils/logging.js";
+
+const logger = createLogger();
 
 /** @typedef {{ user_id: string; user_email: string; display: string; avatar_url: string; roles: string[]; expires: string }} UserProfile */
 /** @typedef {"initializing" | "authenticated" | "unauthenticated" | "error"} AuthStatus */
@@ -71,7 +73,7 @@ export function createAuthController(config = {}) {
       try {
         listener(state);
       } catch (err) {
-        logError("Auth listener error:", err);
+        logger.error("Auth listener error:", err);
       }
     });
   }
@@ -185,7 +187,7 @@ export function createAuthController(config = {}) {
 
       return response.json();
     } catch (err) {
-      warn("Profile fetch error:", err);
+      // Profile fetch silently fails for unauthenticated users
       return null;
     }
   }
@@ -201,7 +203,7 @@ export function createAuthController(config = {}) {
       });
       return response.ok;
     } catch (err) {
-      warn("Session refresh failed:", err);
+      // Session refresh silently fails
       return false;
     }
   }
@@ -227,9 +229,9 @@ export function createAuthController(config = {}) {
         error: null
       });
 
-      log("User authenticated:", profile.user_email);
+      // User authenticated successfully
     } catch (err) {
-      logError("Authentication error:", err);
+      logger.error("Authentication error:", err);
       setState({
         status: "error",
         profile: null,
@@ -250,7 +252,7 @@ export function createAuthController(config = {}) {
 
     // @ts-ignore - Google Identity Services global
     if (typeof google === "undefined" || !google.accounts) {
-      warn("Google Identity Services not loaded");
+      // Google Identity Services not yet loaded
       return;
     }
 
@@ -267,9 +269,9 @@ export function createAuthController(config = {}) {
       });
 
       googleInitialized = true;
-      log("Google Identity Services initialized");
+      // Google Identity Services initialized
     } catch (err) {
-      logError("Failed to initialize Google Sign-In:", err);
+      logger.error("Failed to initialize Google Sign-In:", err);
     }
   }
 
@@ -296,11 +298,11 @@ export function createAuthController(config = {}) {
       // @ts-ignore - Google Identity Services API
       google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed()) {
-          log("Sign-in prompt not displayed:", notification.getNotDisplayedReason());
+          // Sign-in prompt not displayed (user may have dismissed or blocked)
         }
       });
     } catch (err) {
-      logError("Sign-in prompt error:", err);
+      logger.error("Sign-in prompt error:", err);
     }
   }
 
@@ -349,9 +351,9 @@ export function createAuthController(config = {}) {
         error: null
       });
 
-      log("User signed out");
+      // User signed out successfully
     } catch (err) {
-      logError("Sign out error:", err);
+      logger.error("Sign out error:", err);
       // Still mark as unauthenticated locally
       setState({
         status: "unauthenticated",
@@ -374,7 +376,7 @@ export function createAuthController(config = {}) {
           profile,
           error: null
         });
-        log("Existing session found:", profile.user_email);
+        // Existing session found
       } else {
         setState({
           status: "unauthenticated",
@@ -385,7 +387,7 @@ export function createAuthController(config = {}) {
 
       await initializeGoogle();
     } catch (err) {
-      logError("Auth initialization error:", err);
+      logger.error("Auth initialization error:", err);
       setState({
         status: "unauthenticated",
         profile: null,
