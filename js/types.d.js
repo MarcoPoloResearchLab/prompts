@@ -59,7 +59,8 @@
 
 /**
  * @typedef {Object} RuntimeEnvironmentConfig
- * @property {string[]} [origins]
+ * @property {string} [description]
+ * @property {string[]} origins
  * @property {AuthRuntimeConfig} auth
  * @property {AuthButtonConfig} authButton
  */
