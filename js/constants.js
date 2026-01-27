@@ -3,7 +3,8 @@
 export const DATA_PATH = "/data/prompts.json";
 
 export const PATHS = Object.freeze({
-  privacy: "/privacy/"
+  privacy: "/privacy/",
+  logoutRedirect: "#top"
 });
 
 export const TAGS = Object.freeze({
@@ -17,10 +18,7 @@ export const STORAGE_KEYS = Object.freeze({
 });
 
 export const EVENTS = Object.freeze({
-  searchUpdated: "filters-search-updated",
-  tagSelected: "filters-tag-selected",
   toastShow: "toast-show",
-  themeToggle: "theme-toggle",
   cardBubble: "card-bubble"
 });
 
@@ -62,14 +60,57 @@ export const STRINGS = Object.freeze({
   promptCountTemplate: "Showing {shown} of {total} prompts",
   promptCountSingular: "Showing {shown} of {total} prompt",
   footerHint: "Press / to search • Enter to copy the focused card",
-  footerPrefix: "Built by",
   footerMenuLabel: "Built By Marco Polo Research Lab",
-  footerMenuToggleAriaLabel: "Browse Marco Polo Research Lab projects",
   themeToggleLabel: "Dark mode",
   searchIconLabel: "Search icon",
   errorLoading: "Unable to load prompt catalog. Please refresh the page.",
   privacyLinkLabel: "Privacy • Terms",
-  privacyLinkAriaLabel: "View privacy policy and terms"
+  signOutLabel: "Sign out",
+  signInToast: "Welcome back!",
+  signOutToast: "You have been signed out.",
+  authErrorToast: "Sign in failed. Please try again."
+});
+
+const TAUTH_FALLBACK_ORIGIN = "https://computercat.tyemirov.net:4443";
+
+/**
+ * @returns {string}
+ */
+function resolveTauthUrl() {
+  if (typeof window === "undefined" || !window.location) {
+    return TAUTH_FALLBACK_ORIGIN;
+  }
+  const origin = window.location.origin;
+  if (typeof origin !== "string" || origin.trim().length === 0) {
+    return TAUTH_FALLBACK_ORIGIN;
+  }
+  return origin;
+}
+
+/**
+ * Authentication configuration
+ * Override via environment or runtime configuration
+ */
+export const AUTH_CONFIG = Object.freeze({
+  tauthUrl: resolveTauthUrl(),
+  googleClientId: "761199429759-ftho7a14blghha4j8bifetrelor0u6sn.apps.googleusercontent.com",
+  tenantId: "prompt-bubbles",
+  noncePath: "/auth/nonce",
+  loginPath: "/auth/google",
+  logoutPath: "/auth/logout"
+});
+
+export const AUTH_BUTTON_CONFIG = Object.freeze({
+  text: "signin_with",
+  size: "large",
+  theme: "outline"
+});
+
+export const BUBBLE_CONFIG = Object.freeze({
+  minSizePx: 24,
+  cardPaddingPx: 2,
+  minTravelPx: 12,
+  maxActiveBubbles: 6
 });
 
 export const TIMINGS = Object.freeze({

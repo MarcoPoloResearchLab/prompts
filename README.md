@@ -23,11 +23,13 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Data:** Prompt catalog loads from `data/prompts.json` and is validated on boot before rendering.
 - **Events:**  
   - `toast-show` — emitted after copy/share to display the global toast.  
-  - `theme-toggle` — emitted when the footer switch changes modes.  
-- `card-bubble` — dispatched by the like toggle toward the bubble layer with `{ x, y, size, riseDistance, cardTop, theme }` so the bubble originates at the interaction point and rises to the card's top edge.  
-  Both events bubble within the root container so components remain DOM-scoped.
+  - `card-bubble` — dispatched by the like toggle toward the bubble layer with `{ x, y, size, riseDistance, cardTop, theme }` so the bubble originates at the interaction point and rises to the card's top edge.  
+  - `mpr-footer:theme-change` — emitted by the mpr-ui footer switch; persisted to local storage and applied to `data-bs-theme`.  
+  These events bubble within the root container so components remain DOM-scoped.
 
 ## Local Development
+
+### Basic (Static)
 
 ```bash
 npm install
@@ -35,6 +37,94 @@ npm test
 ```
 
 `npm test` starts a static server, launches Puppeteer, and exercises the end-to-end flows (search, filtering, copy/share, like toggles, hash highlighting, and persisted filters). The runner prints each spec name (`Running specs/app-flows.spec.mjs`, `✓ specs/app-flows.spec.mjs`), reports scenario metadata through `globalThis.__PROMPT_BUBBLES_TEST_PROGRESS`, and emits a coverage summary highlighting total, JS, and CSS execution (e.g., `Coverage summary: Total 82.41% (JS 88.10%, CSS 74.90%)`).
+
+### With Authentication (Docker)
+
+The application supports user authentication via [TAuth](https://github.com/tyemirov/TAuth) and [mpr-ui](https://github.com/MarcoPoloResearchLab/mpr-ui) components.
+
+#### Prerequisites
+
+1. **Docker and Docker Compose** - Required for running the authentication service
+2. **Google OAuth Client ID** - Required for Google Sign-In
+
+#### Setup
+
+1. **Create environment files**
+   ```bash
+   cp .env.frontend.example .env.frontend
+   cp .env.tauth.example .env.tauth
+   ```
+
+2. **Configure Google OAuth**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+   - Create a new OAuth 2.0 Client ID for Web application
+   - Add authorized JavaScript origins:
+     - `https://localhost:4443` (frontend + auth proxy)
+   - Copy the Client ID to `.env.tauth`:
+     ```
+     GOOGLE_WEB_CLIENT_ID=your-client-id.apps.googleusercontent.com
+     ```
+
+3. **Generate a JWT signing key** (for production)
+   ```bash
+   # Generate a secure random key
+   openssl rand -base64 32
+   ```
+   Update `TAUTH_JWT_SIGNING_KEY` in `.env.tauth` with the generated key.
+
+4. **Start the services**
+   ```bash
+   docker compose up
+   ```
+
+5. **Access the application**
+   - Frontend: https://localhost:4443
+   - TAuth API (direct): http://localhost:8081
+
+#### Configuration Files
+
+- **`docker-compose.yml`** - Orchestrates frontend and TAuth services
+- **`tauth-config.yaml`** - TAuth tenant configuration (tenant ID, cookie settings, TTLs)
+- **`.env.frontend`** - gHTTP configuration (TLS, reverse proxy targets, serve directory)
+- **`.env.frontend.example`** - Template for gHTTP configuration
+- **`.env.tauth`** - Environment variables (secrets, client IDs)
+- **`.env.tauth.example`** - Template for environment variables
+
+#### Authentication Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Browser                                  │
+│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐   │
+│  │  Prompt       │    │  Google       │    │  TAuth        │   │
+│  │  Bubbles UI   │───►│  Sign-In      │───►│  Client       │   │
+│  └───────────────┘    └───────────────┘    └───────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+         │                                           │
+         │ HTTPS :4443                               │ HTTP :8081
+         ▼                                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Docker Compose                               │
+│  ┌───────────────┐                           ┌───────────────┐   │
+│  │  Frontend     │                           │  TAuth Service│   │
+│  │  (ghttp)      │                           │  - Session    │   │
+│  │  - Static     │                           │    cookies    │   │
+│  │    assets     │                           │  - JWT tokens │   │
+│  │  - Reverse    │                           │  - Refresh    │   │
+│  │    proxy      │                           │    tokens     │   │
+│  │    /auth,/me  │                           └───────────────┘   │
+│  └───────────────┘                                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Authentication Flow
+
+1. User clicks "Sign in" button
+2. Google Identity Services displays sign-in prompt
+3. User authenticates with Google
+4. TAuth validates Google token and issues session cookies
+5. Frontend receives user profile and updates UI
+6. Session persists via HTTP-only cookies with silent refresh
 
 ## Continuous Integration
 
