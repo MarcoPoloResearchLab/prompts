@@ -69,41 +69,6 @@ export const STRINGS = Object.freeze({
   authErrorToast: "Sign in failed. Please try again."
 });
 
-const TAUTH_FALLBACK_ORIGIN = "https://computercat.tyemirov.net:4443";
-
-/**
- * @returns {string}
- */
-function resolveTauthUrl() {
-  if (typeof window === "undefined" || !window.location) {
-    return TAUTH_FALLBACK_ORIGIN;
-  }
-  const origin = window.location.origin;
-  if (typeof origin !== "string" || origin.trim().length === 0) {
-    return TAUTH_FALLBACK_ORIGIN;
-  }
-  return origin;
-}
-
-/**
- * Authentication configuration
- * Override via environment or runtime configuration
- */
-export const AUTH_CONFIG = Object.freeze({
-  tauthUrl: resolveTauthUrl(),
-  googleClientId: "761199429759-ftho7a14blghha4j8bifetrelor0u6sn.apps.googleusercontent.com",
-  tenantId: "prompt-bubbles",
-  noncePath: "/auth/nonce",
-  loginPath: "/auth/google",
-  logoutPath: "/auth/logout"
-});
-
-export const AUTH_BUTTON_CONFIG = Object.freeze({
-  text: "signin_with",
-  size: "large",
-  theme: "outline"
-});
-
 export const BUBBLE_CONFIG = Object.freeze({
   minSizePx: 24,
   cardPaddingPx: 2,

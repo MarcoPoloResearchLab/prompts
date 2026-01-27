@@ -1,0 +1,15 @@
+{
+  "auth": {
+    "tauthUrl": "https://tauth.mprlab.com",
+    "googleClientId": "761199429759-ftho7a14blghha4j8bifetrelor0u6sn.apps.googleusercontent.com",
+    "tenantId": "prompt-bubbles",
+    "loginPath": "/auth/google",
+    "logoutPath": "/auth/logout",
+    "noncePath": "/auth/nonce"
+  },
+  "authButton": {
+    "text": "signin_with",
+    "size": "large",
+    "theme": "outline"
+  }
+}

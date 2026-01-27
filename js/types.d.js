@@ -33,3 +33,26 @@
  * @typedef {Object} ThemeState
  * @property {"light" | "dark"} mode
  */
+
+/**
+ * @typedef {Object} AuthRuntimeConfig
+ * @property {string} tauthUrl
+ * @property {string} googleClientId
+ * @property {string} tenantId
+ * @property {string} loginPath
+ * @property {string} logoutPath
+ * @property {string} noncePath
+ */
+
+/**
+ * @typedef {Object} AuthButtonConfig
+ * @property {string} text
+ * @property {string} size
+ * @property {string} theme
+ */
+
+/**
+ * @typedef {Object} RuntimeConfig
+ * @property {AuthRuntimeConfig} auth
+ * @property {AuthButtonConfig} authButton
+ */
