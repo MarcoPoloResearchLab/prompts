@@ -1,7 +1,6 @@
 version: 1
 environments:
-  - type: dev
-    origins:
+  - origins:
       - "https://computercat.tyemirov.net:4443"
     auth:
       tauthUrl: "https://computercat.tyemirov.net:4443"
@@ -14,8 +13,7 @@ environments:
       text: "signin_with"
       size: "large"
       theme: "outline"
-  - type: dev
-    origins:
+  - origins:
       - "http://localhost:8080"
     auth:
       tauthUrl: "http://localhost:8081"
@@ -28,8 +26,7 @@ environments:
       text: "signin_with"
       size: "large"
       theme: "outline"
-  - type: prod
-    origins:
+  - origins:
       - "https://prompts.mprlab.com"
     auth:
       tauthUrl: "https://tauth.mprlab.com"
