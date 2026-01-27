@@ -1,20 +1,13 @@
 // @ts-check
 
-const CONFIG_URL = "/config.json";
+import { loadConfigPayload } from "./configLoader.js";
+
 const CONFIG_SCOPE_AUTH = "auth";
 const CONFIG_SCOPE_BUTTON = "authButton";
 const CONFIG_SCOPE_ENVIRONMENTS = "environments";
 const CONFIG_SCOPE_ORIGINS = "origins";
 const CONFIG_SCOPE_ORIGIN_PREFIXES = "originPrefixes";
 const CONFIG_SCOPE_HOSTNAMES = "hostnames";
-
-/**
- * @param {unknown} value
- * @returns {value is Record<string, unknown>}
- */
-function isPlainObject(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
 
 /**
  * @param {Record<string, unknown>} source
@@ -25,7 +18,7 @@ function isPlainObject(value) {
 function requireString(source, key, scope) {
   const raw = source[key];
   if (typeof raw !== "string" || raw.trim().length === 0) {
-    throw new Error(`config.json missing ${scope}.${key}`);
+    throw new Error(`config.yaml missing ${scope}.${key}`);
   }
   return raw.trim();
 }
@@ -37,8 +30,8 @@ function requireString(source, key, scope) {
  */
 function requireObject(source, key) {
   const value = source[key];
-  if (!isPlainObject(value)) {
-    throw new Error(`config.json missing ${key} section`);
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`config.yaml missing ${key} section`);
   }
   return value;
 }
@@ -64,11 +57,11 @@ function readStringArray(source, key) {
  */
 function requireEnvironmentArray(value) {
   if (!Array.isArray(value) || value.length === 0) {
-    throw new Error("config.json missing environments");
+    throw new Error("config.yaml missing environments");
   }
   return value.map((entry, index) => {
-    if (!isPlainObject(entry)) {
-      throw new Error(`config.json environment at index ${index} must be an object`);
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error(`config.yaml environment at index ${index} must be an object`);
     }
     return entry;
   });
@@ -85,7 +78,7 @@ function matchesEnvironment(environment, runtimeOrigin, runtimeHostname) {
   const originPrefixes = readStringArray(environment, CONFIG_SCOPE_ORIGIN_PREFIXES);
   const hostnames = readStringArray(environment, CONFIG_SCOPE_HOSTNAMES);
   if (origins.length === 0 && originPrefixes.length === 0 && hostnames.length === 0) {
-    throw new Error("config.json environment missing origins/hostnames");
+    throw new Error("config.yaml environment missing origins/hostnames");
   }
   if (origins.includes(runtimeOrigin)) {
     return true;
@@ -117,25 +110,17 @@ function requireRuntimeLocation() {
  * @returns {Promise<RuntimeConfig>}
  */
 export async function loadRuntimeConfig() {
-  const response = await fetch(CONFIG_URL, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`config.json request failed (${response.status})`);
-  }
-  const payload = await response.json();
-  if (!isPlainObject(payload)) {
-    throw new Error("config.json must be an object");
-  }
-
+  const payload = await loadConfigPayload();
   const environments = requireEnvironmentArray(payload[CONFIG_SCOPE_ENVIRONMENTS]);
   const runtimeLocation = requireRuntimeLocation();
   const matching = environments.filter((environment) =>
     matchesEnvironment(environment, runtimeLocation.origin, runtimeLocation.hostname)
   );
   if (matching.length === 0) {
-    throw new Error(`config.json has no environment for origin ${runtimeLocation.origin}`);
+    throw new Error(`config.yaml has no environment for origin ${runtimeLocation.origin}`);
   }
   if (matching.length > 1) {
-    throw new Error(`config.json has multiple environments for origin ${runtimeLocation.origin}`);
+    throw new Error(`config.yaml has multiple environments for origin ${runtimeLocation.origin}`);
   }
   const selected = matching[0];
 
