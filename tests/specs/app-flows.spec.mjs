@@ -38,9 +38,17 @@ const AUTH_NONCE_PATH = "/auth/nonce";
 const AUTH_REFRESH_PATH = "/auth/refresh";
 const AUTH_ME_PATH = "/me";
 const AUTH_NONCE_RESPONSE = JSON.stringify({ nonce: "test-nonce" });
-const MPR_UI_JS_PATH = new URL("../../tools/mpr-ui/mpr-ui.js", import.meta.url);
-const MPR_UI_CSS_PATH = new URL("../../tools/mpr-ui/mpr-ui.css", import.meta.url);
-const TAUTH_JS_PATH = new URL("../../tools/TAuth/web/tauth.js", import.meta.url);
+const fetchCdnAsset = async (assetUrl) => {
+  if (typeof fetch !== "function") {
+    throw new Error(`Fetch unavailable while loading ${assetUrl}`);
+  }
+  const response = await fetch(assetUrl);
+  if (!response.ok) {
+    throw new Error(`Unable to fetch ${assetUrl} (${response.status})`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+};
 const GOOGLE_GSI_STUB = `
   window.google = window.google || {};
   window.google.accounts = window.google.accounts || {};
@@ -181,25 +189,6 @@ const calculateUsedBytes = (sourceLength, ranges) => {
   }
   used += currentEnd - currentStart;
   return used;
-};
-
-const readLocalOrFetch = async (localUrl, fallbackUrl) => {
-  try {
-    return await readFile(localUrl);
-  } catch (error) {
-    if (error?.code !== "ENOENT") {
-      throw error;
-    }
-  }
-  if (typeof fetch !== "function") {
-    throw new Error(`Missing local asset at ${localUrl} and fetch is unavailable.`);
-  }
-  const response = await fetch(fallbackUrl);
-  if (!response.ok) {
-    throw new Error(`Unable to fetch ${fallbackUrl} (${response.status})`);
-  }
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
 };
 
 const summarizeCoverageEntries = (entries) => {
@@ -1190,9 +1179,9 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   ] = await Promise.all([
     readFile(ALPINE_MODULE_PATH),
     readFile(BOOTSWATCH_CSS_PATH),
-    readLocalOrFetch(MPR_UI_JS_PATH, MPR_UI_CDN_URL),
-    readLocalOrFetch(MPR_UI_CSS_PATH, MPR_UI_CSS_CDN_URL),
-    readLocalOrFetch(TAUTH_JS_PATH, TAUTH_JS_CDN_URL)
+    fetchCdnAsset(MPR_UI_CDN_URL),
+    fetchCdnAsset(MPR_UI_CSS_CDN_URL),
+    fetchCdnAsset(TAUTH_JS_CDN_URL)
   ]);
   await page.setRequestInterception(true);
   const alpineRequestHandler = async (request) => {
