@@ -17,12 +17,11 @@ const FILTER_BAR_SELECTOR = "#chipBar";
 const FILTER_BAR_CONTAINER_SELECTOR = ".app-filter-bar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
-const PRIVACY_LINK_SELECTOR = "[data-role='privacy-link']";
+const PRIVACY_LINK_SELECTOR = "[data-mpr-footer='privacy-link']";
 const PRIVACY_ARTICLE_SELECTOR = "[data-role='privacy-article']";
-const FOOTER_PREFIX_SELECTOR = "[data-role='footer-prefix']";
-const FOOTER_PROJECTS_TOGGLE_SELECTOR = "[data-role='footer-projects-toggle']";
-const FOOTER_PROJECTS_MENU_SELECTOR = "[data-role='footer-projects-menu']";
-const FOOTER_PROJECT_ITEM_SELECTOR = "[data-role='footer-projects-item']";
+const FOOTER_PROJECTS_TOGGLE_SELECTOR = "[data-mpr-footer='toggle-button']";
+const FOOTER_PROJECTS_MENU_SELECTOR = "[data-mpr-footer='menu']";
+const FOOTER_PROJECT_ITEM_SELECTOR = "[data-mpr-footer='menu-link']";
 const PRIVACY_LINK_TEXT = "Privacy • Terms";
 const PRIVACY_HEADING_TEXT = "Privacy Policy — Prompt Bubbles";
 const PRIVACY_ROBOTS_META = "noindex,nofollow";
@@ -31,7 +30,39 @@ const ALPINE_CDN_URL = "https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/module
 const ALPINE_MODULE_PATH = require.resolve("alpinejs/dist/module.esm.js");
 const BOOTSWATCH_CDN_URL = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css";
 const BOOTSWATCH_CSS_PATH = require.resolve("bootswatch/dist/materia/bootstrap.min.css");
+const MPR_UI_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@latest/mpr-ui.js";
+const MPR_UI_CSS_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@latest/mpr-ui.css";
+const TAUTH_JS_CDN_URL = "https://cdn.jsdelivr.net/gh/tyemirov/TAuth@v1.0.0/web/tauth.js";
+const GOOGLE_GSI_CDN_URL = "https://accounts.google.com/gsi/client";
+const AUTH_NONCE_PATH = "/auth/nonce";
+const AUTH_REFRESH_PATH = "/auth/refresh";
+const AUTH_ME_PATH = "/me";
+const AUTH_NONCE_RESPONSE = JSON.stringify({ nonce: "test-nonce" });
+const MPR_UI_JS_PATH = new URL("../../tools/mpr-ui/mpr-ui.js", import.meta.url);
+const MPR_UI_CSS_PATH = new URL("../../tools/mpr-ui/mpr-ui.css", import.meta.url);
+const TAUTH_JS_PATH = new URL("../../tools/TAuth/web/tauth.js", import.meta.url);
+const GOOGLE_GSI_STUB = `
+  window.google = window.google || {};
+  window.google.accounts = window.google.accounts || {};
+  window.google.accounts.id = window.google.accounts.id || {};
+  window.google.accounts.id.initialize = window.google.accounts.id.initialize || function () {};
+  window.google.accounts.id.renderButton = window.google.accounts.id.renderButton || function (container, options) {
+    if (!container) {
+      return;
+    }
+    var button = document.createElement("div");
+    button.setAttribute("role", "button");
+    button.setAttribute("data-test", "google-signin-stub");
+    button.textContent = options && options.text ? options.text : "Sign in";
+    container.appendChild(button);
+  };
+  window.google.accounts.id.prompt = window.google.accounts.id.prompt || function () {};
+  window.google.accounts.id.disableAutoSelect = window.google.accounts.id.disableAutoSelect || function () {};
+`;
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
+const AUTH_LOGIN_BUTTON_SELECTOR = "mpr-login-button[data-test='auth-login']";
+const AUTH_LOGIN_CONTAINER_SELECTOR = "mpr-login-button[data-test='auth-login'] [data-mpr-login='google-button']";
+const AUTH_LOGIN_GOOGLE_SELECTOR = "mpr-login-button[data-test='auth-login'] [data-test='google-signin']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
 const CLEAR_BUTTON_SELECTOR = "[data-test='clear-search']";
 const CLEAR_BUTTON_LABEL = "Clear search";
@@ -64,7 +95,6 @@ const LIKE_COUNT_LABEL_PREFIX = "Current likes:";
 const BRAND_TAGLINE_TEXT = "Built for instant prompt workflows.";
 const FOOTER_SHORTCUT_TEXT = "Press / to search • Enter to copy the focused card";
 const FOOTER_MENU_LABEL = "Built By Marco Polo Research Lab";
-const FOOTER_MENU_TOGGLE_ARIA_LABEL = "Browse Marco Polo Research Lab projects";
 const FOOTER_PROJECT_LINKS = Object.freeze([
   { label: "Marco Polo Research Lab", url: "https://mprlab.com" },
   { label: "Gravity Notes", url: "https://gravity.mprlab.com" },
@@ -78,7 +108,7 @@ const FOOTER_PROJECT_LINKS = Object.freeze([
   { label: "Wallpapers", url: "https://wallpapers.mprlab.com" }
 ]);
 const TOP_NAV_SELECTOR = "nav.navbar.fixed-top";
-const BOTTOM_NAV_SELECTOR = "nav.navbar.fixed-bottom";
+const BOTTOM_NAV_SELECTOR = "[data-mpr-footer='root']";
 const BUBBLE_LAYER_SELECTOR = "[data-role='bubble-layer']";
 const BUBBLE_SELECTOR = "[data-role='bubble']";
 const BUBBLE_BORDER_LIGHT = "rgba(25, 118, 210, 0.35)";
@@ -1018,7 +1048,7 @@ const captureFilterLayoutSnapshot = (page) =>
 const captureFooterMenuSnapshot = (page) =>
   page.evaluate(
     (toggleSelector, menuSelector, itemSelector) => {
-      const container = document.querySelector("[data-role='footer-projects']");
+      const container = document.querySelector("[data-mpr-footer='menu-wrapper']");
       const toggleElement = document.querySelector(toggleSelector);
       const menuElement = document.querySelector(menuSelector);
       const itemElements = Array.from(document.querySelectorAll(itemSelector));
@@ -1042,18 +1072,11 @@ const captureFooterMenuSnapshot = (page) =>
       return {
         containerClasses: container?.className ?? "",
         toggleLabel: toggleElement?.textContent?.trim() ?? "",
-        toggleId: toggleElement?.id ?? "",
         toggleAriaExpanded: toggleElement?.getAttribute("aria-expanded") ?? "",
-        toggleAriaControls: toggleElement?.getAttribute("aria-controls") ?? "",
         toggleAriaHaspopup: toggleElement?.getAttribute("aria-haspopup") ?? "",
-        toggleAriaLabel: toggleElement?.getAttribute("aria-label") ?? "",
-        menuId: menuElement?.id ?? "",
-        menuRole: menuElement?.getAttribute("role") ?? "",
-        menuLabelledBy: menuElement?.getAttribute("aria-labelledby") ?? "",
-        menuHasShowClass: menuElement?.classList.contains("show") ?? false,
+        menuHasOpenClass: menuElement?.classList.contains("mpr-footer__menu--open") ?? false,
         menuVisible: isMenuVisible,
         toggleTop: toggleRect?.top ?? Number.NaN,
-        toggleBottom: toggleRect?.bottom ?? Number.NaN,
         menuTop: menuRect?.top ?? Number.NaN,
         menuBottom: menuRect?.bottom ?? Number.NaN,
         viewportHeight,
@@ -1072,15 +1095,30 @@ const captureFooterMenuSnapshot = (page) =>
 
 const captureFooterLayoutSnapshot = (page) =>
   page.evaluate(() => {
-    const container = document.querySelector("nav.navbar.fixed-bottom .container-fluid");
-    if (!(container instanceof HTMLElement)) {
+    const layout = document.querySelector("[data-mpr-footer='layout']");
+    if (!(layout instanceof HTMLElement)) {
       return [];
     }
-    return Array.from(container.querySelectorAll("[data-role]")).map((element) => {
+    const elements = Array.from(layout.children);
+    return elements.map((element) => {
       const rect = element.getBoundingClientRect();
       const styles = getComputedStyle(element);
+      const dataRole = element.getAttribute("data-role") ?? "";
+      const dataFooter = element.getAttribute("data-mpr-footer") ?? "";
+      let role = dataRole;
+      if (!role && dataFooter) {
+        if (dataFooter === "privacy-link") {
+          role = "privacy-link";
+        } else if (dataFooter === "theme-toggle") {
+          role = "footer-theme-toggle";
+        } else if (dataFooter === "brand") {
+          role = "footer-projects";
+        } else if (dataFooter === "spacer") {
+          role = "footer-spacer";
+        }
+      }
       return {
-        role: element.getAttribute("data-role") ?? "",
+        role,
         left: rect.left,
         fontSize: styles.getPropertyValue("font-size"),
         flexGrow: styles.getPropertyValue("flex-grow")
@@ -1124,9 +1162,18 @@ const createScenarioRunner = (reportScenario) => {
 
 export const run = async ({ browser, baseUrl, announceProgress, reportScenario, logs: _logs }) => {
   const page = await browser.newPage();
-  const [alpineModuleSource, bootswatchStylesheet] = await Promise.all([
+  const [
+    alpineModuleSource,
+    bootswatchStylesheet,
+    mprUiScript,
+    mprUiStyles,
+    tauthScript
+  ] = await Promise.all([
     readFile(ALPINE_MODULE_PATH),
-    readFile(BOOTSWATCH_CSS_PATH)
+    readFile(BOOTSWATCH_CSS_PATH),
+    readFile(MPR_UI_JS_PATH),
+    readFile(MPR_UI_CSS_PATH),
+    readFile(TAUTH_JS_PATH)
   ]);
   await page.setRequestInterception(true);
   const alpineRequestHandler = async (request) => {
@@ -1149,6 +1196,89 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
           "access-control-allow-origin": "*"
         },
         body: bootswatchStylesheet
+      });
+      return;
+    }
+    if (request.url() === MPR_UI_CDN_URL) {
+      await request.respond({
+        status: 200,
+        headers: {
+          "content-type": "application/javascript; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: mprUiScript
+      });
+      return;
+    }
+    if (request.url() === MPR_UI_CSS_CDN_URL) {
+      await request.respond({
+        status: 200,
+        headers: {
+          "content-type": "text/css; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: mprUiStyles
+      });
+      return;
+    }
+    if (request.url() === TAUTH_JS_CDN_URL) {
+      await request.respond({
+        status: 200,
+        headers: {
+          "content-type": "application/javascript; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: tauthScript
+      });
+      return;
+    }
+    if (request.url() === GOOGLE_GSI_CDN_URL) {
+      await request.respond({
+        status: 200,
+        headers: {
+          "content-type": "application/javascript; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: GOOGLE_GSI_STUB
+      });
+      return;
+    }
+    let requestPath = "";
+    try {
+      requestPath = new URL(request.url()).pathname;
+    } catch {
+      requestPath = "";
+    }
+    if (requestPath === AUTH_NONCE_PATH) {
+      await request.respond({
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: AUTH_NONCE_RESPONSE
+      });
+      return;
+    }
+    if (requestPath === AUTH_ME_PATH) {
+      await request.respond({
+        status: 401,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: "{}"
+      });
+      return;
+    }
+    if (requestPath === AUTH_REFRESH_PATH) {
+      await request.respond({
+        status: 403,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: "{}"
       });
       return;
     }
@@ -1356,11 +1486,11 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     const taglineElement = document.querySelector("[data-role='brand-tagline']");
     const footerShortcutElement = document.querySelector("[data-role='footer-shortcuts']");
     const mainShortcutElement = document.querySelector("main [data-role='footer-shortcuts']");
-    const privacyLinkElement = document.querySelector("[data-role='privacy-link']");
+    const privacyLinkElement = document.querySelector("[data-mpr-footer='privacy-link']");
     return {
       brandTaglineText: taglineElement?.textContent?.trim() ?? "",
       footerShortcutText: footerShortcutElement?.textContent?.trim() ?? "",
-      footerShortcutIsInFooter: Boolean(footerShortcutElement?.closest("nav.navbar.fixed-bottom")),
+      footerShortcutIsInFooter: Boolean(footerShortcutElement?.closest("footer.mpr-footer")),
       shortcutInMain: Boolean(mainShortcutElement),
       privacyLinkText: privacyLinkElement?.textContent?.trim() ?? "",
       privacyLinkIsSmall: Boolean(privacyLinkElement?.classList.contains("small")),
@@ -1402,6 +1532,48 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     true,
     "Privacy link should route to the privacy policy path"
   );
+  await scenarioRunner.run("Auth login button renders Google sign-in", async () => {
+    await page.waitForSelector(AUTH_LOGIN_BUTTON_SELECTOR);
+    await page.waitForSelector(AUTH_LOGIN_GOOGLE_SELECTOR);
+    const authSnapshot = await page.evaluate(
+      (loginSelector, containerSelector, googleSelector) => {
+        const loginButton = document.querySelector(loginSelector);
+        const loginContainer = document.querySelector(containerSelector);
+        const googleButton = document.querySelector(googleSelector);
+        return {
+          loginFound: Boolean(loginButton),
+          containerFound: Boolean(loginContainer),
+          googleButtonFound: Boolean(googleButton),
+          siteId: loginButton?.getAttribute("site-id") ?? "",
+          tenantId: loginButton?.getAttribute("tauth-tenant-id") ?? "",
+          googleReady: loginContainer?.getAttribute("data-mpr-google-ready") ?? "",
+          googleError: loginButton?.getAttribute("data-mpr-google-error") ?? ""
+        };
+      },
+      AUTH_LOGIN_BUTTON_SELECTOR,
+      AUTH_LOGIN_CONTAINER_SELECTOR,
+      AUTH_LOGIN_GOOGLE_SELECTOR
+    );
+    assertEqual(authSnapshot.loginFound, true, "Header should include the mpr-login-button element");
+    assertEqual(authSnapshot.containerFound, true, "Login button should host a Google render container");
+    assertEqual(
+      authSnapshot.siteId.length > 0,
+      true,
+      "Login button should receive the Google client ID"
+    );
+    assertEqual(
+      authSnapshot.tenantId.length > 0,
+      true,
+      "Login button should receive the TAuth tenant ID"
+    );
+    assertEqual(
+      authSnapshot.googleReady,
+      "true",
+      "Login button should report Google readiness after rendering"
+    );
+    assertEqual(authSnapshot.googleError, "", "Login button should not report Google errors");
+    assertEqual(authSnapshot.googleButtonFound, true, "Google sign-in button should render");
+  });
   const filterLayoutSnapshot = await captureFilterLayoutSnapshot(page);
   assertEqual(filterLayoutSnapshot.rowCount, 1, "Filter chips should render on a single row");
   assertEqual(
@@ -1641,6 +1813,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
   await reloadApp(page, baseUrl);
   await page.waitForSelector(BUBBLE_LAYER_SELECTOR);
+  await page.waitForSelector("[data-mpr-footer='root']");
   if (reportScenario && typeof reportScenario.pass === "function") {
     reportScenario.pass("Initial layout validations");
   }
@@ -1655,26 +1828,23 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     "Footer elements should render the hint message before the theme toggle"
   );
   const footerLibrarySnapshot = await page.evaluate(() => {
-    const namespace = window.MPRUI ?? null;
-    const footerElement = document.querySelector("nav.navbar.fixed-bottom");
+    const footerHost = document.querySelector("mpr-footer");
+    const footerRoot = footerHost?.querySelector('[data-mpr-footer="root"]');
     return {
-      hasNamespace: !!namespace && typeof namespace === "object",
-      hasRenderFooter: typeof namespace?.renderFooter === "function",
-      hasFooterFactory: typeof namespace?.factories?.footer === "function",
-      componentAttr: footerElement?.getAttribute("data-component") ?? "",
-      libraryAttr: footerElement?.getAttribute("data-library") ?? "",
-      dataRoleCount: footerElement ? footerElement.querySelectorAll("[data-role]").length : 0
+      hasCustomElement: typeof window.customElements?.get === "function" && !!customElements.get("mpr-footer"),
+      hostTagName: footerHost?.tagName ?? "",
+      hasFooterRoot: Boolean(footerRoot),
+      footerRootRole: footerRoot?.getAttribute("role") ?? "",
+      dataFooterCount: footerRoot ? footerRoot.querySelectorAll("[data-mpr-footer]").length : 0
     };
   });
-  assertEqual(footerLibrarySnapshot.hasNamespace, true, "MPRUI namespace should exist on window");
-  assertEqual(footerLibrarySnapshot.hasRenderFooter, true, "MPRUI should expose renderFooter()");
-  assertEqual(footerLibrarySnapshot.hasFooterFactory, true, "MPRUI should register an Alpine footer factory");
-  assertEqual(footerLibrarySnapshot.componentAttr, "mpr-footer", "Footer root should declare the mpr-footer component");
-  assertEqual(footerLibrarySnapshot.libraryAttr, "mpr-ui", "Footer root should attribute markup to mpr-ui");
+  assertEqual(footerLibrarySnapshot.hasCustomElement, true, "mpr-footer custom element should be registered");
+  assertEqual(footerLibrarySnapshot.hasFooterRoot, true, "Footer root should render inside mpr-footer");
+  assertEqual(footerLibrarySnapshot.footerRootRole, "contentinfo", "Footer root should use contentinfo semantics");
   assertEqual(
-    footerLibrarySnapshot.dataRoleCount > 0,
+    footerLibrarySnapshot.dataFooterCount > 0,
     true,
-    "Library-rendered footer should preserve instrumentation roles"
+    "Footer should render data-mpr-footer markers"
   );
   const privacyFooterEntry = footerLayoutSnapshot.find((entry) => entry.role === "privacy-link");
   if (!privacyFooterEntry) {
@@ -1693,16 +1863,11 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   );
   const footerMenuInitial = await captureFooterMenuSnapshot(page);
   assertEqual(
-    footerMenuInitial.containerClasses.includes("dropup"),
+    footerMenuInitial.containerClasses.includes("mpr-footer__menu-wrapper"),
     true,
-    "Footer projects container should render as a drop-up"
+    "Footer projects container should use the mpr-ui menu wrapper class"
   );
   assertEqual(footerMenuInitial.toggleLabel, FOOTER_MENU_LABEL, "Footer dropdown toggle should display the lab name");
-  assertEqual(
-    footerMenuInitial.toggleAriaLabel,
-    FOOTER_MENU_TOGGLE_ARIA_LABEL,
-    "Footer dropdown toggle should expose an accessible description"
-  );
   assertEqual(
     footerMenuInitial.toggleAriaExpanded,
     "false",
@@ -1710,28 +1875,13 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   );
   assertEqual(
     footerMenuInitial.toggleAriaHaspopup,
-    "menu",
+    "true",
     "Footer dropdown toggle should declare a menu popup"
   );
   assertEqual(
-    footerMenuInitial.menuRole,
-    "menu",
-    "Footer dropdown should expose the menu role"
-  );
-  assertEqual(
-    footerMenuInitial.menuLabelledBy,
-    footerMenuInitial.toggleId,
-    "Footer dropdown should be labelled by its toggle"
-  );
-  assertEqual(
-    footerMenuInitial.toggleAriaControls,
-    footerMenuInitial.menuId,
-    "Footer dropdown toggle should reference the menu element"
-  );
-  assertEqual(
-    footerMenuInitial.menuHasShowClass,
+    footerMenuInitial.menuHasOpenClass,
     false,
-    "Footer dropdown menu should not apply the show class before activation"
+    "Footer dropdown menu should not apply the open class before activation"
   );
   assertEqual(
     footerMenuInitial.menuVisible,
@@ -1747,9 +1897,9 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     "Footer dropdown toggle should mark itself expanded after activation"
   );
   assertEqual(
-    footerMenuExpanded.menuHasShowClass,
+    footerMenuExpanded.menuHasOpenClass,
     true,
-    "Footer dropdown menu should apply the show class when expanded"
+    "Footer dropdown menu should apply the open class when expanded"
   );
   assertEqual(
     footerMenuExpanded.menuVisible,
@@ -1807,9 +1957,9 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     "Footer dropdown toggle should collapse after pressing Escape"
   );
   assertEqual(
-    footerMenuCollapsed.menuHasShowClass,
+    footerMenuCollapsed.menuHasOpenClass,
     false,
-    "Footer dropdown menu should remove the show class after collapsing"
+    "Footer dropdown menu should remove the open class after collapsing"
   );
   assertEqual(
     footerMenuCollapsed.menuVisible,
@@ -1831,7 +1981,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       const robotsMeta = document.querySelector('meta[name="robots"]');
       const mailLink = document.querySelector('a[href^="mailto:"]');
       const nav = document.querySelector("nav.navbar.fixed-top");
-      const footer = document.querySelector("nav.navbar.fixed-bottom");
+      const footer = document.querySelector("footer.mpr-footer");
       const navStyles = nav ? getComputedStyle(nav) : null;
       const footerStyles = footer ? getComputedStyle(footer) : null;
       const searchInput = document.querySelector(selectors.searchInput);
@@ -1924,6 +2074,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   await page.goBack({ waitUntil: "networkidle0" });
   await waitForCardCount(page, initialCardIds.length);
   await delay(WAIT_AFTER_INTERACTION_MS);
+  await page.waitForSelector("[data-mpr-theme-toggle='label']");
   const desktopRowCounts = await captureGridRowLengths(page);
   const desktopInteriorCounts = desktopRowCounts.slice(0, -1);
   if (desktopInteriorCounts.length > 0) {
@@ -1936,7 +2087,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   }
   const themeAlignmentDelta = await page.evaluate((maximumDelta) => {
     const toggleInput = document.querySelector("#themeToggle");
-    const toggleLabel = document.querySelector("label[for='themeToggle']");
+    const toggleLabel = document.querySelector("[data-mpr-theme-toggle='label']");
     if (!(toggleInput instanceof HTMLElement) || !(toggleLabel instanceof HTMLElement)) {
       throw new Error("Theme toggle controls missing");
     }

@@ -23,9 +23,9 @@ Prompt Bubbles is a browser-first prompt library styled with Bootstrap’s Mater
 - **Data:** Prompt catalog loads from `data/prompts.json` and is validated on boot before rendering.
 - **Events:**  
   - `toast-show` — emitted after copy/share to display the global toast.  
-  - `theme-toggle` — emitted when the footer switch changes modes.  
-- `card-bubble` — dispatched by the like toggle toward the bubble layer with `{ x, y, size, riseDistance, cardTop, theme }` so the bubble originates at the interaction point and rises to the card's top edge.  
-  Both events bubble within the root container so components remain DOM-scoped.
+  - `card-bubble` — dispatched by the like toggle toward the bubble layer with `{ x, y, size, riseDistance, cardTop, theme }` so the bubble originates at the interaction point and rises to the card's top edge.  
+  - `mpr-footer:theme-change` — emitted by the mpr-ui footer switch; persisted to local storage and applied to `data-bs-theme`.  
+  These events bubble within the root container so components remain DOM-scoped.
 
 ## Local Development
 
@@ -49,8 +49,9 @@ The application supports user authentication via [TAuth](https://github.com/tyem
 
 #### Setup
 
-1. **Create environment file**
+1. **Create environment files**
    ```bash
+   cp .env.frontend.example .env.frontend
    cp .env.tauth.example .env.tauth
    ```
 
@@ -58,8 +59,7 @@ The application supports user authentication via [TAuth](https://github.com/tyem
    - Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
    - Create a new OAuth 2.0 Client ID for Web application
    - Add authorized JavaScript origins:
-     - `http://localhost:8000` (frontend)
-     - `http://localhost:8080` (TAuth service)
+     - `https://localhost:4443` (frontend + auth proxy)
    - Copy the Client ID to `.env.tauth`:
      ```
      GOOGLE_WEB_CLIENT_ID=your-client-id.apps.googleusercontent.com
@@ -78,13 +78,15 @@ The application supports user authentication via [TAuth](https://github.com/tyem
    ```
 
 5. **Access the application**
-   - Frontend: http://localhost:8000
-   - TAuth API: http://localhost:8080
+   - Frontend: https://localhost:4443
+   - TAuth API (direct): http://localhost:8081
 
 #### Configuration Files
 
 - **`docker-compose.yml`** - Orchestrates frontend and TAuth services
 - **`tauth-config.yaml`** - TAuth tenant configuration (tenant ID, cookie settings, TTLs)
+- **`.env.frontend`** - gHTTP configuration (TLS, reverse proxy targets, serve directory)
+- **`.env.frontend.example`** - Template for gHTTP configuration
 - **`.env.tauth`** - Environment variables (secrets, client IDs)
 - **`.env.tauth.example`** - Template for environment variables
 
@@ -99,16 +101,19 @@ The application supports user authentication via [TAuth](https://github.com/tyem
 │  └───────────────┘    └───────────────┘    └───────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
          │                                           │
-         │ HTTP :8000                                │ HTTP :8080
+         │ HTTPS :4443                               │ HTTP :8081
          ▼                                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Docker Compose                               │
-│  ┌───────────────┐                      ┌───────────────────┐   │
-│  │  Frontend     │                      │  TAuth Service    │   │
-│  │  (ghttp)      │                      │  - Session cookies│   │
-│  │  - Static     │                      │  - JWT tokens     │   │
-│  │    assets     │                      │  - Refresh tokens │   │
-│  └───────────────┘                      └───────────────────┘   │
+│  ┌───────────────┐                           ┌───────────────┐   │
+│  │  Frontend     │                           │  TAuth Service│   │
+│  │  (ghttp)      │                           │  - Session    │   │
+│  │  - Static     │                           │    cookies    │   │
+│  │    assets     │                           │  - JWT tokens │   │
+│  │  - Reverse    │                           │  - Refresh    │   │
+│  │    proxy      │                           │    tokens     │   │
+│  │    /auth,/me  │                           └───────────────┘   │
+│  └───────────────┘                                               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

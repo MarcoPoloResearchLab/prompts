@@ -20,7 +20,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 ## Event Contracts
 
 - `toast-show` (detail: `{ message: string }`) — dispatched by copy/share handlers; the toast region listens within the app shell.
-- `theme-toggle` (detail: `{ mode: "light" | "dark" }`) — dispatched by the footer switch after applying the theme to `document.documentElement`.
+- `mpr-footer:theme-change` (detail: `{ theme: "light" | "dark" }`) — emitted by the mpr-ui footer switch; `js/ui/footerElements.js` persists the selection and applies it to `data-bs-theme`.
 - `card-bubble` (detail: `{ x: number; y: number; size: number; riseDistance: number; cardTop: number; theme: "light" | "dark" }`) — dispatched by the like toggle to the bubble layer so bubbles travel from the interaction point to the card's top edge.
 
 ## Developer Notes
@@ -28,8 +28,7 @@ The PB-02 refactor replaces the bespoke layout with a Bootstrap 5 (Materia) expe
 - Modules live under `js/`: shared constants, utilities (clipboard, storage, logging, theming), pure core logic, and Alpine factories (`ui/`).
 - Data fetches now target `./data/prompts.json`; the repository validates structure before exposing prompts and tags.
 - Footer dropdown destinations reside in `FOOTER_PROJECTS` (`js/constants.js`); adjust that array to update the lab projects list.
-- The footer markup renders through `js/vendor/mpr-ui/mpr-ui.js`, which registers the `mprFooter` Alpine factory and an imperative `window.MPRUI.renderFooter` helper; host pages pass localized strings, privacy paths, and project links via the options object.
-- When promoting the footer into the standalone library described in `mpr-ui.md`, move the `js/vendor/mpr-ui/` folder into the new repository, copy its README guidance, and switch site imports to the CDN-delivered `mpr-ui.js`.
+- The footer renders via the `<mpr-footer>` custom element (mpr-ui CDN); `js/ui/footerElements.js` supplies the link collection, privacy link, theme switch configuration, and legal slot content.
 - Like state persists through `localStorage` using the `prompt-bubbles-likes` key; `AppShell` owns helpers for toggling, persistence, and accessibility labels.
 - Copy button styles rely on the new `--app-copy-button-*` tokens injected in `assets/css/material.css`; update those variables when adjusting action colors.
 - Sticky filter styling is driven by `--app-filter-bar-*` and `--app-filter-chip-*` tokens across `.app-filter-bar` and `[data-role="filter-chip"]`; keep offsets aligned with the fixed top navbar height.

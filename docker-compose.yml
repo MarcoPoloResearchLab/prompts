@@ -1,13 +1,14 @@
 # Docker Compose for Prompt Bubbles Development with TAuth Authentication
 #
 # Usage:
-#   1. Copy .env.tauth.example to .env.tauth and configure
-#   2. Run: docker compose up
-#   3. Visit http://localhost:8000
+#   1. Copy .env.frontend.example to .env.frontend and configure
+#   2. Copy .env.tauth.example to .env.tauth and configure
+#   3. Run: docker compose up
+#   4. Visit https://localhost:4443
 #
 # Services:
-#   - frontend: Static file server on port 8000
-#   - tauth: Authentication service on port 8080
+#   - frontend: Static file server + HTTPS reverse proxy on port 4443
+#   - tauth: Authentication service on port 8081
 
 services:
   frontend:
@@ -16,14 +17,16 @@ services:
     depends_on:
       - tauth
     ports:
-      - "8000:8000"
-    command: ["--port", "8000", "--app-dir", "/app"]
+      - "4443:4443"
+    env_file:
+      - ./.env.ghttp
     volumes:
       - ./index.html:/app/index.html:ro
       - ./js:/app/js:ro
       - ./data:/app/data:ro
       - ./assets:/app/assets:ro
       - ./privacy:/app/privacy:ro
+      - /media/share/Drive/exchange/certs/computercat:/media/share/Drive/exchange/certs/computercat:ro
     restart: unless-stopped
 
   tauth:
@@ -32,11 +35,11 @@ services:
     env_file:
       - ./.env.tauth
     ports:
-      - "8080:8080"
+      - "8081:8081"
     volumes:
       - tauth_data:/data
-      - ./tauth-config.yaml:/config/tauth-config.yaml:ro
-    command: ["--config", "/config/tauth-config.yaml"]
+      - ./tauth-config.yaml:/config/config.yaml:ro
+    command: ["--config", "/config/config.yaml"]
     restart: unless-stopped
 
 volumes:

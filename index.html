@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css" integrity="sha384-VBL1RyvoruUqGMPUNqtIIXcw1GvJClSiGRgG8jeIuaIXkjQsnjo8dY1ZFxfI6lkC" crossorigin="anonymous" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@latest/mpr-ui.css" />
   <link rel="stylesheet" href="./assets/css/material.css" />
   <link rel="icon" type="image/svg+xml" href="./assets/img/favicon.svg" />
   <link rel="mask-icon" href="./assets/img/favicon.svg" color="#1976d2" />
@@ -34,8 +35,6 @@
     x-data="AppShell()"
     x-init="init()"
     x-on:toast-show="forwardToast($event.detail)"
-    x-on:auth-signin-request.window="handleSignIn()"
-    x-on:auth-signout-request.window="handleSignOut()"
     data-page-mode="gallery"
     x-cloak
   >
@@ -81,18 +80,18 @@
           </div>
         </form>
         <div
-          class="ms-auto"
+          class="ms-auto d-flex align-items-center gap-2"
           data-role="auth-header"
           data-test="auth-header"
-          x-data="mprAuthHeader({
-            signInLabel: strings.signInLabel,
-            signOutLabel: strings.signOutLabel,
-            tauthUrl: authConfig.tauthUrl,
-            googleClientId: authConfig.googleClientId,
-            tenantId: authConfig.tenantId
-          })"
-          x-init="init()"
-        ></div>
+          x-bind:data-auth-status="authStatus"
+        >
+          <mpr-login-button
+            data-test="auth-login"
+          ></mpr-login-button>
+          <mpr-user
+            data-test="auth-user"
+          ></mpr-user>
+        </div>
       </div>
     </nav>
 
@@ -280,26 +279,13 @@
       </div>
     </div>
 
-    <nav
-      class="navbar bg-body-tertiary border-top fixed-bottom shadow-sm"
-      x-data="mprFooter({
-        privacy: {
-          href: paths.privacy,
-          label: strings.privacyLinkLabel,
-          ariaLabel: strings.privacyLinkAriaLabel
-        },
-        hintText: strings.footerHint,
-        themeToggleLabel: strings.themeToggleLabel,
-        menu: {
-          label: strings.footerMenuLabel,
-          ariaLabel: strings.footerMenuToggleAriaLabel
-        },
-        projects: footerLinks
-      })"
-      x-init="init()"
-    ></nav>
+    <mpr-footer data-test="site-footer">
+      <span slot="legal" data-role="footer-shortcuts"></span>
+    </mpr-footer>
   </div>
 
   <script type="module" src="./js/app.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/gh/tyemirov/TAuth@v1.0.0/web/tauth.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@latest/mpr-ui.js"></script>
 </body>
 </html>
