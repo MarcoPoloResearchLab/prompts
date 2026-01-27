@@ -1,6 +1,7 @@
 version: 1
 environments:
-  - origins:
+  - description: Local environment
+    origins:
       - "https://computercat.tyemirov.net:4443"
       - "http://localhost:8080"
     auth:
@@ -14,7 +15,8 @@ environments:
       text: "signin_with"
       size: "large"
       theme: "outline"
-  - origins:
+  - description: Production enviornment
+    origins:
       - "https://prompts.mprlab.com"
     auth:
       tauthUrl: "https://tauth.mprlab.com"
