@@ -61,8 +61,6 @@
  * @typedef {Object} RuntimeEnvironmentConfig
  * @property {string} type
  * @property {string[]} [origins]
- * @property {string[]} [originPrefixes]
- * @property {string[]} [hostnames]
  * @property {AuthRuntimeConfig} auth
  * @property {AuthButtonConfig} authButton
  */

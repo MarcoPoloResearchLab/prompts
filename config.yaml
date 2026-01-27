@@ -17,12 +17,6 @@ environments:
   - type: dev
     origins:
       - "http://localhost:8080"
-    originPrefixes:
-      - "http://127.0.0.1:"
-      - "http://localhost:"
-    hostnames:
-      - "127.0.0.1"
-      - "localhost"
     auth:
       tauthUrl: "http://localhost:8081"
       googleClientId: "761199429759-ftho7a14blghha4j8bifetrelor0u6sn.apps.googleusercontent.com"

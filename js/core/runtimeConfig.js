@@ -6,8 +6,6 @@ const CONFIG_SCOPE_AUTH = "auth";
 const CONFIG_SCOPE_BUTTON = "authButton";
 const CONFIG_SCOPE_ENVIRONMENTS = "environments";
 const CONFIG_SCOPE_ORIGINS = "origins";
-const CONFIG_SCOPE_ORIGIN_PREFIXES = "originPrefixes";
-const CONFIG_SCOPE_HOSTNAMES = "hostnames";
 
 /**
  * @param {Record<string, unknown>} source
@@ -73,20 +71,15 @@ function requireEnvironmentArray(value) {
  * @param {string} runtimeHostname
  * @returns {boolean}
  */
-function matchesEnvironment(environment, runtimeOrigin, runtimeHostname) {
+function matchesEnvironment(environment, runtimeOrigin) {
   const origins = readStringArray(environment, CONFIG_SCOPE_ORIGINS);
-  const originPrefixes = readStringArray(environment, CONFIG_SCOPE_ORIGIN_PREFIXES);
-  const hostnames = readStringArray(environment, CONFIG_SCOPE_HOSTNAMES);
-  if (origins.length === 0 && originPrefixes.length === 0 && hostnames.length === 0) {
-    throw new Error("config.yaml environment missing origins/hostnames");
+  if (origins.length === 0) {
+    throw new Error("config.yaml environment missing origins");
   }
   if (origins.includes(runtimeOrigin)) {
     return true;
   }
-  if (hostnames.includes(runtimeHostname)) {
-    return true;
-  }
-  return originPrefixes.some((prefix) => runtimeOrigin.startsWith(prefix));
+  return false;
 }
 
 /**
@@ -96,14 +89,11 @@ function requireRuntimeLocation() {
   if (typeof window === "undefined" || !window.location) {
     throw new Error("window.location is unavailable for config selection");
   }
-  const { origin, hostname } = window.location;
+  const { origin } = window.location;
   if (typeof origin !== "string" || origin.trim().length === 0) {
     throw new Error("window.location.origin is required for config selection");
   }
-  if (typeof hostname !== "string" || hostname.trim().length === 0) {
-    throw new Error("window.location.hostname is required for config selection");
-  }
-  return { origin, hostname };
+  return { origin };
 }
 
 /**
@@ -114,7 +104,7 @@ export async function loadRuntimeConfig() {
   const environments = requireEnvironmentArray(payload[CONFIG_SCOPE_ENVIRONMENTS]);
   const runtimeLocation = requireRuntimeLocation();
   const matching = environments.filter((environment) =>
-    matchesEnvironment(environment, runtimeLocation.origin, runtimeLocation.hostname)
+    matchesEnvironment(environment, runtimeLocation.origin)
   );
   if (matching.length === 0) {
     throw new Error(`config.yaml has no environment for origin ${runtimeLocation.origin}`);
