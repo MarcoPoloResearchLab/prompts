@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css" integrity="sha384-VBL1RyvoruUqGMPUNqtIIXcw1GvJClSiGRgG8jeIuaIXkjQsnjo8dY1ZFxfI6lkC" crossorigin="anonymous" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@latest/mpr-ui.css" />
   <link rel="stylesheet" href="./assets/css/material.css" />
   <link rel="icon" type="image/svg+xml" href="./assets/img/favicon.svg" />
   <link rel="mask-icon" href="./assets/img/favicon.svg" color="#1976d2" />
@@ -24,6 +25,8 @@
     gtag("config", "G-R6J165F21E");
   </script>
   <script defer src="https://loopaware.mprlab.com/widget.js?site_id=efad9dff-1777-4710-b6b1-3218ee8c5cbb"></script>
+  <!-- Google Identity Services for authentication -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
@@ -76,6 +79,19 @@
             </button>
           </div>
         </form>
+        <div
+          class="ms-auto d-flex align-items-center gap-2"
+          data-role="auth-header"
+          data-test="auth-header"
+          x-bind:data-auth-status="authStatus"
+        >
+          <mpr-login-button
+            data-test="auth-login"
+          ></mpr-login-button>
+          <mpr-user
+            data-test="auth-user"
+          ></mpr-user>
+        </div>
       </div>
     </nav>
 
@@ -128,6 +144,14 @@
       <div class="app-main-container container-fluid py-5 px-4 px-xxl-5">
         <header class="mb-4 text-center">
           <p class="lead mb-3" x-text="strings.subtitle"></p>
+          <template x-if="!isLoading && !hasError && prompts.length > 0">
+            <p
+              class="small text-muted mb-0"
+              data-test="prompt-count"
+              role="status"
+              x-text="promptCountText()"
+            ></p>
+          </template>
         </header>
 
         <template x-if="hasError">
@@ -263,26 +287,13 @@
       </div>
     </div>
 
-    <nav
-      class="navbar bg-body-tertiary border-top fixed-bottom shadow-sm"
-      x-data="mprFooter({
-        privacy: {
-          href: paths.privacy,
-          label: strings.privacyLinkLabel,
-          ariaLabel: strings.privacyLinkAriaLabel
-        },
-        hintText: strings.footerHint,
-        themeToggleLabel: strings.themeToggleLabel,
-        menu: {
-          label: strings.footerMenuLabel,
-          ariaLabel: strings.footerMenuToggleAriaLabel
-        },
-        projects: footerLinks
-      })"
-      x-init="init()"
-    ></nav>
+    <mpr-footer data-test="site-footer">
+      <span slot="legal" data-role="footer-shortcuts"></span>
+    </mpr-footer>
   </div>
 
   <script type="module" src="./js/app.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/gh/tyemirov/TAuth@v1.0.0/web/tauth.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@latest/mpr-ui.js"></script>
 </body>
 </html>

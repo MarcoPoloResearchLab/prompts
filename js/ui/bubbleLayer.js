@@ -1,13 +1,8 @@
 // @ts-check
 
-import { TIMINGS } from "../constants.js";
+import { BUBBLE_CONFIG, TIMINGS } from "../constants.js";
 import { createLogger } from "../utils/logging.js";
-
-const MAX_ACTIVE_BUBBLES = 6;
-const DEFAULT_THEME = "light";
-const MINIMUM_BUBBLE_SIZE = 24;
-const CARD_BOUNDARY_PADDING_PX = 2;
-const MIN_TRAVEL_DISTANCE_PX = 12;
+import { THEMES } from "../utils/theme.js";
 
 /**
  * @typedef {{
@@ -50,13 +45,13 @@ export function BubbleLayer(dependencies = {}) {
         logger.error("Bubble detail missing required coordinates", detail);
         return;
       }
-      const theme = detail.theme === "dark" ? "dark" : DEFAULT_THEME;
+      const theme = detail.theme === THEMES.dark ? THEMES.dark : THEMES.light;
       const identifier =
         typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      const startSize = Math.max(MINIMUM_BUBBLE_SIZE, detail.originSize);
-      const targetSize = Math.max(MINIMUM_BUBBLE_SIZE, detail.targetSize);
+      const startSize = Math.max(BUBBLE_CONFIG.minSizePx, detail.originSize);
+      const targetSize = Math.max(BUBBLE_CONFIG.minSizePx, detail.targetSize);
       const startRadius = startSize / 2;
       const targetRadius = targetSize / 2;
       const cardTop = Number.isFinite(detail.cardTop) ? detail.cardTop : detail.originY - startRadius;
@@ -64,13 +59,13 @@ export function BubbleLayer(dependencies = {}) {
       const cardLeft = Number.isFinite(detail.cardLeft) ? detail.cardLeft : detail.originX - startRadius;
       const cardRight = Number.isFinite(detail.cardRight) ? detail.cardRight : detail.originX + startRadius;
       const clampX = (value, radius) => {
-        const minimum = cardLeft + radius + CARD_BOUNDARY_PADDING_PX;
-        const maximum = cardRight - radius - CARD_BOUNDARY_PADDING_PX;
+        const minimum = cardLeft + radius + BUBBLE_CONFIG.cardPaddingPx;
+        const maximum = cardRight - radius - BUBBLE_CONFIG.cardPaddingPx;
         return Math.min(Math.max(value, minimum), maximum);
       };
       const clampY = (value, radius) => {
-        const minimum = cardTop + radius + CARD_BOUNDARY_PADDING_PX;
-        const maximum = cardBottom - radius - CARD_BOUNDARY_PADDING_PX;
+        const minimum = cardTop + radius + BUBBLE_CONFIG.cardPaddingPx;
+        const maximum = cardBottom - radius - BUBBLE_CONFIG.cardPaddingPx;
         return Math.min(Math.max(value, minimum), maximum);
       };
       const largestRadius = Math.max(startRadius, targetRadius);
@@ -78,9 +73,9 @@ export function BubbleLayer(dependencies = {}) {
       const clampedOriginY = clampY(detail.originY, startRadius);
       const clampedTargetY = clampY(detail.targetY, targetRadius);
       let translateY = clampedTargetY - clampedOriginY;
-      if (Math.abs(translateY) < MIN_TRAVEL_DISTANCE_PX) {
+      if (Math.abs(translateY) < BUBBLE_CONFIG.minTravelPx) {
         const travelSign = translateY >= 0 ? 1 : -1;
-        translateY = travelSign * MIN_TRAVEL_DISTANCE_PX;
+        translateY = travelSign * BUBBLE_CONFIG.minTravelPx;
       }
       const finalY = clampedOriginY + translateY;
       const scaleEnd = targetSize / startSize;
@@ -111,8 +106,8 @@ export function BubbleLayer(dependencies = {}) {
         };
       }
       const trimmedBubbles =
-        this.bubbles.length >= MAX_ACTIVE_BUBBLES
-          ? this.bubbles.slice(this.bubbles.length - (MAX_ACTIVE_BUBBLES - 1))
+        this.bubbles.length >= BUBBLE_CONFIG.maxActiveBubbles
+          ? this.bubbles.slice(this.bubbles.length - (BUBBLE_CONFIG.maxActiveBubbles - 1))
           : this.bubbles;
       this.bubbles = [...trimmedBubbles, bubble];
       window.setTimeout(() => {

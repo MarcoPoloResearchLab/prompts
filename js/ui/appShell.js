@@ -1,11 +1,12 @@
 // @ts-check
 
-import { EVENTS, FOOTER_PROJECTS, ICONS, PATHS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
+import { BUBBLE_CONFIG, EVENTS, ICONS, STORAGE_KEYS, STRINGS, TAGS, TIMINGS } from "../constants.js";
 import { createPlaceholderFragment, resolvePlaceholderText } from "../core/placeholders.js";
 import { createLogger } from "../utils/logging.js";
 import { escapeIdentifier } from "../utils/dom.js";
 import { loadJson, saveJson } from "../utils/storage.js";
 import { writeText, writeUrl } from "../utils/clipboard.js";
+import { THEMES } from "../utils/theme.js";
 
 /** @typedef {import("../types.d.js").Prompt} Prompt */
 /** @typedef {import("../types.d.js").PromptFilters} PromptFilters */
@@ -27,9 +28,6 @@ const CHIP_PADDING_INLINE_RANGE_REM = Object.freeze({ min: 0.65, max: 1 });
 const CHIP_PADDING_BLOCK_RANGE_REM = Object.freeze({ min: 0.28, max: 0.45 });
 const CHIP_CONTAINER_MIN_WIDTH_PX = 320;
 const CHIP_TEXT_BUFFER_PX = 4;
-const MINIMUM_BUBBLE_SIZE = 24;
-const BUBBLE_CARD_PADDING_PX = 2;
-const BUBBLE_MIN_TRAVEL_PX = 12;
 
 /**
  * @returns {PromptLikeCounts}
@@ -91,7 +89,6 @@ export function AppShell(dependencies) {
 
   return {
     strings: STRINGS,
-    paths: PATHS,
     isLoading: true,
     hasError: false,
     prompts: /** @type {Prompt[]} */ ([]),
@@ -100,13 +97,15 @@ export function AppShell(dependencies) {
     filters: /** @type {PromptFilters} */ ({ ...DEFAULT_FILTERS }),
     searchHasText: false,
     pageMode: "gallery",
-    footerLinks: FOOTER_PROJECTS,
     chipStyles: "",
     chipResizeHandler: null,
     linkedCardDismissCleanup: null,
     likeCountsById: createLikeCountMap(),
     cardFeedbackById: Object.create(null),
     cardFeedbackTimers: Object.create(null),
+    authStatus: "unauthenticated",
+    authHasAuthenticated: false,
+    authEventHandlers: null,
     init() {
       this.restoreFilters();
       this.restoreLikes();
@@ -133,6 +132,7 @@ export function AppShell(dependencies) {
             this.chipResizeHandler = null;
           }
           this.teardownLinkedCardDismissal();
+          this.teardownAuthEvents();
         });
       }
       this.$watch("filters.searchText", (value) => {
@@ -155,6 +155,63 @@ export function AppShell(dependencies) {
         this.updateChipStyles();
       });
       this.loadPrompts();
+      this.initializeAuthEvents();
+    },
+    initializeAuthEvents() {
+      if (!(this.$root instanceof HTMLElement)) {
+        return;
+      }
+      const root = this.$root;
+      const authenticatedHandler = () => {
+        this.authStatus = "authenticated";
+        this.authHasAuthenticated = true;
+        this.$dispatch(EVENTS.toastShow, { message: STRINGS.signInToast });
+      };
+      const unauthenticatedHandler = () => {
+        this.authStatus = "unauthenticated";
+      };
+      const authErrorHandler = (event) => {
+        const detail = event?.detail ?? null;
+        logger.error("Auth event error", detail);
+        this.authStatus = "unauthenticated";
+        this.$dispatch(EVENTS.toastShow, { message: STRINGS.authErrorToast });
+      };
+      const logoutHandler = () => {
+        this.authStatus = "unauthenticated";
+        if (this.authHasAuthenticated) {
+          this.$dispatch(EVENTS.toastShow, { message: STRINGS.signOutToast });
+          this.authHasAuthenticated = false;
+        }
+      };
+      root.addEventListener("mpr-ui:auth:authenticated", authenticatedHandler);
+      root.addEventListener("mpr-ui:auth:unauthenticated", unauthenticatedHandler);
+      root.addEventListener("mpr-ui:auth:error", authErrorHandler);
+      root.addEventListener("mpr-login:error", authErrorHandler);
+      root.addEventListener("mpr-ui:header:error", authErrorHandler);
+      root.addEventListener("mpr-user:error", authErrorHandler);
+      root.addEventListener("mpr-user:logout", logoutHandler);
+      this.authEventHandlers = Object.freeze({
+        root,
+        authenticatedHandler,
+        unauthenticatedHandler,
+        authErrorHandler,
+        logoutHandler
+      });
+    },
+    teardownAuthEvents() {
+      const handlers = this.authEventHandlers;
+      if (!handlers || !(handlers.root instanceof HTMLElement)) {
+        return;
+      }
+      const root = handlers.root;
+      root.removeEventListener("mpr-ui:auth:authenticated", handlers.authenticatedHandler);
+      root.removeEventListener("mpr-ui:auth:unauthenticated", handlers.unauthenticatedHandler);
+      root.removeEventListener("mpr-ui:auth:error", handlers.authErrorHandler);
+      root.removeEventListener("mpr-login:error", handlers.authErrorHandler);
+      root.removeEventListener("mpr-ui:header:error", handlers.authErrorHandler);
+      root.removeEventListener("mpr-user:error", handlers.authErrorHandler);
+      root.removeEventListener("mpr-user:logout", handlers.logoutHandler);
+      this.authEventHandlers = null;
     },
     handleGlobalKeydown(event) {
       if (!(event instanceof KeyboardEvent)) {
@@ -631,6 +688,25 @@ export function AppShell(dependencies) {
       return STRINGS.noMatches;
     },
     /**
+     * Returns the prompt count text (e.g., "Showing 5 of 100 prompts")
+     * @returns {string}
+     */
+    promptCountText() {
+      const shown = this.filteredPrompts.length;
+      const total = this.prompts.length;
+      const template = total === 1 ? STRINGS.promptCountSingular : STRINGS.promptCountTemplate;
+      return template.replace("{shown}", String(shown)).replace("{total}", String(total));
+    },
+    /**
+     * Returns true if filtering is active (search text or non-all tag selected)
+     * @returns {boolean}
+     */
+    isFiltering() {
+      const hasSearchText = typeof this.filters.searchText === "string" && this.filters.searchText.trim().length > 0;
+      const hasTagFilter = this.filters.tag !== TAGS.all;
+      return hasSearchText || hasTagFilter;
+    },
+    /**
      * @param {HTMLElement} cardElement
      * @param {Event} event
      * @returns {{ x: number; y: number; size: number; theme: "light" | "dark"; riseDistance: number } | null}
@@ -650,11 +726,11 @@ export function AppShell(dependencies) {
       }
       const cardId = typeof cardElement.id === "string" ? cardElement.id : "";
       const isNowLiked = cardId.length > 0 ? this.isCardLiked(cardId) : false;
-      const buttonDiameter = Math.max(MINIMUM_BUBBLE_SIZE, Math.max(buttonRect.width, buttonRect.height));
+      const buttonDiameter = Math.max(BUBBLE_CONFIG.minSizePx, Math.max(buttonRect.width, buttonRect.height));
       const buttonRadius = buttonDiameter / 2;
       const buttonCenterX = buttonRect.left + buttonRect.width / 2;
       const buttonCenterY = buttonRect.top + buttonRect.height / 2;
-      const maxBubbleSize = Math.max(MINIMUM_BUBBLE_SIZE, cardRect.width * 0.25);
+      const maxBubbleSize = Math.max(BUBBLE_CONFIG.minSizePx, cardRect.width * 0.25);
       const maxBubbleRadius = maxBubbleSize / 2;
       const cardTop = cardRect.top;
       const cardBottom = cardRect.bottom;
@@ -670,27 +746,33 @@ export function AppShell(dependencies) {
         originY = buttonCenterY;
         originSize = buttonDiameter;
         targetSize = maxBubbleSize;
-        const desiredTargetCenterY = cardTop + maxBubbleRadius + BUBBLE_CARD_PADDING_PX;
-        const minimumTargetCenterY = originY - BUBBLE_MIN_TRAVEL_PX;
+        const desiredTargetCenterY = cardTop + maxBubbleRadius + BUBBLE_CONFIG.cardPaddingPx;
+        const minimumTargetCenterY = originY - BUBBLE_CONFIG.minTravelPx;
         targetY = Math.min(desiredTargetCenterY, minimumTargetCenterY);
-        const upperBound = cardTop + maxBubbleRadius + BUBBLE_CARD_PADDING_PX;
+        const upperBound = cardTop + maxBubbleRadius + BUBBLE_CONFIG.cardPaddingPx;
         targetY = Math.max(upperBound, targetY);
       } else {
-        originY = cardTop + maxBubbleRadius + BUBBLE_CARD_PADDING_PX;
+        originY = cardTop + maxBubbleRadius + BUBBLE_CONFIG.cardPaddingPx;
         originSize = maxBubbleSize;
         targetSize = buttonDiameter;
         const desiredTargetCenterY = buttonCenterY;
-        const minimumTargetCenterY = originY + BUBBLE_MIN_TRAVEL_PX;
-        const lowerBound = cardBottom - buttonRadius - BUBBLE_CARD_PADDING_PX;
+        const minimumTargetCenterY = originY + BUBBLE_CONFIG.minTravelPx;
+        const lowerBound = cardBottom - buttonRadius - BUBBLE_CONFIG.cardPaddingPx;
         targetY = Math.max(desiredTargetCenterY, minimumTargetCenterY);
         targetY = Math.min(targetY, lowerBound);
       }
 
-      if (isNowLiked && targetY >= originY - BUBBLE_CARD_PADDING_PX) {
-        targetY = Math.max(cardTop + maxBubbleRadius + BUBBLE_CARD_PADDING_PX, originY - BUBBLE_MIN_TRAVEL_PX);
+      if (isNowLiked && targetY >= originY - BUBBLE_CONFIG.cardPaddingPx) {
+        targetY = Math.max(
+          cardTop + maxBubbleRadius + BUBBLE_CONFIG.cardPaddingPx,
+          originY - BUBBLE_CONFIG.minTravelPx
+        );
       }
-      if (!isNowLiked && targetY <= originY + BUBBLE_CARD_PADDING_PX) {
-        targetY = Math.min(cardBottom - buttonRadius - BUBBLE_CARD_PADDING_PX, originY + BUBBLE_MIN_TRAVEL_PX);
+      if (!isNowLiked && targetY <= originY + BUBBLE_CONFIG.cardPaddingPx) {
+        targetY = Math.min(
+          cardBottom - buttonRadius - BUBBLE_CONFIG.cardPaddingPx,
+          originY + BUBBLE_CONFIG.minTravelPx
+        );
       }
 
       const themeAttribute = document.documentElement.getAttribute("data-bs-theme");
@@ -700,7 +782,7 @@ export function AppShell(dependencies) {
         targetY,
         originSize,
         targetSize,
-        theme: themeAttribute === "dark" ? "dark" : "light",
+        theme: themeAttribute === THEMES.dark ? THEMES.dark : THEMES.light,
         direction: isNowLiked ? "forward" : "reverse",
         cardTop,
         cardBottom,
