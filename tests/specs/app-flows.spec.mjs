@@ -183,6 +183,25 @@ const calculateUsedBytes = (sourceLength, ranges) => {
   return used;
 };
 
+const readLocalOrFetch = async (localUrl, fallbackUrl) => {
+  try {
+    return await readFile(localUrl);
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      throw error;
+    }
+  }
+  if (typeof fetch !== "function") {
+    throw new Error(`Missing local asset at ${localUrl} and fetch is unavailable.`);
+  }
+  const response = await fetch(fallbackUrl);
+  if (!response.ok) {
+    throw new Error(`Unable to fetch ${fallbackUrl} (${response.status})`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+};
+
 const summarizeCoverageEntries = (entries) => {
   let totalBytes = 0;
   let usedBytes = 0;
@@ -1171,9 +1190,9 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   ] = await Promise.all([
     readFile(ALPINE_MODULE_PATH),
     readFile(BOOTSWATCH_CSS_PATH),
-    readFile(MPR_UI_JS_PATH),
-    readFile(MPR_UI_CSS_PATH),
-    readFile(TAUTH_JS_PATH)
+    readLocalOrFetch(MPR_UI_JS_PATH, MPR_UI_CDN_URL),
+    readLocalOrFetch(MPR_UI_CSS_PATH, MPR_UI_CSS_CDN_URL),
+    readLocalOrFetch(TAUTH_JS_PATH, TAUTH_JS_CDN_URL)
   ]);
   await page.setRequestInterception(true);
   const alpineRequestHandler = async (request) => {
