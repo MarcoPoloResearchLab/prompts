@@ -2,21 +2,9 @@ version: 1
 environments:
   - origins:
       - "https://computercat.tyemirov.net:4443"
-    auth:
-      tauthUrl: "https://computercat.tyemirov.net:4443"
-      googleClientId: "761199429759-ftho7a14blghha4j8bifetrelor0u6sn.apps.googleusercontent.com"
-      tenantId: "prompt-bubbles"
-      loginPath: "/auth/google"
-      logoutPath: "/auth/logout"
-      noncePath: "/auth/nonce"
-    authButton:
-      text: "signin_with"
-      size: "large"
-      theme: "outline"
-  - origins:
       - "http://localhost:8080"
     auth:
-      tauthUrl: "http://localhost:8081"
+      tauthUrl: "https://computercat.tyemirov.net:4443"
       googleClientId: "761199429759-ftho7a14blghha4j8bifetrelor0u6sn.apps.googleusercontent.com"
       tenantId: "prompt-bubbles"
       loginPath: "/auth/google"
