@@ -60,7 +60,9 @@ export const STRINGS = Object.freeze({
   searchIconLabel: "Search icon",
   errorLoading: "Unable to load prompt catalog. Please refresh the page.",
   privacyLinkLabel: "Privacy • Terms",
-  privacyModalContent: `<p class="lead">
+  privacyModalContent: `<h1>Privacy Policy — Prompt Bubbles</h1>
+<p class="text-muted mb-3">Effective Date: 2025-10-11</p>
+<p class="lead">
 Prompt Bubbles uses Google Identity Services to authenticate users. We receive your Google profile
 information (name, email, profile image) only to sign you in. We do not sell or share your data, and we only
 store your notes so the service functions.
