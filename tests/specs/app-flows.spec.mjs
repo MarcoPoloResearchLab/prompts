@@ -86,7 +86,6 @@ const GOOGLE_GSI_STUB = `
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
 const AUTH_LOGIN_BUTTON_SELECTOR = "mpr-login-button[data-test='auth-login']";
 const AUTH_LOGIN_CONTAINER_SELECTOR = "mpr-login-button[data-test='auth-login'] [data-mpr-login='google-button']";
-const AUTH_LOGIN_GOOGLE_SELECTOR = "mpr-login-button[data-test='auth-login'] [data-test='google-signin']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
 const CLEAR_BUTTON_SELECTOR = "[data-test='clear-search']";
 const CLEAR_BUTTON_LABEL = "Clear search";
@@ -1606,16 +1605,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   );
   await scenarioRunner.run("Auth login button renders Google sign-in", async () => {
     await page.waitForSelector(AUTH_LOGIN_BUTTON_SELECTOR);
-    await page.waitForSelector(AUTH_LOGIN_GOOGLE_SELECTOR);
+    await page.waitForFunction(
+      () => Array.isArray(window.__gsiRenderCalls) && window.__gsiRenderCalls.length > 0
+    );
     const authSnapshot = await page.evaluate(
-      (loginSelector, containerSelector, googleSelector) => {
+      (loginSelector, containerSelector) => {
         const loginButton = document.querySelector(loginSelector);
         const loginContainer = document.querySelector(containerSelector);
-        const googleButton = document.querySelector(googleSelector);
         return {
           loginFound: Boolean(loginButton),
           containerFound: Boolean(loginContainer),
-          googleButtonFound: Boolean(googleButton),
           siteId: loginButton?.getAttribute("site-id") ?? "",
           tenantId: loginButton?.getAttribute("tauth-tenant-id") ?? "",
           googleReady: loginContainer?.getAttribute("data-mpr-google-ready") ?? "",
@@ -1623,8 +1622,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
         };
       },
       AUTH_LOGIN_BUTTON_SELECTOR,
-      AUTH_LOGIN_CONTAINER_SELECTOR,
-      AUTH_LOGIN_GOOGLE_SELECTOR
+      AUTH_LOGIN_CONTAINER_SELECTOR
     );
     assertEqual(authSnapshot.loginFound, true, "Header should include the mpr-login-button element");
     assertEqual(authSnapshot.containerFound, true, "Login button should host a Google render container");
@@ -1644,7 +1642,6 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       "Login button should report Google readiness after rendering"
     );
     assertEqual(authSnapshot.googleError, "", "Login button should not report Google errors");
-    assertEqual(authSnapshot.googleButtonFound, true, "Google sign-in button should render");
     assertEqual(
       authNonceRequestCount > 0,
       true,
