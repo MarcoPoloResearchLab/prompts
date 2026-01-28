@@ -4,6 +4,7 @@ environments:
     origins:
       - "https://computercat.tyemirov.net:4443"
       - "http://localhost:8080"
+      - "http://127.0.0.1:4173"
     auth:
       tauthUrl: "https://computercat.tyemirov.net:4443"
       googleClientId: "761199429759-ftho7a14blghha4j8bifetrelor0u6sn.apps.googleusercontent.com"

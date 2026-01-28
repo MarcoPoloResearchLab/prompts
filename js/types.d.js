@@ -35,7 +35,7 @@
  */
 
 /**
- * @typedef {Object} AuthRuntimeConfig
+ * @typedef {Object} MprUiAuthConfig
  * @property {string} tauthUrl
  * @property {string} googleClientId
  * @property {string} tenantId
@@ -45,22 +45,23 @@
  */
 
 /**
- * @typedef {Object} AuthButtonConfig
+ * @typedef {Object} MprUiAuthButtonConfig
  * @property {string} text
  * @property {string} size
  * @property {string} theme
+ * @property {string=} shape
  */
 
 /**
- * @typedef {Object} RuntimeConfig
- * @property {AuthRuntimeConfig} auth
- * @property {AuthButtonConfig} authButton
- */
-
-/**
- * @typedef {Object} RuntimeEnvironmentConfig
- * @property {string} [description]
+ * @typedef {Object} MprUiRuntimeConfig
+ * @property {string} description
  * @property {string[]} origins
- * @property {AuthRuntimeConfig} auth
- * @property {AuthButtonConfig} authButton
+ * @property {MprUiAuthConfig} auth
+ * @property {MprUiAuthButtonConfig | null} authButton
+ */
+
+/**
+ * @typedef {Object} AuthBootstrapState
+ * @property {"authenticated" | "unauthenticated"} status
+ * @property {unknown | null} profile
  */

@@ -3,8 +3,7 @@
 export const DATA_PATH = "/data/prompts.json";
 
 export const PATHS = Object.freeze({
-  privacy: "/privacy/",
-  logoutRedirect: "#top"
+  privacy: "/privacy/"
 });
 
 export const TAGS = Object.freeze({

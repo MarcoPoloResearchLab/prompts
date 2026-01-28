@@ -17,16 +17,18 @@ services:
     depends_on:
       - tauth
     ports:
-      - "4443:4443"
+      - "4443:8443"
     env_file:
       - ./.env.ghttp
     volumes:
       - ./index.html:/app/index.html:ro
+      - ./config.yaml:/app/config.yaml:ro
       - ./js:/app/js:ro
       - ./data:/app/data:ro
       - ./assets:/app/assets:ro
       - ./privacy:/app/privacy:ro
-      - /media/share/Drive/exchange/certs/computercat:/media/share/Drive/exchange/certs/computercat:ro
+      - /media/share/Drive/exchange/certs/computercat/computercat-cert.pem:/certs/cert.pem:ro
+      - /media/share/Drive/exchange/certs/computercat/computercat-key.pem:/certs/key.pem:ro
     restart: unless-stopped
 
   tauth:
