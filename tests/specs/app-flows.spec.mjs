@@ -29,15 +29,18 @@ const APP_FLOWS_SPEC_IDENTIFIER = "specs/app-flows.spec.mjs";
 const ALPINE_CDN_URL = "https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/module.esm.js";
 const ALPINE_MODULE_PATH = require.resolve("alpinejs/dist/module.esm.js");
 const BOOTSWATCH_CDN_URL = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css";
-const BOOTSWATCH_CSS_PATH = require.resolve("bootswatch/dist/materia/bootstrap.min.css");
-const MPR_UI_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@latest/mpr-ui.js";
-const MPR_UI_CSS_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@latest/mpr-ui.css";
-const TAUTH_JS_CDN_URL = "https://cdn.jsdelivr.net/gh/tyemirov/TAuth@v1.0.0/web/tauth.js";
+const MPR_UI_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui.js";
+const MPR_UI_CONFIG_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui-config.js";
+const MPR_UI_CSS_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui.css";
+const TAUTH_JS_CDN_URL = "https://tauth.mprlab.com/tauth.js";
 const GOOGLE_GSI_CDN_URL = "https://accounts.google.com/gsi/client";
+const JS_YAML_CDN_URL = "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js";
 const AUTH_NONCE_PATH = "/auth/nonce";
 const AUTH_REFRESH_PATH = "/auth/refresh";
 const AUTH_ME_PATH = "/me";
 const AUTH_NONCE_RESPONSE = JSON.stringify({ nonce: "test-nonce" });
+const AUTH_TENANT_HEADER_NAME = "x-tauth-tenant";
+const AUTH_ORIGIN_HEADER_NAME = "origin";
 const fetchCdnAsset = async (assetUrl) => {
   if (typeof fetch !== "function") {
     throw new Error(`Fetch unavailable while loading ${assetUrl}`);
@@ -50,11 +53,22 @@ const fetchCdnAsset = async (assetUrl) => {
   return Buffer.from(arrayBuffer);
 };
 const GOOGLE_GSI_STUB = `
+  window.__gsiInitCalls = window.__gsiInitCalls || [];
+  window.__gsiRenderCalls = window.__gsiRenderCalls || [];
+  window.__gsiRenderBeforeInit = window.__gsiRenderBeforeInit || false;
+  window.__gsiInitialized = window.__gsiInitialized || false;
   window.google = window.google || {};
   window.google.accounts = window.google.accounts || {};
   window.google.accounts.id = window.google.accounts.id || {};
-  window.google.accounts.id.initialize = window.google.accounts.id.initialize || function () {};
-  window.google.accounts.id.renderButton = window.google.accounts.id.renderButton || function (container, options) {
+  window.google.accounts.id.initialize = function initializeGoogleIdentity(config) {
+    window.__gsiInitialized = true;
+    window.__gsiInitCalls.push(config);
+  };
+  window.google.accounts.id.renderButton = function renderIdentityButton(container, options) {
+    window.__gsiRenderCalls.push({ options: options });
+    if (!window.__gsiInitialized) {
+      window.__gsiRenderBeforeInit = true;
+    }
     if (!container) {
       return;
     }
@@ -64,13 +78,13 @@ const GOOGLE_GSI_STUB = `
     button.textContent = options && options.text ? options.text : "Sign in";
     container.appendChild(button);
   };
-  window.google.accounts.id.prompt = window.google.accounts.id.prompt || function () {};
-  window.google.accounts.id.disableAutoSelect = window.google.accounts.id.disableAutoSelect || function () {};
+  window.google.accounts.id.prompt = window.google.accounts.id.prompt || function promptGoogleIdentity() {};
+  window.google.accounts.id.disableAutoSelect =
+    window.google.accounts.id.disableAutoSelect || function disableAutoSelect() {};
 `;
 const GLOBAL_TOAST_SELECTOR = "[data-test='global-toast']";
 const AUTH_LOGIN_BUTTON_SELECTOR = "mpr-login-button[data-test='auth-login']";
 const AUTH_LOGIN_CONTAINER_SELECTOR = "mpr-login-button[data-test='auth-login'] [data-mpr-login='google-button']";
-const AUTH_LOGIN_GOOGLE_SELECTOR = "mpr-login-button[data-test='auth-login'] [data-test='google-signin']";
 const APP_ROOT_SELECTOR = "[x-data$='AppShell()']";
 const CLEAR_BUTTON_SELECTOR = "[data-test='clear-search']";
 const CLEAR_BUTTON_LABEL = "Clear search";
@@ -1170,18 +1184,25 @@ const createScenarioRunner = (reportScenario) => {
 
 export const run = async ({ browser, baseUrl, announceProgress, reportScenario, logs: _logs }) => {
   const page = await browser.newPage();
+  let authNonceRequestCount = 0;
+  let authNonceRequestHeaders = [];
+  let authProfilePayload = null;
   const [
     alpineModuleSource,
     bootswatchStylesheet,
     mprUiScript,
+    mprUiConfigScript,
     mprUiStyles,
-    tauthScript
+    tauthScript,
+    jsYamlScript
   ] = await Promise.all([
     readFile(ALPINE_MODULE_PATH),
-    readFile(BOOTSWATCH_CSS_PATH),
+    fetchCdnAsset(BOOTSWATCH_CDN_URL),
     fetchCdnAsset(MPR_UI_CDN_URL),
+    fetchCdnAsset(MPR_UI_CONFIG_CDN_URL),
     fetchCdnAsset(MPR_UI_CSS_CDN_URL),
-    fetchCdnAsset(TAUTH_JS_CDN_URL)
+    fetchCdnAsset(TAUTH_JS_CDN_URL),
+    fetchCdnAsset(JS_YAML_CDN_URL)
   ]);
   await page.setRequestInterception(true);
   const alpineRequestHandler = async (request) => {
@@ -1218,6 +1239,17 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       });
       return;
     }
+    if (request.url() === MPR_UI_CONFIG_CDN_URL) {
+      await request.respond({
+        status: 200,
+        headers: {
+          "content-type": "application/javascript; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: mprUiConfigScript
+      });
+      return;
+    }
     if (request.url() === MPR_UI_CSS_CDN_URL) {
       await request.respond({
         status: 200,
@@ -1240,6 +1272,17 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       });
       return;
     }
+    if (request.url() === JS_YAML_CDN_URL) {
+      await request.respond({
+        status: 200,
+        headers: {
+          "content-type": "application/javascript; charset=utf-8",
+          "access-control-allow-origin": "*"
+        },
+        body: jsYamlScript
+      });
+      return;
+    }
     if (request.url() === GOOGLE_GSI_CDN_URL) {
       await request.respond({
         status: 200,
@@ -1258,6 +1301,12 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       requestPath = "";
     }
     if (requestPath === AUTH_NONCE_PATH) {
+      authNonceRequestCount += 1;
+      const requestHeaders = request.headers();
+      authNonceRequestHeaders.push({
+        origin: requestHeaders[AUTH_ORIGIN_HEADER_NAME] ?? "",
+        tenantId: requestHeaders[AUTH_TENANT_HEADER_NAME] ?? ""
+      });
       await request.respond({
         status: 200,
         headers: {
@@ -1269,13 +1318,15 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       return;
     }
     if (requestPath === AUTH_ME_PATH) {
+      const responseStatus = authProfilePayload ? 200 : 401;
+      const responseBody = authProfilePayload ? JSON.stringify(authProfilePayload) : "{}";
       await request.respond({
-        status: 401,
+        status: responseStatus,
         headers: {
           "content-type": "application/json; charset=utf-8",
           "access-control-allow-origin": "*"
         },
-        body: "{}"
+        body: responseBody
       });
       return;
     }
@@ -1306,6 +1357,17 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   }
   await page.evaluateOnNewDocument(() => {
     window.__PROMPT_BUBBLES_TESTING__ = true;
+    window.__mprAuthEvents = [];
+    const recordEvent = (type) => (event) => {
+      const detail = event && event.detail ? event.detail : null;
+      window.__mprAuthEvents.push({ type, detail });
+    };
+    window.addEventListener("mpr-ui:auth:authenticated", recordEvent("mpr-ui:auth:authenticated"));
+    window.addEventListener("mpr-ui:auth:unauthenticated", recordEvent("mpr-ui:auth:unauthenticated"));
+    window.addEventListener("mpr-ui:auth:error", recordEvent("mpr-ui:auth:error"));
+    window.addEventListener("mpr-login:error", recordEvent("mpr-login:error"));
+    window.addEventListener("mpr-ui:header:error", recordEvent("mpr-ui:header:error"));
+    window.addEventListener("mpr-user:error", recordEvent("mpr-user:error"));
   });
   await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
   await stubClipboard(page);
@@ -1542,16 +1604,16 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   );
   await scenarioRunner.run("Auth login button renders Google sign-in", async () => {
     await page.waitForSelector(AUTH_LOGIN_BUTTON_SELECTOR);
-    await page.waitForSelector(AUTH_LOGIN_GOOGLE_SELECTOR);
+    await page.waitForFunction(
+      () => Array.isArray(window.__gsiRenderCalls) && window.__gsiRenderCalls.length > 0
+    );
     const authSnapshot = await page.evaluate(
-      (loginSelector, containerSelector, googleSelector) => {
+      (loginSelector, containerSelector) => {
         const loginButton = document.querySelector(loginSelector);
         const loginContainer = document.querySelector(containerSelector);
-        const googleButton = document.querySelector(googleSelector);
         return {
           loginFound: Boolean(loginButton),
           containerFound: Boolean(loginContainer),
-          googleButtonFound: Boolean(googleButton),
           siteId: loginButton?.getAttribute("site-id") ?? "",
           tenantId: loginButton?.getAttribute("tauth-tenant-id") ?? "",
           googleReady: loginContainer?.getAttribute("data-mpr-google-ready") ?? "",
@@ -1559,8 +1621,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
         };
       },
       AUTH_LOGIN_BUTTON_SELECTOR,
-      AUTH_LOGIN_CONTAINER_SELECTOR,
-      AUTH_LOGIN_GOOGLE_SELECTOR
+      AUTH_LOGIN_CONTAINER_SELECTOR
     );
     assertEqual(authSnapshot.loginFound, true, "Header should include the mpr-login-button element");
     assertEqual(authSnapshot.containerFound, true, "Login button should host a Google render container");
@@ -1580,7 +1641,55 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       "Login button should report Google readiness after rendering"
     );
     assertEqual(authSnapshot.googleError, "", "Login button should not report Google errors");
-    assertEqual(authSnapshot.googleButtonFound, true, "Google sign-in button should render");
+    assertEqual(
+      authNonceRequestCount > 0,
+      true,
+      "Login button should request a nonce from TAuth"
+    );
+    const lastNonceRequest =
+      authNonceRequestHeaders[authNonceRequestHeaders.length - 1] ?? {
+        origin: "",
+        tenantId: ""
+      };
+    assertEqual(
+      lastNonceRequest.tenantId.length > 0,
+      true,
+      "Nonce request should include the X-TAuth-Tenant header"
+    );
+    const gsiSnapshot = await page.evaluate(() => {
+      const initCalls = Array.isArray(window.__gsiInitCalls) ? window.__gsiInitCalls.length : 0;
+      const renderCalls = Array.isArray(window.__gsiRenderCalls) ? window.__gsiRenderCalls.length : 0;
+      const renderBeforeInit = Boolean(window.__gsiRenderBeforeInit);
+      return { initCalls, renderCalls, renderBeforeInit };
+    });
+    assertEqual(
+      gsiSnapshot.initCalls > 0,
+      true,
+      "Google Identity should initialize with a nonce before prompting"
+    );
+    assertEqual(
+      gsiSnapshot.renderCalls > 0,
+      true,
+      "Google Identity should attempt to render at least one button"
+    );
+    assertEqual(
+      gsiSnapshot.renderBeforeInit,
+      false,
+      "Google Identity must initialize before rendering the sign-in button"
+    );
+    const authEventSnapshot = await page.evaluate(() => {
+      const events = Array.isArray(window.__mprAuthEvents) ? window.__mprAuthEvents : [];
+      const errorCodes = events
+        .filter((event) => typeof event?.type === "string" && event.type.includes("error"))
+        .map((event) => (event && event.detail && event.detail.code ? event.detail.code : ""))
+        .filter((code) => code.length > 0);
+      return { errorCodes };
+    });
+    assertEqual(
+      authEventSnapshot.errorCodes.length,
+      0,
+      "Auth flow should not emit error events during initial render"
+    );
   });
   const filterLayoutSnapshot = await captureFilterLayoutSnapshot(page);
   assertEqual(filterLayoutSnapshot.rowCount, 1, "Filter chips should render on a single row");
@@ -2966,6 +3075,55 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
   assertDeepEqual(activeAfterReload, ["data"], "Tag selection should persist across reloads");
   const cardsAfterReload = await getVisibleCardIds(page);
   assertDeepEqual(cardsAfterReload, ["p04", "p18"], "Reload should respect persisted filters");
+
+  await scenarioRunner.run("Authenticated sessions skip GIS rendering", async () => {
+    authProfilePayload = {
+      email: "tester@mprlab.com",
+      name: "Prompt Tester"
+    };
+    const nonceCountBeforeAuth = authNonceRequestCount;
+    await reloadApp(page, baseUrl);
+    await page.waitForFunction(
+      (loginSelector) => !document.querySelector(loginSelector),
+      {},
+      AUTH_LOGIN_BUTTON_SELECTOR
+    );
+    await page.waitForFunction(
+      () =>
+        Array.isArray(window.__mprAuthEvents) &&
+        window.__mprAuthEvents.some((event) => event && event.type === "mpr-ui:auth:authenticated")
+    );
+    const authenticatedSnapshot = await page.evaluate((loginSelector) => {
+      const loginButton = document.querySelector(loginSelector);
+      const initCalls = Array.isArray(window.__gsiInitCalls) ? window.__gsiInitCalls.length : 0;
+      const renderCalls = Array.isArray(window.__gsiRenderCalls) ? window.__gsiRenderCalls.length : 0;
+      return {
+        loginButtonExists: Boolean(loginButton),
+        initCalls,
+        renderCalls
+      };
+    }, AUTH_LOGIN_BUTTON_SELECTOR);
+    assertEqual(
+      authenticatedSnapshot.loginButtonExists,
+      false,
+      "Login button should be removed when the session is authenticated"
+    );
+    assertEqual(
+      authenticatedSnapshot.initCalls,
+      0,
+      "Google Identity should not initialize when the user is already authenticated"
+    );
+    assertEqual(
+      authenticatedSnapshot.renderCalls,
+      0,
+      "Google Identity should not render a button when the user is already authenticated"
+    );
+    assertEqual(
+      authNonceRequestCount,
+      nonceCountBeforeAuth,
+      "Authenticated sessions should not request a nonce"
+    );
+  });
 
   const [jsCoverageEntries, cssCoverageEntries] = await Promise.all([
     page.coverage.stopJSCoverage(),

@@ -193,7 +193,7 @@ const main = async () => {
   const stopMonitoringConsoleWarnings = monitorConsoleWarnings();
   const { stop: stopMonitoringConsoleLogs, snapshot: snapshotConsoleLogs } = monitorConsoleLogs();
   let consoleWarnings = [];
-  const { server, port } = await startStaticServer(0);
+  const { server, port } = await startStaticServer(DEFAULT_PORT);
   const browser = await puppeteer.launch({
     headless: "new",
     args: ["--no-sandbox", "--disable-setuid-sandbox"]
