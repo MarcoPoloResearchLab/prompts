@@ -60,7 +60,8 @@ export const STRINGS = Object.freeze({
   searchIconLabel: "Search icon",
   errorLoading: "Unable to load prompt catalog. Please refresh the page.",
   privacyLinkLabel: "Privacy • Terms",
-  privacyModalContent: `<h1>Privacy Policy — Prompt Bubbles</h1>
+  privacyModalContent: `<div class="text-start">
+<h1>Privacy Policy — Prompt Bubbles</h1>
 <p class="text-muted mb-3">Effective Date: 2025-10-11</p>
 <p class="lead">
 Prompt Bubbles uses Google Identity Services to authenticate users. We receive your Google profile
@@ -75,7 +76,8 @@ complete.
 <p class="mb-0">
 Reach us at
 <a class="fw-semibold" href="mailto:support@mprlab.com">support@mprlab.com</a>.
-</p>`,
+</p>
+</div>`,
   signOutLabel: "Sign out",
   signInToast: "Welcome back!",
   signOutToast: "You have been signed out.",
