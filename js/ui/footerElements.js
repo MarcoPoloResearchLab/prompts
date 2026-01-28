@@ -1,6 +1,6 @@
 // @ts-check
 
-import { FOOTER_PROJECTS, PATHS, STORAGE_KEYS, STRINGS } from "../constants.js";
+import { FOOTER_PROJECTS, STORAGE_KEYS, STRINGS } from "../constants.js";
 import { loadString, saveString } from "../utils/storage.js";
 import { applyTheme, resolveInitialTheme, THEMES } from "../utils/theme.js";
 
@@ -91,7 +91,7 @@ export function applyFooterElementAttributes() {
     return;
   }
   footer.setAttribute("links-collection", JSON.stringify(buildLinksCollection()));
-  footer.setAttribute("privacy-link-href", PATHS.privacy);
+  footer.setAttribute("privacy-modal-content", STRINGS.privacyModalContent);
   footer.setAttribute("privacy-link-label", STRINGS.privacyLinkLabel);
   footer.setAttribute("theme-switcher", "toggle");
 
