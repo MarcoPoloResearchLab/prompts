@@ -18,6 +18,9 @@ const FILTER_BAR_CONTAINER_SELECTOR = ".app-filter-bar";
 const LIKE_BUTTON_SELECTOR = "[data-test='like-button']";
 const LIKE_COUNT_SELECTOR = "[data-role='like-count']";
 const PRIVACY_LINK_SELECTOR = "[data-mpr-footer='privacy-link']";
+const PRIVACY_MODAL_SELECTOR = "[data-mpr-footer='privacy-modal']";
+const PRIVACY_MODAL_CONTENT_SELECTOR = "[data-mpr-footer='privacy-modal-content']";
+const PRIVACY_MODAL_CLOSE_SELECTOR = "[data-mpr-footer='privacy-modal-close']";
 const PRIVACY_ARTICLE_SELECTOR = "[data-role='privacy-article']";
 const FOOTER_PROJECTS_TOGGLE_SELECTOR = "[data-mpr-footer='toggle-button']";
 const FOOTER_PROJECTS_MENU_SELECTOR = "[data-mpr-footer='menu']";
@@ -1552,11 +1555,12 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     true,
     `Search placeholder should start at least ${MIN_SEARCH_PLACEHOLDER_INSET_PX}px from the addon capsule`
   );
-  const layoutChecks = await page.evaluate(() => {
+  const layoutChecks = await page.evaluate((modalSelector) => {
     const taglineElement = document.querySelector("[data-role='brand-tagline']");
     const footerShortcutElement = document.querySelector("[data-role='footer-shortcuts']");
     const mainShortcutElement = document.querySelector("main [data-role='footer-shortcuts']");
     const privacyLinkElement = document.querySelector("[data-mpr-footer='privacy-link']");
+    const privacyModalElement = document.querySelector(modalSelector);
     return {
       brandTaglineText: taglineElement?.textContent?.trim() ?? "",
       footerShortcutText: footerShortcutElement?.textContent?.trim() ?? "",
@@ -1564,9 +1568,10 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
       shortcutInMain: Boolean(mainShortcutElement),
       privacyLinkText: privacyLinkElement?.textContent?.trim() ?? "",
       privacyLinkIsSmall: Boolean(privacyLinkElement?.classList.contains("small")),
-      privacyLinkHref: privacyLinkElement?.getAttribute("href") ?? ""
+      privacyLinkRole: privacyLinkElement?.getAttribute("role") ?? "",
+      hasPrivacyModal: Boolean(privacyModalElement)
     };
-  });
+  }, PRIVACY_MODAL_SELECTOR);
   assertEqual(
     layoutChecks.brandTaglineText,
     BRAND_TAGLINE_TEXT,
@@ -1598,9 +1603,14 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     "Privacy link should use the standard footer type size"
   );
   assertEqual(
-    layoutChecks.privacyLinkHref.endsWith("/privacy/") || layoutChecks.privacyLinkHref.endsWith("/privacy"),
+    layoutChecks.privacyLinkRole,
+    "button",
+    "Privacy link should have button role for modal trigger"
+  );
+  assertEqual(
+    layoutChecks.hasPrivacyModal,
     true,
-    "Privacy link should route to the privacy policy path"
+    "Footer should include a privacy modal element"
   );
   await scenarioRunner.run("Auth login button renders Google sign-in", async () => {
     await page.waitForSelector(AUTH_LOGIN_BUTTON_SELECTOR);
@@ -2083,113 +2093,62 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     false,
     "Footer dropdown menu should hide after collapsing"
   );
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: "networkidle0" }),
-    page.click(PRIVACY_LINK_SELECTOR)
-  ]);
-  const initialPrivacyTheme = await page.evaluate(
-    () => document.documentElement.getAttribute("data-bs-theme") ?? "light"
-  );
-  await page.waitForSelector(PRIVACY_ARTICLE_SELECTOR);
-  await page.waitForSelector(CHIP_SELECTOR);
-  const privacyPageSnapshot = await page.evaluate(
+  await page.click(PRIVACY_LINK_SELECTOR);
+  await delay(WAIT_AFTER_INTERACTION_MS);
+  const privacyModalOpenSnapshot = await page.evaluate(
     (selectors) => {
-      const heading = document.querySelector("h1");
-      const robotsMeta = document.querySelector('meta[name="robots"]');
-      const mailLink = document.querySelector('a[href^="mailto:"]');
-      const nav = document.querySelector("nav.navbar.fixed-top");
-      const footer = document.querySelector("footer.mpr-footer");
-      const navStyles = nav ? getComputedStyle(nav) : null;
-      const footerStyles = footer ? getComputedStyle(footer) : null;
-      const searchInput = document.querySelector(selectors.searchInput);
-      const chips = Array.from(document.querySelectorAll(selectors.chipSelector));
-      const article = document.querySelector(selectors.articleSelector);
-      const articleStyles = article ? getComputedStyle(article) : null;
-      const isElementVisible = (styles) =>
-        Boolean(styles) &&
-        styles.getPropertyValue("display") !== "none" &&
-        styles.getPropertyValue("visibility") !== "hidden";
+      const modal = document.querySelector(selectors.modalSelector);
+      const modalContent = document.querySelector(selectors.contentSelector);
+      const mailLink = modalContent?.querySelector('a[href^="mailto:"]');
+      const modalStyles = modal ? getComputedStyle(modal) : null;
       return {
-        heading: heading?.textContent?.trim() ?? "",
-        robots: robotsMeta?.getAttribute("content") ?? "",
+        modalOpen: modal?.getAttribute("data-mpr-modal-open") === "true",
+        modalVisible: modalStyles?.getPropertyValue("display") !== "none",
         hasMailLink: Boolean(mailLink),
-        navVisible: isElementVisible(navStyles),
-        footerVisible: isElementVisible(footerStyles),
-        hasSearch: Boolean(searchInput),
-        chipCount: chips.length,
-        articleBackground: articleStyles?.getPropertyValue("background-color") ?? "",
-        articleColor: articleStyles?.getPropertyValue("color") ?? ""
+        contentText: modalContent?.textContent?.trim() ?? ""
       };
     },
     {
-      searchInput: SEARCH_INPUT_SELECTOR,
-      chipSelector: CHIP_SELECTOR,
-      articleSelector: PRIVACY_ARTICLE_SELECTOR
+      modalSelector: PRIVACY_MODAL_SELECTOR,
+      contentSelector: PRIVACY_MODAL_CONTENT_SELECTOR
     }
   );
   assertEqual(
-    privacyPageSnapshot.heading,
-    PRIVACY_HEADING_TEXT,
-    "Privacy policy page should render the expected heading"
-  );
-  assertEqual(
-    privacyPageSnapshot.robots,
-    PRIVACY_ROBOTS_META,
-    "Privacy policy page should prevent search indexing"
-  );
-  assertEqual(
-    privacyPageSnapshot.hasMailLink,
+    privacyModalOpenSnapshot.modalOpen,
     true,
-    "Privacy policy page should expose a contact email link"
-  );
-  assertEqual(privacyPageSnapshot.navVisible, true, "Privacy policy should reuse the global header");
-  assertEqual(privacyPageSnapshot.footerVisible, true, "Privacy policy should reuse the global footer");
-  assertEqual(
-    privacyPageSnapshot.hasSearch,
-    true,
-    "Privacy policy should expose the global search control within the header"
+    "Privacy modal should open when privacy link is clicked"
   );
   assertEqual(
-    privacyPageSnapshot.chipCount > 0,
+    privacyModalOpenSnapshot.modalVisible,
     true,
-    "Privacy policy should render the tag filter rail"
+    "Privacy modal should be visible when open"
   );
-  const toggledPrivacyTheme = initialPrivacyTheme === "dark" ? "light" : "dark";
-  await page.click(THEME_TOGGLE_SELECTOR);
-  await waitForThemeMode(page, toggledPrivacyTheme);
+  assertEqual(
+    privacyModalOpenSnapshot.hasMailLink,
+    true,
+    "Privacy modal should expose a contact email link"
+  );
+  assertEqual(
+    privacyModalOpenSnapshot.contentText.length > 0,
+    true,
+    "Privacy modal should display privacy content"
+  );
+  await page.click(PRIVACY_MODAL_CLOSE_SELECTOR);
   await delay(WAIT_AFTER_INTERACTION_MS);
-  const privacyThemeSnapshot = await page.evaluate((articleSelector) => {
-    const article = document.querySelector(articleSelector);
-    const articleStyles = article ? getComputedStyle(article) : null;
-    return {
-      theme: document.documentElement.getAttribute("data-bs-theme") ?? "",
-      articleBackground: articleStyles?.getPropertyValue("background-color") ?? "",
-      articleColor: articleStyles?.getPropertyValue("color") ?? ""
-    };
-  }, PRIVACY_ARTICLE_SELECTOR);
-  assertEqual(
-    privacyThemeSnapshot.theme,
-    toggledPrivacyTheme,
-    "Privacy policy should respect theme toggles"
+  const privacyModalClosedSnapshot = await page.evaluate(
+    (modalSelector) => {
+      const modal = document.querySelector(modalSelector);
+      return {
+        modalOpen: modal?.getAttribute("data-mpr-modal-open") === "true"
+      };
+    },
+    PRIVACY_MODAL_SELECTOR
   );
   assertEqual(
-    colorsAreClose(
-      privacyThemeSnapshot.articleBackground.trim(),
-      privacyPageSnapshot.articleBackground.trim()
-    ),
+    privacyModalClosedSnapshot.modalOpen,
     false,
-    "Privacy policy surface background should respond to theme toggles"
+    "Privacy modal should close when close button is clicked"
   );
-  assertEqual(
-    colorsAreClose(privacyThemeSnapshot.articleColor.trim(), privacyPageSnapshot.articleColor.trim()),
-    false,
-    "Privacy policy typography should respond to theme toggles"
-  );
-  await page.click(THEME_TOGGLE_SELECTOR);
-  await waitForThemeMode(page, initialPrivacyTheme);
-  await delay(WAIT_AFTER_INTERACTION_MS);
-  await page.goBack({ waitUntil: "networkidle0" });
-  await waitForCardCount(page, initialCardIds.length);
   await delay(WAIT_AFTER_INTERACTION_MS);
   await page.waitForSelector("[data-mpr-theme-toggle='label']");
   const desktopRowCounts = await captureGridRowLengths(page);
