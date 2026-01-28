@@ -14,20 +14,6 @@ environments:
       text: "signin_with"
       size: "large"
       theme: "outline"
-  - description: Local environment (localhost)
-    origins:
-      - "http://localhost:8080"
-    auth:
-      tauthUrl: "http://localhost:8080"
-      googleClientId: "761199429759-ftho7a14blghha4j8bifetrelor0u6sn.apps.googleusercontent.com"
-      tenantId: "prompt-bubbles"
-      loginPath: "/auth/google"
-      logoutPath: "/auth/logout"
-      noncePath: "/auth/nonce"
-    authButton:
-      text: "signin_with"
-      size: "large"
-      theme: "outline"
   - description: Local environment (test runner)
     origins:
       - "http://127.0.0.1:4173"
