@@ -21,13 +21,10 @@ const PRIVACY_LINK_SELECTOR = "[data-mpr-footer='privacy-link']";
 const PRIVACY_MODAL_SELECTOR = "[data-mpr-footer='privacy-modal']";
 const PRIVACY_MODAL_CONTENT_SELECTOR = "[data-mpr-footer='privacy-modal-content']";
 const PRIVACY_MODAL_CLOSE_SELECTOR = "[data-mpr-footer='privacy-modal-close']";
-const PRIVACY_ARTICLE_SELECTOR = "[data-role='privacy-article']";
 const FOOTER_PROJECTS_TOGGLE_SELECTOR = "[data-mpr-footer='toggle-button']";
 const FOOTER_PROJECTS_MENU_SELECTOR = "[data-mpr-footer='menu']";
 const FOOTER_PROJECT_ITEM_SELECTOR = "[data-mpr-footer='menu-link']";
 const PRIVACY_LINK_TEXT = "Privacy • Terms";
-const PRIVACY_HEADING_TEXT = "Privacy Policy — Prompt Bubbles";
-const PRIVACY_ROBOTS_META = "noindex,nofollow";
 const APP_FLOWS_SPEC_IDENTIFIER = "specs/app-flows.spec.mjs";
 const ALPINE_CDN_URL = "https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/module.esm.js";
 const ALPINE_MODULE_PATH = require.resolve("alpinejs/dist/module.esm.js");
@@ -2978,9 +2975,9 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     throw new Error("Sitemap snapshot missing");
   }
   assertEqual(
-    sitemapSnapshot.paths.includes("/") && sitemapSnapshot.paths.includes("/privacy/"),
+    sitemapSnapshot.paths.includes("/"),
     true,
-    "Sitemap should list both the homepage and privacy policy paths"
+    "Sitemap should list the homepage path"
   );
 
   await page.goto(`${baseUrl}#p05`, { waitUntil: "networkidle0" });
