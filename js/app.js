@@ -12,7 +12,7 @@ import { createLogger } from "./utils/logging.js";
 
 const logger = createLogger();
 const promptsRepository = createPromptsRepository();
-const MPR_UI_BUNDLE_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.1/mpr-ui.js";
+const MPR_UI_BUNDLE_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui.js";
 const APP_ROOT_SELECTOR = "[x-data$=\"AppShell()\"]";
 const AUTH_STATUS_AUTHENTICATED = "authenticated";
 const AUTH_STATUS_UNAUTHENTICATED = "unauthenticated";

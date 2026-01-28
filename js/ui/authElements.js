@@ -106,6 +106,7 @@ export function ensureAuthLoginButton(authConfig, authButtonConfig) {
   }
   const existing = header.querySelector(AUTH_LOGIN_SELECTOR);
   if (existing instanceof HTMLElement) {
+    applyAuthConfigToLoginButton(authConfig, authButtonConfig, existing);
     return existing;
   }
   const loginButton = document.createElement(AUTH_LOGIN_TAG);

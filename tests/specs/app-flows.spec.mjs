@@ -29,10 +29,9 @@ const APP_FLOWS_SPEC_IDENTIFIER = "specs/app-flows.spec.mjs";
 const ALPINE_CDN_URL = "https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/module.esm.js";
 const ALPINE_MODULE_PATH = require.resolve("alpinejs/dist/module.esm.js");
 const BOOTSWATCH_CDN_URL = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css";
-const BOOTSWATCH_CSS_PATH = require.resolve("bootswatch/dist/materia/bootstrap.min.css");
-const MPR_UI_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.1/mpr-ui.js";
-const MPR_UI_CONFIG_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.1/mpr-ui-config.js";
-const MPR_UI_CSS_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.1/mpr-ui.css";
+const MPR_UI_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui.js";
+const MPR_UI_CONFIG_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui-config.js";
+const MPR_UI_CSS_CDN_URL = "https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui.css";
 const TAUTH_JS_CDN_URL = "https://tauth.mprlab.com/tauth.js";
 const GOOGLE_GSI_CDN_URL = "https://accounts.google.com/gsi/client";
 const JS_YAML_CDN_URL = "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js";
@@ -1198,7 +1197,7 @@ export const run = async ({ browser, baseUrl, announceProgress, reportScenario, 
     jsYamlScript
   ] = await Promise.all([
     readFile(ALPINE_MODULE_PATH),
-    readFile(BOOTSWATCH_CSS_PATH),
+    fetchCdnAsset(BOOTSWATCH_CDN_URL),
     fetchCdnAsset(MPR_UI_CDN_URL),
     fetchCdnAsset(MPR_UI_CONFIG_CDN_URL),
     fetchCdnAsset(MPR_UI_CSS_CDN_URL),

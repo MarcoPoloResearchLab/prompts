@@ -99,6 +99,7 @@ export function AppShell(dependencies) {
     pageMode: "gallery",
     chipStyles: "",
     chipResizeHandler: null,
+    navResizeObserver: null,
     linkedCardDismissCleanup: null,
     likeCountsById: createLikeCountMap(),
     cardFeedbackById: Object.create(null),
@@ -131,6 +132,7 @@ export function AppShell(dependencies) {
             window.removeEventListener("resize", this.chipResizeHandler);
             this.chipResizeHandler = null;
           }
+          this.teardownNavResizeObserver();
           this.teardownLinkedCardDismissal();
           this.teardownAuthEvents();
         });
@@ -153,9 +155,34 @@ export function AppShell(dependencies) {
       this.$nextTick(() => {
         this.updateNavHeight();
         this.updateChipStyles();
+        this.setupNavResizeObserver();
       });
       this.loadPrompts();
       this.initializeAuthEvents();
+    },
+    setupNavResizeObserver() {
+      if (typeof window === "undefined" || typeof window.ResizeObserver !== "function") {
+        return;
+      }
+      if (this.navResizeObserver) {
+        return;
+      }
+      const navElement = this.$root.querySelector("nav.navbar.fixed-top");
+      if (!(navElement instanceof HTMLElement)) {
+        return;
+      }
+      this.navResizeObserver = new window.ResizeObserver(() => {
+        window.requestAnimationFrame(() => {
+          this.updateNavHeight();
+        });
+      });
+      this.navResizeObserver.observe(navElement);
+    },
+    teardownNavResizeObserver() {
+      if (this.navResizeObserver && typeof this.navResizeObserver.disconnect === "function") {
+        this.navResizeObserver.disconnect();
+      }
+      this.navResizeObserver = null;
     },
     initializeAuthEvents() {
       if (!(this.$root instanceof HTMLElement)) {

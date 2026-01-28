@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css" integrity="sha384-VBL1RyvoruUqGMPUNqtIIXcw1GvJClSiGRgG8jeIuaIXkjQsnjo8dY1ZFxfI6lkC" crossorigin="anonymous" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@latest/mpr-ui.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui.css" />
   <link rel="stylesheet" href="../assets/css/material.css" />
   <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
   <link rel="mask-icon" href="../assets/img/favicon.svg" color="#1976d2" />
@@ -24,7 +24,7 @@
   </script>
   <script defer src="https://tauth.mprlab.com/tauth.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@latest/mpr-ui-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui-config.js"></script>
 </head>
 
 <body>
@@ -77,6 +77,22 @@
             </button>
           </div>
         </form>
+        <div
+          class="ms-auto d-flex align-items-center gap-2"
+          data-role="auth-header"
+          data-test="auth-header"
+          x-bind:data-auth-status="authStatus"
+        >
+          <mpr-login-button
+            data-test="auth-login"
+          ></mpr-login-button>
+          <mpr-user
+            data-test="auth-user"
+            display-mode="avatar"
+            logout-url="../#top"
+            logout-label="Sign out"
+          ></mpr-user>
+        </div>
       </div>
     </nav>
 
