@@ -46,7 +46,7 @@ environments:
     origins:
       - "https://prompts.mprlab.com"
     auth:
-      tauthUrl: "https://tauth.mprlab.com"
+      tauthUrl: "https://tauth-api.mprlab.com"
       googleClientId: "761199429759-ftho7a14blghha4j8bifetrelor0u6sn.apps.googleusercontent.com"
       tenantId: "prompt-bubbles"
       loginPath: "/auth/google"
