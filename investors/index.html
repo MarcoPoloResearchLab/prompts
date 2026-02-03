@@ -122,10 +122,22 @@
         padding: 0.5rem 0.65rem;
       }
     }
+    .page-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .page-container > main {
+      flex: 1;
+    }
+    mpr-footer {
+      margin-top: auto;
+    }
   </style>
 </head>
 
 <body>
+  <div class="page-container">
   <main class="investor-brief">
     <a href="/" class="back-link text-primary">
       <span class="material-icons-outlined" style="font-size: 1.1rem;">arrow_back</span>
@@ -420,5 +432,29 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui-config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/gh/MarcoPoloResearchLab/mpr-ui@v3.6.2/mpr-ui.js"></script>
+
+  <mpr-footer
+    id="page-footer"
+    prefix-text="Marco Polo Research Lab"
+    links-collection='{
+      "style": "drop-up",
+      "text": "Our Products",
+      "links": [
+        { "label": "Prompt Bubbles", "url": "https://prompts.mprlab.com" },
+        { "label": "Poodle Scanner", "url": "https://poodlescanner.com" },
+        { "label": "LoopAware", "url": "https://loopaware.mprlab.com" }
+      ]
+    }'
+    theme-switcher="toggle"
+    theme-config='{
+      "attribute": "data-bs-theme",
+      "targets": ["html"],
+      "initialMode": "light",
+      "modes": ["light", "dark"]
+    }'
+    sticky="false"
+  ></mpr-footer>
+  </div>
 </body>
 </html>
