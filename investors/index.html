@@ -27,9 +27,10 @@
       padding: 2rem 1.5rem 4rem;
     }
     .investor-brief h1 {
-      font-size: 2.25rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
+      font-size: 2.75rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
     }
     .investor-brief .subtitle {
       font-size: 1.1rem;
@@ -100,20 +101,13 @@
       color: var(--bs-secondary);
       margin-top: 2rem;
     }
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      margin-bottom: 1.5rem;
-      text-decoration: none;
-      font-size: 0.9rem;
-    }
-    .back-link:hover {
+    /* Header back link hover */
+    mpr-header .back-link:hover {
       text-decoration: underline;
     }
     @media (max-width: 768px) {
       .investor-brief h1 {
-        font-size: 1.75rem;
+        font-size: 2rem;
       }
       .investor-brief table {
         font-size: 0.85rem;
@@ -133,18 +127,155 @@
     mpr-footer {
       margin-top: auto;
     }
+    /* ========================================
+       PALETTE: Default Light (top-left quadrant)
+       ======================================== */
+    html[data-palette="default"][data-bs-theme="light"] {
+      --mpr-color-surface-primary: rgba(248, 250, 252, 0.95);
+      --mpr-color-surface-elevated: rgba(255, 255, 255, 0.98);
+      --mpr-color-text-primary: #0f172a;
+      --mpr-color-text-muted: #64748b;
+      --mpr-color-border: rgba(148, 163, 184, 0.35);
+      --mpr-color-accent: #1976d2;
+      --mpr-chip-bg: rgba(25, 118, 210, 0.12);
+      --mpr-shadow-elevated: 0 18px 36px rgba(15, 23, 42, 0.18);
+    }
+
+    /* ========================================
+       PALETTE: Warm Light (top-right quadrant)
+       Orange/sunrise tones
+       ======================================== */
+    html[data-palette="warm"][data-bs-theme="light"] {
+      --bs-body-bg: #fffaf5;
+      --bs-body-color: #7c2d12;
+      --bs-primary: #ea580c;
+      --bs-primary-rgb: 234, 88, 12;
+      --bs-secondary-color: #9a3412;
+      --bs-tertiary-bg: #fff7ed;
+      --bs-border-color: rgba(251, 146, 60, 0.35);
+      --bs-link-color: #ea580c;
+      --bs-link-hover-color: #c2410c;
+      --mpr-color-surface-primary: rgba(255, 247, 237, 0.95);
+      --mpr-color-surface-elevated: rgba(255, 251, 245, 0.98);
+      --mpr-color-text-primary: #7c2d12;
+      --mpr-color-text-muted: #9a3412;
+      --mpr-color-border: rgba(251, 146, 60, 0.4);
+      --mpr-color-accent: #ea580c;
+      --mpr-chip-bg: rgba(251, 146, 60, 0.18);
+      --mpr-shadow-elevated: 0 18px 36px rgba(124, 45, 18, 0.15);
+    }
+    html[data-palette="warm"][data-bs-theme="light"] .investor-brief {
+      background: linear-gradient(180deg, #fffaf5 0%, #fff7ed 100%);
+    }
+    html[data-palette="warm"][data-bs-theme="light"] .investor-brief th {
+      background: #ea580c;
+    }
+    html[data-palette="warm"][data-bs-theme="light"] .investor-brief h2 {
+      border-bottom-color: #ea580c;
+    }
+    html[data-palette="warm"][data-bs-theme="light"] .investor-brief strong {
+      color: #c2410c;
+    }
+    html[data-palette="warm"][data-bs-theme="light"] .investor-brief .highlight {
+      background: rgba(254, 215, 170, 0.4);
+      border-left-color: #ea580c;
+    }
+    html[data-palette="warm"][data-bs-theme="light"] .investor-brief tr:hover td {
+      background: rgba(254, 215, 170, 0.3);
+    }
+
+    /* ========================================
+       PALETTE: Default Dark (bottom-left quadrant)
+       ======================================== */
+    html[data-palette="default"][data-bs-theme="dark"] {
+      --mpr-color-surface-primary: rgba(15, 23, 42, 0.88);
+      --mpr-color-surface-elevated: rgba(30, 41, 59, 0.92);
+      --mpr-color-text-primary: #e2e8f0;
+      --mpr-color-text-muted: #94a3b8;
+      --mpr-color-border: rgba(148, 163, 184, 0.25);
+      --mpr-color-accent: #38bdf8;
+      --mpr-chip-bg: rgba(56, 189, 248, 0.15);
+      --mpr-shadow-elevated: 0 25px 50px rgba(2, 6, 23, 0.55);
+    }
+
+    /* ========================================
+       PALETTE: Cool Dark (bottom-right quadrant)
+       Deep navy/ocean tones
+       ======================================== */
+    html[data-palette="cool"][data-bs-theme="dark"] {
+      --bs-body-bg: #0a1929;
+      --bs-body-color: #b3e5fc;
+      --bs-primary: #29b6f6;
+      --bs-primary-rgb: 41, 182, 246;
+      --bs-secondary-color: #81d4fa;
+      --bs-tertiary-bg: #0d2137;
+      --bs-border-color: rgba(41, 182, 246, 0.25);
+      --bs-link-color: #4fc3f7;
+      --bs-link-hover-color: #81d4fa;
+      --mpr-color-surface-primary: rgba(10, 25, 41, 0.95);
+      --mpr-color-surface-elevated: rgba(13, 33, 55, 0.98);
+      --mpr-color-text-primary: #e1f5fe;
+      --mpr-color-text-muted: #81d4fa;
+      --mpr-color-border: rgba(41, 182, 246, 0.3);
+      --mpr-color-accent: #29b6f6;
+      --mpr-chip-bg: rgba(41, 182, 246, 0.18);
+      --mpr-shadow-elevated: 0 25px 50px rgba(2, 10, 20, 0.6);
+    }
+    html[data-palette="cool"][data-bs-theme="dark"] .investor-brief {
+      background: linear-gradient(180deg, #0a1929 0%, #0d2137 100%);
+    }
+    html[data-palette="cool"][data-bs-theme="dark"] .investor-brief th {
+      background: #0277bd;
+    }
+    html[data-palette="cool"][data-bs-theme="dark"] .investor-brief h2 {
+      color: #4fc3f7;
+      border-bottom-color: #29b6f6;
+    }
+    html[data-palette="cool"][data-bs-theme="dark"] .investor-brief strong {
+      color: #4fc3f7;
+    }
+    html[data-palette="cool"][data-bs-theme="dark"] .investor-brief .highlight {
+      background: rgba(41, 182, 246, 0.12);
+      border-left-color: #29b6f6;
+    }
+    html[data-palette="cool"][data-bs-theme="dark"] .investor-brief td {
+      border-bottom-color: rgba(41, 182, 246, 0.2);
+    }
+    html[data-palette="cool"][data-bs-theme="dark"] .investor-brief tr:hover td {
+      background: rgba(41, 182, 246, 0.08);
+    }
+    html[data-palette="cool"][data-bs-theme="dark"] .investor-brief a {
+      color: #4fc3f7;
+    }
+    html[data-palette="cool"][data-bs-theme="dark"] .investor-brief a:hover {
+      color: #81d4fa;
+    }
+
+    /* Quadrant preview colors for the square switcher */
+    mpr-footer {
+      --mpr-theme-square-quad-0: #f8fafc;
+      --mpr-theme-square-quad-1: #fff7ed;
+      --mpr-theme-square-quad-2: #1e293b;
+      --mpr-theme-square-quad-3: #0a1929;
+    }
   </style>
 </head>
 
 <body>
   <div class="page-container">
-  <main class="investor-brief">
-    <a href="/" class="back-link text-primary">
+  <mpr-header
+    id="investor-header"
+    sticky="true"
+    size="small"
+  >
+    <a slot="brand" href="/" class="back-link text-primary" style="display: inline-flex; align-items: center; gap: 0.35rem; text-decoration: none; font-size: 0.9rem;">
       <span class="material-icons-outlined" style="font-size: 1.1rem;">arrow_back</span>
       Back to Prompt Bubbles
     </a>
+  </mpr-header>
 
-    <h1>Prompt Bubbles</h1>
+  <main class="investor-brief">
+    <h1>Prompt Bubbles: Executive Brief</h1>
     <p class="subtitle">The Universal Marketplace for AI Prompts—Text, Image, Video, Audio, Code, and Beyond</p>
     <p><strong>Marco Polo Research Lab</strong></p>
 
@@ -443,17 +574,28 @@
       "links": [
         { "label": "Prompt Bubbles", "url": "https://prompts.mprlab.com" },
         { "label": "Poodle Scanner", "url": "https://poodlescanner.com" },
-        { "label": "LoopAware", "url": "https://loopaware.mprlab.com" }
+        { "label": "LoopAware", "url": "https://loopaware.mprlab.com" },
+        { "label": "Allergy Wheel", "url": "https://allergy.mprlab.com" },
+        { "label": "Social Threader", "url": "https://threader.mprlab.com" },
+        { "label": "RSVP", "url": "https://rsvp.mprlab.com" },
+        { "label": "Countdown Calendar", "url": "https://countdown.mprlab.com" },
+        { "label": "LLM Crossword", "url": "https://llm-crossword.mprlab.com" },
+        { "label": "Wallpapers", "url": "https://wallpapers.mprlab.com" }
       ]
     }'
-    theme-switcher="toggle"
+    theme-switcher="square"
     theme-config='{
       "attribute": "data-bs-theme",
       "targets": ["html"],
-      "initialMode": "light",
-      "modes": ["light", "dark"]
+      "initialMode": "warm-light",
+      "modes": [
+        { "value": "default-light", "attributeValue": "light", "dataset": { "data-palette": "default" } },
+        { "value": "warm-light", "attributeValue": "light", "dataset": { "data-palette": "warm" } },
+        { "value": "default-dark", "attributeValue": "dark", "dataset": { "data-palette": "default" } },
+        { "value": "cool-dark", "attributeValue": "dark", "dataset": { "data-palette": "cool" } }
+      ]
     }'
-    sticky="false"
+    sticky="true"
   ></mpr-footer>
   </div>
 </body>

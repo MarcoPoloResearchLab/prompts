@@ -27,6 +27,7 @@ services:
       - ./data:/app/data:ro
       - ./assets:/app/assets:ro
       - ./privacy:/app/privacy:ro
+      - ./investors:/app/investors:ro
       - /media/share/Drive/exchange/certs/computercat/computercat-cert.pem:/certs/cert.pem:ro
       - /media/share/Drive/exchange/certs/computercat/computercat-key.pem:/certs/key.pem:ro
     restart: unless-stopped
