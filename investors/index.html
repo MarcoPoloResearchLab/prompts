@@ -101,9 +101,60 @@
       color: var(--bs-secondary);
       margin-top: 2rem;
     }
-    /* Header back link hover */
-    mpr-header .back-link:hover {
+    /* Table of Contents */
+    .investor-brief .toc {
+      margin: 1.5rem 0 2rem;
+      border: 1px solid var(--bs-border-color);
+      border-radius: 0.5rem;
+      background: var(--bs-tertiary-bg);
+    }
+    .investor-brief .toc summary {
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--bs-primary);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .investor-brief .toc summary::-webkit-details-marker {
+      display: none;
+    }
+    .investor-brief .toc summary::before {
+      content: "▶";
+      font-size: 0.7rem;
+      transition: transform 0.2s ease;
+    }
+    .investor-brief .toc[open] summary::before {
+      transform: rotate(90deg);
+    }
+    .investor-brief .toc-nav {
+      padding: 0 1rem 1rem;
+    }
+    .investor-brief .toc-nav ol {
+      margin: 0;
+      padding-left: 1.5rem;
+      columns: 2;
+      column-gap: 2rem;
+    }
+    .investor-brief .toc-nav li {
+      margin-bottom: 0.35rem;
+      break-inside: avoid;
+    }
+    .investor-brief .toc-nav a {
+      color: var(--bs-body-color);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .investor-brief .toc-nav a:hover {
+      color: var(--bs-primary);
       text-decoration: underline;
+    }
+    @media (max-width: 600px) {
+      .investor-brief .toc-nav ol {
+        columns: 1;
+      }
     }
     @media (max-width: 768px) {
       .investor-brief h1 {
@@ -124,23 +175,6 @@
     .page-container > main {
       flex: 1;
     }
-    mpr-footer {
-      margin-top: auto;
-    }
-    /* ========================================
-       PALETTE: Default Light (top-left quadrant)
-       ======================================== */
-    html[data-palette="default"][data-bs-theme="light"] {
-      --mpr-color-surface-primary: rgba(248, 250, 252, 0.95);
-      --mpr-color-surface-elevated: rgba(255, 255, 255, 0.98);
-      --mpr-color-text-primary: #0f172a;
-      --mpr-color-text-muted: #64748b;
-      --mpr-color-border: rgba(148, 163, 184, 0.35);
-      --mpr-color-accent: #1976d2;
-      --mpr-chip-bg: rgba(25, 118, 210, 0.12);
-      --mpr-shadow-elevated: 0 18px 36px rgba(15, 23, 42, 0.18);
-    }
-
     /* ========================================
        PALETTE: Warm Light (top-right quadrant)
        Orange/sunrise tones
@@ -155,14 +189,6 @@
       --bs-border-color: rgba(251, 146, 60, 0.35);
       --bs-link-color: #ea580c;
       --bs-link-hover-color: #c2410c;
-      --mpr-color-surface-primary: rgba(255, 247, 237, 0.95);
-      --mpr-color-surface-elevated: rgba(255, 251, 245, 0.98);
-      --mpr-color-text-primary: #7c2d12;
-      --mpr-color-text-muted: #9a3412;
-      --mpr-color-border: rgba(251, 146, 60, 0.4);
-      --mpr-color-accent: #ea580c;
-      --mpr-chip-bg: rgba(251, 146, 60, 0.18);
-      --mpr-shadow-elevated: 0 18px 36px rgba(124, 45, 18, 0.15);
     }
     html[data-palette="warm"][data-bs-theme="light"] .investor-brief {
       background: linear-gradient(180deg, #fffaf5 0%, #fff7ed 100%);
@@ -185,20 +211,6 @@
     }
 
     /* ========================================
-       PALETTE: Default Dark (bottom-left quadrant)
-       ======================================== */
-    html[data-palette="default"][data-bs-theme="dark"] {
-      --mpr-color-surface-primary: rgba(15, 23, 42, 0.88);
-      --mpr-color-surface-elevated: rgba(30, 41, 59, 0.92);
-      --mpr-color-text-primary: #e2e8f0;
-      --mpr-color-text-muted: #94a3b8;
-      --mpr-color-border: rgba(148, 163, 184, 0.25);
-      --mpr-color-accent: #38bdf8;
-      --mpr-chip-bg: rgba(56, 189, 248, 0.15);
-      --mpr-shadow-elevated: 0 25px 50px rgba(2, 6, 23, 0.55);
-    }
-
-    /* ========================================
        PALETTE: Cool Dark (bottom-right quadrant)
        Deep navy/ocean tones
        ======================================== */
@@ -212,14 +224,6 @@
       --bs-border-color: rgba(41, 182, 246, 0.25);
       --bs-link-color: #4fc3f7;
       --bs-link-hover-color: #81d4fa;
-      --mpr-color-surface-primary: rgba(10, 25, 41, 0.95);
-      --mpr-color-surface-elevated: rgba(13, 33, 55, 0.98);
-      --mpr-color-text-primary: #e1f5fe;
-      --mpr-color-text-muted: #81d4fa;
-      --mpr-color-border: rgba(41, 182, 246, 0.3);
-      --mpr-color-accent: #29b6f6;
-      --mpr-chip-bg: rgba(41, 182, 246, 0.18);
-      --mpr-shadow-elevated: 0 25px 50px rgba(2, 10, 20, 0.6);
     }
     html[data-palette="cool"][data-bs-theme="dark"] .investor-brief {
       background: linear-gradient(180deg, #0a1929 0%, #0d2137 100%);
@@ -250,14 +254,6 @@
     html[data-palette="cool"][data-bs-theme="dark"] .investor-brief a:hover {
       color: #81d4fa;
     }
-
-    /* Quadrant preview colors for the square switcher */
-    mpr-footer {
-      --mpr-theme-square-quad-0: #f8fafc;
-      --mpr-theme-square-quad-1: #fff7ed;
-      --mpr-theme-square-quad-2: #1e293b;
-      --mpr-theme-square-quad-3: #0a1929;
-    }
   </style>
 </head>
 
@@ -277,11 +273,35 @@
   <main class="investor-brief">
     <h1>Prompt Bubbles: Executive Brief</h1>
     <p class="subtitle">The Universal Marketplace for AI Prompts—Text, Image, Video, Audio, Code, and Beyond</p>
-    <p><strong>Marco Polo Research Lab</strong></p>
+
+    <details class="toc" open>
+      <summary>Table of Contents</summary>
+      <nav class="toc-nav">
+        <ol>
+          <li><a href="#opportunity">The Opportunity</a></li>
+          <li><a href="#vision">The Vision: A Two-Sided Prompt Marketplace</a></li>
+          <li><a href="#why-marketplace">Why a Marketplace Wins</a></li>
+          <li><a href="#timing">Market Timing</a></li>
+          <li><a href="#beyond-text">Beyond Text: The Full Spectrum of Generative AI</a></li>
+          <li><a href="#categories">Platform Categories</a></li>
+          <li><a href="#business-model">Business Model</a></li>
+          <li><a href="#validation">Market Size &amp; Validation</a></li>
+          <li><a href="#competition">Competitive Landscape</a></li>
+          <li><a href="#why-we-win">Why Prompt Bubbles Wins</a></li>
+          <li><a href="#roadmap">Roadmap to Marketplace</a></li>
+          <li><a href="#advantages">Why We Win</a></li>
+          <li><a href="#market-size">Market Size</a></li>
+          <li><a href="#team">Team</a></li>
+          <li><a href="#ask">The Ask</a></li>
+          <li><a href="#thesis">Investment Thesis</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ol>
+      </nav>
+    </details>
 
     <hr>
 
-    <h2>The Opportunity</h2>
+    <h2 id="opportunity">The Opportunity</h2>
     <p>AI assistants are now core productivity tools for hundreds of millions of knowledge workers. But there's a hidden bottleneck: <strong>the prompt</strong>. Users spend significant time crafting, refining, and re-inventing prompts—often with inconsistent results. Meanwhile, prompt creators have no scalable way to monetize their expertise.</p>
 
     <table>
@@ -298,7 +318,7 @@
 
     <p class="highlight">Prompt Bubbles is building the marketplace that connects prompt creators with prompt consumers.</p>
 
-    <h2>The Vision: A Two-Sided Prompt Marketplace</h2>
+    <h2 id="vision">The Vision: A Two-Sided Prompt Marketplace</h2>
     <table>
       <thead>
         <tr><th>For Consumers</th><th>For Creators</th></tr>
@@ -314,7 +334,7 @@
 
     <p class="highlight">Think Gumroad meets GitHub for the AI-native workforce.</p>
 
-    <h2>Why a Marketplace Wins</h2>
+    <h2 id="why-marketplace">Why a Marketplace Wins</h2>
     <table>
       <thead>
         <tr><th>Model</th><th>Limitation</th></tr>
@@ -335,7 +355,7 @@
       <li>Enterprise features (B2B revenue)</li>
     </ul>
 
-    <h2>Market Timing</h2>
+    <h2 id="timing">Market Timing</h2>
     <table>
       <thead>
         <tr><th>Signal</th><th>What It Means</th></tr>
@@ -351,7 +371,7 @@
 
     <p class="highlight">We're at the "Etsy 2008" moment for AI prompts—early, but the category is inevitable.</p>
 
-    <h2>Beyond Text: The Full Spectrum of Generative AI</h2>
+    <h2 id="beyond-text">Beyond Text: The Full Spectrum of Generative AI</h2>
     <p>AI is no longer just chatbots. A new generation of tools generates images, video, music, voice, code, and 3D assets—each with its own prompting language and best practices. Most users struggle to unlock these capabilities because <strong>prompting varies dramatically across modalities</strong>.</p>
 
     <p>Prompt Bubbles is building a <strong>unified marketplace that spans the entire generative AI landscape</strong>:</p>
@@ -379,7 +399,7 @@
       <li><strong>Future-proof</strong> as new modalities emerge (AI agents, robotics, scientific modeling)</li>
     </ul>
 
-    <h2>Platform Categories</h2>
+    <h2 id="categories">Platform Categories</h2>
     <table>
       <thead>
         <tr><th>Domain</th><th>Use Cases Across Modalities</th></tr>
@@ -398,7 +418,7 @@
 
     <p class="highlight">Every profession. Every modality. Every AI model. Every language.</p>
 
-    <h2>Business Model</h2>
+    <h2 id="business-model">Business Model</h2>
     <table>
       <thead>
         <tr><th>Revenue Stream</th><th>Description</th><th>Potential</th></tr>
@@ -414,7 +434,7 @@
 
     <p class="highlight">Marketplace economics with SaaS retention.</p>
 
-    <h2>Market Size & Validation</h2>
+    <h2 id="validation">Market Size & Validation</h2>
     <table>
       <thead>
         <tr><th>Metric</th><th>Value</th></tr>
@@ -430,7 +450,7 @@
 
     <p class="highlight">The market is validated, growing rapidly, and fragmented—no dominant player has emerged.</p>
 
-    <h2>Competitive Landscape</h2>
+    <h2 id="competition">Competitive Landscape</h2>
     <table>
       <thead>
         <tr><th>Platform</th><th>Model</th><th>Strengths</th><th>Critical Gap</th></tr>
@@ -445,7 +465,7 @@
 
     <p><strong>Key insight:</strong> Etsy banned AI prompt sales in July 2024—displacing thousands of active sellers who need a new home.</p>
 
-    <h2>Why Prompt Bubbles Wins</h2>
+    <h2 id="why-we-win">Why Prompt Bubbles Wins</h2>
     <table>
       <thead>
         <tr><th>Market Gap</th><th>Our Solution</th></tr>
@@ -461,7 +481,7 @@
 
     <p class="highlight">Prompt Bubbles = the vertical marketplace AI users actually need.</p>
 
-    <h2>Roadmap to Marketplace</h2>
+    <h2 id="roadmap">Roadmap to Marketplace</h2>
     <table>
       <thead>
         <tr><th>Phase</th><th>Focus</th><th>Milestone</th></tr>
@@ -475,7 +495,7 @@
       </tbody>
     </table>
 
-    <h2>Why We Win</h2>
+    <h2 id="advantages">Why We Win</h2>
     <table>
       <thead>
         <tr><th>Advantage</th><th>Defensibility</th></tr>
@@ -489,7 +509,7 @@
       </tbody>
     </table>
 
-    <h2>Market Size</h2>
+    <h2 id="market-size">Market Size</h2>
     <table>
       <thead>
         <tr><th>Segment</th><th style="text-align:right;">Size</th></tr>
@@ -506,7 +526,7 @@
 
     <p class="highlight">By spanning all generative modalities, Prompt Bubbles addresses the full $200B+ generative AI market—not just text.</p>
 
-    <h2>Team</h2>
+    <h2 id="team">Team</h2>
     <p><strong>Marco Polo Research Lab</strong> — Full-stack product studio shipping across AI, productivity, and consumer software.</p>
     <ul>
       <li>Production-grade engineering (Go, TypeScript, cloud-native)</li>
@@ -515,7 +535,7 @@
       <li>Shared infrastructure across 10-product portfolio</li>
     </ul>
 
-    <h2>The Ask</h2>
+    <h2 id="ask">The Ask</h2>
     <table>
       <thead>
         <tr><th>What We Need</th><th>How It Helps</th></tr>
@@ -541,7 +561,7 @@
       </tbody>
     </table>
 
-    <h2>Investment Thesis</h2>
+    <h2 id="thesis">Investment Thesis</h2>
     <ol>
       <li><strong>AI usage is exploding</strong> — prompts are the new "search queries"</li>
       <li><strong>Quality prompts have real value</strong> — but no efficient market exists</li>
@@ -555,7 +575,7 @@
 
     <hr>
 
-    <h2>Contact</h2>
+    <h2 id="contact">Contact</h2>
     <p><strong>Marco Polo Research Lab</strong><br>
     <a href="https://prompts.mprlab.com">prompts.mprlab.com</a> | <a href="mailto:support@mprlab.com">support@mprlab.com</a></p>
 
@@ -567,10 +587,11 @@
 
   <mpr-footer
     id="page-footer"
-    prefix-text="Marco Polo Research Lab"
+    privacy-link-label="Privacy"
+    privacy-modal-content="&lt;p&gt;This page does not collect personal data. For questions, contact &lt;a href='mailto:support@mprlab.com'&gt;support@mprlab.com&lt;/a&gt;.&lt;/p&gt;"
     links-collection='{
       "style": "drop-up",
-      "text": "Our Products",
+      "text": "Built by Marco Polo Research Lab",
       "links": [
         { "label": "Prompt Bubbles", "url": "https://prompts.mprlab.com" },
         { "label": "Poodle Scanner", "url": "https://poodlescanner.com" },
