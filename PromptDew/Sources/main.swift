@@ -1,22 +1,83 @@
 import AppKit
 import Carbon.HIToolbox
 
+protocol ApplicationControlling {
+    @discardableResult
+    func setActivationPolicy(_ policy: NSApplication.ActivationPolicy) -> Bool
+    func activate(ignoringOtherApps flag: Bool)
+    func terminate()
+}
+
+struct SystemApplicationController: ApplicationControlling {
+    private let application: NSApplication
+    private let terminator: () -> Void
+
+    init(application: NSApplication = NSApplication.shared,
+         terminator: (() -> Void)? = nil) {
+        self.application = application
+        if let terminator {
+            self.terminator = terminator
+        } else {
+            self.terminator = { application.terminate(nil) }
+        }
+    }
+
+    @discardableResult
+    func setActivationPolicy(_ policy: NSApplication.ActivationPolicy) -> Bool {
+        application.setActivationPolicy(policy)
+    }
+
+    func activate(ignoringOtherApps flag: Bool) {
+        application.activate(ignoringOtherApps: flag)
+    }
+
+    func terminate() {
+        terminator()
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let snippetStore: SnippetStore
+    private let accessibilityService: AccessibilityProviding
+    private let keyTyper: KeyTyping
+    private let notificationCenter: NotificationCenter
+    private let statusItemFactory: () -> NSStatusItem
+    private let application: ApplicationControlling
+    private let preferencesFactory: (SnippetStore) -> PreferencesWindowController
     private var statusItem: NSStatusItem?
     private var preferencesWindow: PreferencesWindowController?
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.regular)
-        buildStatusMenu()
-        NSApp.activate(ignoringOtherApps: true)
-
-        // Rebuild on snippet updates
-        NotificationCenter.default.addObserver(self, selector: #selector(rebuildStatusMenu),
-                                               name: SnippetStore.snippetsChangedNotification, object: nil)
+    init(snippetStore: SnippetStore = .shared,
+         accessibilityService: AccessibilityProviding = SystemAccessibilityService(),
+         keyTyper: KeyTyping = SystemKeyTyper(),
+         notificationCenter: NotificationCenter = .default,
+         statusItemFactory: @escaping () -> NSStatusItem = {
+             NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+         },
+         application: ApplicationControlling = SystemApplicationController(),
+         preferencesFactory: @escaping (SnippetStore) -> PreferencesWindowController = {
+             PreferencesWindowController(snippetStore: $0)
+         }) {
+        self.snippetStore = snippetStore
+        self.accessibilityService = accessibilityService
+        self.keyTyper = keyTyper
+        self.notificationCenter = notificationCenter
+        self.statusItemFactory = statusItemFactory
+        self.application = application
+        self.preferencesFactory = preferencesFactory
     }
 
-    private func buildStatusMenu() {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        application.setActivationPolicy(.regular)
+        buildStatusMenu()
+        application.activate(ignoringOtherApps: true)
+
+        notificationCenter.addObserver(self, selector: #selector(rebuildStatusMenu),
+                                       name: SnippetStore.snippetsChangedNotification, object: nil)
+    }
+
+    func buildStatusMenu() {
+        let item = statusItemFactory()
         if let btn = item.button {
             btn.title = "🫧"
             btn.toolTip = "PromptDew"
@@ -25,7 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = item
     }
 
-    private func makeMenu() -> NSMenu {
+    func makeMenu() -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
 
@@ -39,15 +100,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
 
         // Dynamic snippet items
-        let snippets = SnippetStore.shared.load()
+        let snippets = snippetStore.load()
         if snippets.isEmpty {
             let empty = NSMenuItem(title: "No snippets (open Preferences…)", action: nil, keyEquivalent: "")
             empty.isEnabled = false
             menu.addItem(empty)
         } else {
             for snippet in snippets {
-                let title = "Insert: " + snippet.title
-                let item = NSMenuItem(title: title, action: #selector(insertSnippet(_:)), keyEquivalent: "")
+                let item = NSMenuItem(title: snippet.title, action: #selector(insertSnippet(_:)), keyEquivalent: "")
                 item.representedObject = snippet.text
                 item.target = self
                 item.isEnabled = true
@@ -70,35 +130,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return menu
     }
 
-    @objc private func rebuildStatusMenu() {
+    @objc func rebuildStatusMenu() {
         statusItem?.menu = makeMenu()
     }
 
-    @objc private func requestAccessibility() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
+    @objc func requestAccessibility() {
+        _ = accessibilityService.requestAccessWithPrompt()
     }
 
-    @objc private func insertSnippet(_ sender: NSMenuItem) {
-        guard AXIsProcessTrusted() else {
-            requestAccessibility()
+    @objc func insertSnippet(_ sender: NSMenuItem) {
+        guard accessibilityService.isTrusted() else {
+            _ = accessibilityService.requestAccessWithPrompt()
             return
         }
         guard let text = sender.representedObject as? String else { return }
-        KeyTyper.type(text: text)
+        keyTyper.type(text: text)
     }
 
-    @objc private func openPreferences() {
+    @objc func openPreferences() {
         if preferencesWindow == nil {
-            preferencesWindow = PreferencesWindowController()
+            preferencesWindow = preferencesFactory(snippetStore)
         }
         preferencesWindow?.show()
-        NSApp.activate(ignoringOtherApps: true)
+        application.activate(ignoringOtherApps: true)
     }
 
-    @objc private func quitApp() {
-        NSApp.terminate(nil)
+    @objc func quitApp() {
+        application.terminate()
     }
+
+    func currentMenu() -> NSMenu? { statusItem?.menu }
+    func statusItemHandle() -> NSStatusItem? { statusItem }
 }
 
 let app = NSApplication.shared
