@@ -33,7 +33,6 @@ export const FOOTER_PROJECTS = Object.freeze([
 export const STRINGS = Object.freeze({
   appTitle: "Prompt Bubbles",
   brandTagline: "Built for instant prompt workflows.",
-  subtitle: "A visually stunning, zero-backend gallery of copy-ready prompts.",
   searchPlaceholder: "Search prompts (title, text, tags)…",
   searchAriaLabel: "Search prompts",
   noMatches: "No prompts match your search",
